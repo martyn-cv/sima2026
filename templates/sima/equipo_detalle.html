@@ -1,0 +1,18 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>{{ equipo.nombre_habitual }}</h1>
+<div class="card">{{ equipo.ubicacion }} · código {{ equipo.codigo }}<br>{{ equipo.marca }} {{ equipo.modelo }}<br>
+Estado: {{ equipo.get_estado_display }} · Criticidad: {{ equipo.get_criticidad_display }}</div>
+{% if user.rol == "operador" %}
+<a class="btn alerta" href="{% url 'aviso_nuevo' %}">Avisar una falla</a>
+{% else %}
+{% if equipo.manual %}<a class="btn" href="{{ equipo.manual.url }}" target="_blank">Manual</a>{% else %}<p class="tag">Sin manual disponible</p>
+<form method="post" action="{% url 'equipo_manual' equipo.pk %}" enctype="multipart/form-data" class="card">{% csrf_token %}{{ manual_form.manual }}<p><button class="btn sec">Cargar manual</button></p></form>{% endif %}
+<h2>Últimas 5 intervenciones</h2>
+{% for ot in historial %}<div class="card"><b>{{ ot.creada|date:"d/m/Y" }}</b> · {{ ot.numero }} <span class="tag">{{ ot.get_estado_display }}</span><br>
+Falla: {{ ot.titulo }}<br>Acción: {% with ult=ot.bitacora.last %}{% if ult %}{{ ult.texto }}{% else %}<span class="muted">sin registros</span>{% endif %}{% endwith %}<br>
+Repuestos usados: {% for u in ot.usados %}{{ u.repuesto.nombre }} × {{ u.cantidad }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">ninguno</span>{% endfor %}</div>
+{% empty %}<p class="tag">Sin historial registrado</p>{% endfor %}
+{% if notas %}<h2>Notas</h2>{% for n in notas %}<div class="card"><b>{{ n.titulo }}</b><br>{{ n.texto }}</div>{% endfor %}{% endif %}
+<a class="btn sec" href="{% url 'nota_nueva' %}?equipo={{ equipo.pk }}">Agregar nota</a>
+{% endif %}
+{% endblock %}

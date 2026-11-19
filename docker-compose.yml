@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sima}
+      POSTGRES_USER: ${POSTGRES_USER:-sima}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sima_pass}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sima} -d ${POSTGRES_DB:-sima}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      MEDIA_ROOT: /data/media
+    ports:
+      - "8000:8000"
+    volumes:
+      - media:/data/media
+
+volumes:
+  pgdata:
+  media:

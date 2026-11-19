@@ -1,0 +1,10 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>Avisos de falla</h1>
+{% for a in avisos %}<div class="card"><b>{{ a.equipo.nombre_habitual }}</b> <span class="muted">{{ a.equipo.ubicacion }}</span>
+{% if a.detiene_linea %}<span class="tag rojo">Detiene la línea</span>{% endif %} <span class="tag">{{ a.get_estado_display }}</span><br>
+{{ a.descripcion }}<br><span class="muted">{{ a.operador.get_rol_display }} · {{ a.creado|date:"d/m H:i" }}</span>
+{% if a.foto %}<br><a href="{{ a.foto.url }}" target="_blank">Ver foto</a>{% endif %}
+{% if a.orden %}<br><a href="{% url 'ot_detalle' a.orden.pk %}">{{ a.orden.numero }}</a>{% endif %}
+{% if a.estado == "enviado" and user.rol == "tecnico" %}<form method="post" action="{% url 'aviso_tomar' a.pk %}">{% csrf_token %}<button class="btn ok">Tomar aviso</button></form>{% endif %}</div>
+{% empty %}<p>No hay avisos.</p>{% endfor %}
+{% endblock %}

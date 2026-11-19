@@ -1,0 +1,6 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>{{ titulo }}</h1>
+<form method="post" class="card" {% if multipart %}enctype="multipart/form-data"{% endif %}>{% csrf_token %}{{ form.non_field_errors }}
+{% for c in form %}<label>{{ c.label }}{% if c.field.required %} *{% endif %}</label>{{ c }}{{ c.errors }}{% endfor %}
+<p><button class="btn">{{ boton }}</button></p></form>
+{% endblock %}

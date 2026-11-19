@@ -1,0 +1,14 @@
+{% load static %}<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMA{% block titulo %}{% endblock %}</title><link rel="stylesheet" href="{% static 'sima.css' %}"></head>
+<body>
+<header><span class="marca">SIMA</span>
+{% if user.is_authenticated %}{% for nombre, url in menu %}<a href="{% url url %}">{{ nombre }}</a>{% endfor %}
+<form method="post" action="{% url 'logout' %}" style="margin-left:auto">{% csrf_token %}<button>Salir ({{ user.get_rol_display }})</button></form>{% endif %}
+</header>
+<main>
+{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+{% block contenido %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}
+</body></html>

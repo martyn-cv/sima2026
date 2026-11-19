@@ -1,0 +1,10 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>Repuestos</h1>
+<form class="card"><input name="q" value="{{ q }}" placeholder="Buscar repuesto o código">
+<label>Bodega</label><select name="bodega"><option value="">Todas</option>{% for b in bodegas %}<option {% if b == bodega %}selected{% endif %}>{{ b }}</option>{% endfor %}</select>
+<label>Tipo</label><select name="tipo"><option value="">Todos</option>{% for t in tipos %}<option {% if t == tipo %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+<p><button class="btn">Filtrar</button> <a class="btn sec" href="{% url 'consumo' %}">Consumo por equipo</a></p></form>
+<table><tr><th>Repuesto</th><th>Bodega</th><th>Stock</th></tr>
+{% for r in repuestos %}<tr><td>{{ r.nombre }}<br><span class="muted">{{ r.codigo }} · {{ r.tipo }}</span></td><td>{{ r.bodega }}</td>
+<td>{{ r.stock }} {% if r.bajo_minimo %}<span class="tag rojo">bajo mínimo ({{ r.stock_minimo }})</span>{% endif %}</td></tr>{% endfor %}</table>
+{% endblock %}

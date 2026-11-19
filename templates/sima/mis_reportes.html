@@ -1,0 +1,7 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>Mis reportes</h1><a class="btn alerta" href="{% url 'aviso_nuevo' %}">Avisar una falla</a>
+{% for r in reportes %}<div class="card"><b>{{ r.equipo.nombre_habitual }}</b> · {{ r.creado|date:"d/m/Y H:i" }}<br>{{ r.descripcion }}<br>
+<span class="tag {% if r.estado == 'resuelto' %}verde{% elif r.estado == 'tomado' %}ambar{% endif %}">{{ r.get_estado_display }}</span>
+{% if r.tecnico %}<span class="muted">por {{ r.tecnico.get_rol_display }}</span>{% endif %}</div>
+{% empty %}<p>Aún no ha enviado reportes.</p>{% endfor %}
+{% endblock %}

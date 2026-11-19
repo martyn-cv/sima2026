@@ -1,0 +1,9 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>Informes</h1>
+{% if ind %}<div class="card"><h2>Indicadores</h2>OT abiertas: <b>{{ ind.ot_abiertas }}</b> · cerradas: <b>{{ ind.ot_cerradas }}</b> · repuestos bajo mínimo: <b>{{ ind.stock_bajo }}</b>
+<h2>Equipos con más fallas</h2>{% for n, c in ind.fallas %}<div>{{ n }}: {{ c }}</div>{% endfor %}
+<p><a class="btn sec" href="{% url 'consumo' %}">Consumo por equipo</a></p></div>
+<a class="btn ok" href="{% url 'informe_nuevo' %}">Nuevo informe</a>{% endif %}
+{% for i in informes %}<a class="card" style="display:block;color:inherit;text-decoration:none" href="{% url 'informe_detalle' i.pk %}"><b>{{ i.titulo }}</b>
+{% if i.compartido %}<span class="tag verde">Compartido</span>{% else %}<span class="tag">Privado</span>{% endif %}<br><span class="muted">{{ i.creado|date:"d/m/Y" }}</span></a>{% empty %}<p>Sin informes.</p>{% endfor %}
+{% endblock %}

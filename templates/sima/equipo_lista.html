@@ -1,0 +1,7 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>Equipos</h1>
+<form class="card"><input name="q" value="{{ q }}" placeholder="Buscar por nombre habitual, lugar o código"><p><button class="btn">Buscar</button></p></form>
+{% for e in equipos %}<a class="card" style="display:block;color:inherit;text-decoration:none" href="{% url 'equipo_detalle' e.pk %}">
+<b>{{ e.nombre_habitual }}</b> <span class="tag {{ e.criticidad }}">crit. {{ e.get_criticidad_display }}</span><br>
+<span class="muted">{{ e.ubicacion }} · {{ e.codigo }} · {{ e.get_estado_display }}</span></a>{% empty %}<p>Sin resultados.</p>{% endfor %}
+{% endblock %}

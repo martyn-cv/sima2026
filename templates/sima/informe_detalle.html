@@ -1,0 +1,5 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>{{ informe.titulo }}</h1><div class="card">{{ informe.contenido|linebreaksbr }}</div>
+{% if user.rol == "ingeniero" %}<form method="post" action="{% url 'informe_compartir' informe.pk %}">{% csrf_token %}
+<button class="btn">{% if informe.compartido %}Dejar privado{% else %}Compartir con los técnicos{% endif %}</button></form>{% endif %}
+{% endblock %}

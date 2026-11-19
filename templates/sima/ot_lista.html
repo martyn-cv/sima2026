@@ -1,0 +1,8 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>Órdenes de trabajo</h1>
+<p><a class="btn {% if filtro != 'abiertas' %}sec{% endif %}" href="?f=abiertas">Abiertas</a> <a class="btn {% if filtro != 'mias' %}sec{% endif %}" href="?f=mias">Mías</a>
+<a class="btn {% if filtro != 'cerradas' %}sec{% endif %}" href="?f=cerradas">Cerradas</a> <a class="btn ok" href="{% url 'ot_nueva' %}">Nueva</a></p>
+{% for ot in ordenes %}<a class="card" style="display:block;color:inherit;text-decoration:none" href="{% url 'ot_detalle' ot.pk %}">
+<b>{{ ot.numero }}</b> {{ ot.equipo.nombre_habitual }} <span class="tag {{ ot.prioridad }}">{{ ot.get_prioridad_display }}</span> <span class="tag">{{ ot.get_estado_display }}</span>
+{% if ot.sin_avance %}<span class="tag rojo">{{ ot.horas_sin_avance }} h sin avance</span>{% endif %}<br>{{ ot.titulo }}</a>{% empty %}<p>Sin órdenes.</p>{% endfor %}
+{% endblock %}

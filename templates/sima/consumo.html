@@ -1,0 +1,9 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>Consumo de repuestos por equipo</h1>
+<form class="card"><label>Desde</label><input type="date" name="desde" value="{{ desde|date:'Y-m-d' }}">
+<label>Hasta</label><input type="date" name="hasta" value="{{ hasta|date:'Y-m-d' }}"><p><button class="btn">Ver consumo</button></p></form>
+{% for e in equipos %}<div class="card"><h2>{{ e.equipo.nombre_habitual }} — ${{ e.total }}</h2><table>
+{% for r, c, t in e.filas %}<tr><td>{{ r.nombre }}</td><td>{{ c }} un.</td><td>${{ t }}</td></tr>{% endfor %}</table></div>
+{% empty %}<p class="muted">Sin consumo en ese período.</p>{% endfor %}
+{% if equipos %}<p><b>Total del período: ${{ total }}</b></p>{% endif %}
+{% endblock %}

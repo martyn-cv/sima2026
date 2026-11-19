@@ -1,0 +1,5 @@
+{% extends "sima/base.html" %}{% block contenido %}
+<h1>Notas y recomendaciones</h1><a class="btn ok" href="{% url 'nota_nueva' %}">Nueva</a>
+{% for n in notas %}<div class="card"><b>{{ n.titulo }}</b> <span class="tag">{{ n.get_tipo_display }}</span> {% if n.equipo %}<span class="muted">{{ n.equipo.nombre_habitual }}</span>{% endif %}<br>{{ n.texto|linebreaksbr }}<br>
+<span class="muted">{{ n.autor.get_rol_display }} · {{ n.creada|date:"d/m/Y" }}</span></div>{% empty %}<p>Sin notas.</p>{% endfor %}
+{% endblock %}
