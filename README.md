@@ -1,3 +1,5 @@
+> **Nueva versión:** en [`v2/`](v2/README.md) está SIMA v2 (planta en vivo, catálogo técnico y 64 cargos de los informes).
+
 # SIMA · Sistema de Información Manufacturero Andino (prototipo)
 
 Prototipo funcional para Manufacturas Andina S.A. con **tres sistemas** que comparten una misma API y una misma base de datos:
