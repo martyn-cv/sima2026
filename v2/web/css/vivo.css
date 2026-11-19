@@ -113,3 +113,7 @@ dialog.ficha { width: min(820px, 96vw); } dialog.ficha .cuerpo { padding: 26px; 
 .r2c { grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); }
 .cargo dl { grid-template-columns: 1fr; gap: 0; } .cargo dt { margin-top: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; } .cargo dd { margin-top: 2px; }
 @media (max-width: 960px) { .r2c { grid-template-columns: 1fr; } }
+
+/* mapa en columnas en monitores anchos y aviso emergente sobre las ventanas */
+@media (min-width: 1500px) { .planta-suelo { grid-template-columns: repeat(auto-fit, minmax(660px, 1fr)); align-items: start; } }
+body:has(dialog[open]) .toast { bottom: auto; top: 16px; z-index: 1000; }

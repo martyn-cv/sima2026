@@ -117,6 +117,7 @@ a.fila-it:active { background: var(--papel); } .fila-it:last-child { border-bott
 .hoja h2 { margin: 0 0 14px; font-size: 30px; } .hoja .pie { display: flex; gap: 10px; margin-top: 8px; } .hoja .pie .btn { flex: 1; }
 .toast { position: fixed; left: 16px; right: 16px; bottom: calc(var(--barra-inf) + 18px + var(--seguro-inf)); max-width: 460px; margin: 0 auto; background: var(--negro); color: #fff; padding: 14px 18px; border-radius: 14px; border-left: 6px solid var(--ok); z-index: 80; box-shadow: 0 10px 30px rgba(0,0,0,.4); animation: sube-toast .35s var(--resorte); }
 .toast.error { border-left-color: var(--rojo); }
+body:has(.hoja-fondo) .toast { bottom: auto; top: 16px; }
 .cargando { padding: 60px 0; text-align: center; color: var(--suave); }
 .esq { background: linear-gradient(100deg, #e6e8ee 30%, #f4f5f8 50%, #e6e8ee 70%) 0 0 / 220% 100%; animation: brillo 1.3s linear infinite; border-radius: 18px; }
 .esq.alto { height: 150px; } .esq.medio { height: 90px; } .esq.fila { height: 64px; border-radius: 12px; margin-top: 10px; }
@@ -214,7 +215,7 @@ a.fila-it:active { background: var(--papel); } .fila-it:last-child { border-bott
 /* ---------- pantalla ancha (PC y escritorio): la barra inferior pasa a ser lateral ---------- */
 @media (min-width: 900px) {
   .acceso { display: grid; grid-template-columns: 1.2fr 1fr; align-items: stretch; } .acceso .cab { padding: 64px 56px; align-self: center; } .acceso h1 { font-size: clamp(64px, 7vw, 110px); }
-  .acceso .maquinas-fondo { right: auto; left: 38%; top: auto; bottom: 40px; width: 360px; }
+  .acceso .maquinas-fondo { right: auto; left: 56px; top: auto; bottom: 36px; width: 300px; }
   .acceso form { max-width: none; border-radius: 0; display: flex; flex-direction: column; justify-content: center; padding: 56px max(40px, 6vw); }
   .app { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: auto auto 1fr; grid-template-areas: "lat cab" "lat red" "lat main"; }
   .nav-inf { position: sticky; grid-area: lat; top: 0; height: 100vh; flex-direction: column; justify-content: flex-start; align-items: stretch; border-radius: 0; padding: 18px 12px; gap: 4px; box-shadow: none; overflow-y: auto; }
@@ -227,6 +228,7 @@ a.fila-it:active { background: var(--papel); } .fila-it:last-child { border-bott
   .toast { bottom: 24px; left: auto; right: 24px; margin: 0; } .hoja-fondo { align-items: center; } .hoja { border-radius: 24px; }
   .dos-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; } .dos-col > * + * { margin-top: 0; }
   .fila-tiles { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  .planta-suelo { grid-template-columns: repeat(auto-fit, minmax(640px, 1fr)); align-items: start; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
