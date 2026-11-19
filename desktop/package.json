@@ -1,0 +1,35 @@
+{
+  "name": "sima-escritorio",
+  "version": "0.1.0",
+  "description": "SIMA Terreno para escritorio (Windows, macOS y Linux)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "empaquetar": "electron-builder"
+  },
+  "author": "Equipo SIMA",
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "cl.manuandina.sima",
+    "productName": "SIMA Terreno",
+    "files": [
+      "main.js",
+      "preload.js",
+      "sin-conexion.html"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  }
+}

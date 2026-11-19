@@ -1,0 +1,62 @@
+# SIMA completo: base PostgreSQL + API + web + app de terreno.
+#   web:  http://localhost:3000     app: http://localhost:3001     API: http://localhost:8000
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sima}
+      POSTGRES_USER: ${POSTGRES_USER:-sima}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sima_pass}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sima} -d ${POSTGRES_DB:-sima}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sima}
+      POSTGRES_USER: ${POSTGRES_USER:-sima}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sima_pass}
+      POSTGRES_HOST: db
+      MEDIA_ROOT: /data/media
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+    ports:
+      - "8000:8000"
+    volumes:
+      - media:/data/media
+
+  web:
+    image: python:3.12-slim
+    restart: unless-stopped
+    working_dir: /srv
+    volumes:
+      - ./:/srv:ro
+    command: python tools/serve.py web 3000
+    ports:
+      - "3000:3000"
+
+  app:
+    image: python:3.12-slim
+    restart: unless-stopped
+    working_dir: /srv
+    volumes:
+      - ./:/srv:ro
+    command: python tools/serve.py app 3001
+    ports:
+      - "3001:3001"
+
+volumes:
+  pgdata:
+  media:
