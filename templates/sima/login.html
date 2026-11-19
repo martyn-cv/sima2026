@@ -1,7 +1,0 @@
-{% extends "sima/base.html" %}{% block contenido %}
-<h1>Ingresar a SIMA</h1>
-<form method="post" class="card">{% csrf_token %}{{ form.non_field_errors }}
-{% for c in form %}<label>{{ c.label }}</label>{{ c }}{{ c.errors }}{% endfor %}
-<p><button class="btn">Ingresar</button></p>
-<p class="muted">Solo correos @manuandina.cl autorizados.</p></form>
-{% endblock %}

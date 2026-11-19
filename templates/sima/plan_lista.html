@@ -1,7 +1,0 @@
-{% extends "sima/base.html" %}{% block contenido %}
-<h1>Planificador</h1><a class="btn ok" href="{% url 'plan_nuevo' %}">Nuevo plan</a>
-{% for titulo, planes in grupos %}<h2>{{ titulo }}</h2>{% for p in planes %}<div class="card"><b>{{ p.titulo }}</b> <span class="tag">{{ p.get_tipo_display }}</span><br>
-<span class="muted">{{ p.fecha_inicio }} – {{ p.fecha_fin }}{% if p.equipo %} · {{ p.equipo.nombre_habitual }}{% endif %}</span><br>{{ p.descripcion }}
-<form method="post" action="{% url 'plan_estado' p.pk %}">{% csrf_token %}<select name="estado" onchange="this.form.submit()">{% for k, v in p.ESTADOS %}<option value="{{ k }}" {% if k == p.estado %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></form></div>
-{% empty %}<p class="muted">Nada aquí.</p>{% endfor %}{% endfor %}
-{% endblock %}
