@@ -295,6 +295,7 @@ public class OrdenTrabajo
     public string? CreadaPorId { get; set; }
     public bool Automatica { get; set; }
     public bool LotoConfirmado { get; set; }
+    public string? Uid { get; set; }                    // identificador del envío (idempotencia al reenviar sin conexión)
     public DateTime Creada { get; set; } = DateTime.UtcNow;
     public DateTime? Cerrada { get; set; }
     public string Codigo => $"OT-{Id:0000}";

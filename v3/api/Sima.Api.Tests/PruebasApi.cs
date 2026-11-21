@@ -316,4 +316,124 @@ public class PruebasApi(Fabrica f)
         var l = await (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo, clave = temporal, canal = "app" })).Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("clave", l.GetProperty("usuario").GetProperty("restringido").GetString());
     }
+
+    // ---------------------------------------------------------------------------------------- módulos de operación
+    static JsonElement Buscar(JsonElement lista, string campo, string valor) => lista.EnumerateArray().First(x => x.GetProperty(campo).GetString() == valor);
+
+    [Fact]
+    public async Task LasHerramientasConCalibracionVencidaNoSePuedenRetirar()
+    {
+        var op = await f.Entrar("operador", "Operador2026", "app");
+        var lista = await f.Leer(op, "/api/herramientas");
+        var micro = Buscar(lista, "nombre", "Micrómetro");
+        Assert.Equal("VENCIDA", micro.GetProperty("calibracion").GetString());
+        var r = await op.PostAsync($"/api/herramientas/{micro.GetProperty("id").GetInt32()}/retirar", null);
+        Assert.Equal(HttpStatusCode.Conflict, r.StatusCode);
+        Assert.Contains("calibración", await r.Content.ReadAsStringAsync());
+
+        var llaves = Buscar(lista, "nombre", "Llaves Allen y Torx").GetProperty("id").GetInt32();
+        Assert.Equal(HttpStatusCode.OK, (await op.PostAsync($"/api/herramientas/{llaves}/retirar", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await op.PostAsync($"/api/herramientas/{llaves}/retirar", null)).StatusCode);
+        var tec = await f.Entrar("tecnico", "Tecnico2026", "app");
+        Assert.Equal(HttpStatusCode.Forbidden, (await tec.PostAsync($"/api/herramientas/{llaves}/devolver", null)).StatusCode);   // solo quien la retiró o el pañol
+        Assert.Equal(HttpStatusCode.OK, (await op.PostAsync($"/api/herramientas/{llaves}/devolver", null)).StatusCode);
+
+        // instrumentación calibra y desde ese momento se puede retirar
+        var ins = await f.Entrar("instrumentacion", "Instrumentacion2026", "app");
+        Assert.Equal(HttpStatusCode.Forbidden, (await op.PostAsync($"/api/herramientas/{micro.GetProperty("id").GetInt32()}/calibrar", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ins.PostAsync($"/api/herramientas/{micro.GetProperty("id").GetInt32()}/calibrar", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await op.PostAsync($"/api/herramientas/{micro.GetProperty("id").GetInt32()}/retirar", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task ElStockDeRepuestosSeMuevePorPerfilYNoQuedaNegativo()
+    {
+        var tec = await f.Entrar("tecnico", "Tecnico2026", "app");
+        var rp = Buscar(await f.Leer(tec, "/api/repuestos"), "codigo", "RP-001");
+        var id = rp.GetProperty("id").GetInt32(); var stock = rp.GetProperty("stock").GetInt32();
+        var ok = await tec.PostAsJsonAsync($"/api/repuestos/{id}/movimiento", new { cantidad = -2, nota = "cambio de rodamiento" });
+        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+        Assert.Equal(stock - 2, (await ok.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("stock").GetInt32());
+        Assert.Equal(HttpStatusCode.Conflict, (await tec.PostAsJsonAsync($"/api/repuestos/{id}/movimiento", new { cantidad = -999 })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await tec.PostAsJsonAsync($"/api/repuestos/{id}/movimiento", new { cantidad = 5 })).StatusCode);      // ingresar es del pañol
+        var op = await f.Entrar("operador", "Operador2026", "app");
+        Assert.Equal(HttpStatusCode.Forbidden, (await op.PostAsJsonAsync($"/api/repuestos/{id}/movimiento", new { cantidad = -1 })).StatusCode);
+        var pan = await f.Entrar("panol", "Panol2026", "app");
+        Assert.Equal(HttpStatusCode.OK, (await pan.PostAsJsonAsync($"/api/repuestos/{id}/movimiento", new { cantidad = 2 })).StatusCode);
+        Assert.Equal(stock, Buscar(await f.Leer(pan, "/api/repuestos"), "codigo", "RP-001").GetProperty("stock").GetInt32());
+        Assert.Contains((await f.Leer(pan, "/api/repuestos")).EnumerateArray(), x => x.GetProperty("bajoMinimo").GetBoolean());
+    }
+
+    [Fact]
+    public async Task LogisticaCreaYAvanzaDespachosYLosDemasNoLosVen()
+    {
+        var log = await f.Entrar("logistica", "Logistica2026", "web");
+        var c = await log.PostAsJsonAsync("/api/despachos", new { destino = "Cliente Arica", carga = "Prueba, 1 pallet", vehiculo = "Camioneta", conductor = "Ana Vera", compromiso = DateTime.UtcNow.AddDays(2) });
+        Assert.Equal(HttpStatusCode.Created, c.StatusCode);
+        var id = (await c.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+        Assert.Equal("en_ruta", (await (await log.PostAsync($"/api/despachos/{id}/avanzar", null)).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("estado").GetString());
+        Assert.Equal("entregado", (await (await log.PostAsync($"/api/despachos/{id}/avanzar", null)).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("estado").GetString());
+        Assert.Equal(HttpStatusCode.Conflict, (await log.PostAsync($"/api/despachos/{id}/avanzar", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await (await f.Entrar("tecnico", "Tecnico2026", "app")).GetAsync("/api/despachos")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await (await f.Entrar("gerencia", "Gerencia2026", "web")).PostAsync($"/api/despachos/{id}/avanzar", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task UnaRutinaConHallazgosCreaUnaOrdenYElReenvioNoDuplica()
+    {
+        var op = await f.Entrar("operador", "Operador2026", "app");
+        var rut = await f.Leer(op, "/api/rutinas");
+        var turno = Buscar(rut.GetProperty("plantillas"), "frecuencia", "turno");
+        var items = turno.GetProperty("items").EnumerateArray().Select(x => x.GetString()!).ToList();
+        var cuerpo = new { uid = "prueba-rutina-1", equipo = "TC-01", observaciones = "", resultados = items.Select((t, i) => new { item = t, ok = i != 0, nota = i == 0 ? "ruido en el husillo" : null }).ToList() };
+        var r1 = await (await op.PostAsJsonAsync($"/api/rutinas/{turno.GetProperty("id").GetInt32()}/ejecutar", cuerpo)).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, r1.GetProperty("hallazgos").GetInt32());
+        Assert.StartsWith("OT-", r1.GetProperty("orden").GetString());
+        var r2 = await (await op.PostAsJsonAsync($"/api/rutinas/{turno.GetProperty("id").GetInt32()}/ejecutar", cuerpo)).Content.ReadFromJsonAsync<JsonElement>();   // mismo envío
+        Assert.True(r2.GetProperty("repetida").GetBoolean());
+        var fila = (await f.Leer(op, "/api/rutinas")).GetProperty("filas").EnumerateArray().First(x => x.GetProperty("equipo").GetString() == "TC-01" && x.GetProperty("frecuencia").GetString() == "turno");
+        Assert.False(fila.GetProperty("vencida").GetBoolean());
+        Assert.True(fila.GetProperty("ultima").GetProperty("conHallazgos").GetBoolean());
+        // la rutina trimestral es de personal autorizado
+        var trim = Buscar(rut.GetProperty("plantillas"), "frecuencia", "trimestral");
+        var malo = await op.PostAsJsonAsync($"/api/rutinas/{trim.GetProperty("id").GetInt32()}/ejecutar", new { equipo = "TC-01", resultados = new[] { new { item = "a", ok = true }, new { item = "b", ok = true } } });
+        Assert.Equal(HttpStatusCode.Forbidden, malo.StatusCode);
+        // un reporte con lista incompleta se rechaza
+        Assert.Equal(HttpStatusCode.BadRequest, (await op.PostAsJsonAsync($"/api/rutinas/{turno.GetProperty("id").GetInt32()}/ejecutar", new { equipo = "TC-02", resultados = new[] { new { item = "a", ok = true } } })).StatusCode);
+    }
+
+    [Fact]
+    public async Task ElTraspasoDeTurnoSeArmaConElEstadoDeLaPlantaYSoloLoHacenLasJefaturas()
+    {
+        var sup = await f.Entrar("supervisor.turno", "Supervisor2026", "app");
+        var b = await f.Leer(sup, "/api/traspaso/borrador");
+        Assert.Equal(6, b.GetProperty("items").GetArrayLength());
+        Assert.True(b.TryGetProperty("equiposFuera", out _) && b.TryGetProperty("repuestosCriticos", out var crit) && crit.GetArrayLength() > 0);
+        Assert.Equal(HttpStatusCode.BadRequest, (await sup.PostAsJsonAsync("/api/traspaso", new { revisiones = new[] { true }, notas = "" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await sup.PostAsJsonAsync("/api/traspaso", new { revisiones = new[] { true, true, true, true, false, true }, notas = "Vigilar CP-01" })).StatusCode);
+        Assert.True((await f.Leer(sup, "/api/traspaso")).GetArrayLength() >= 1);
+        Assert.Equal(HttpStatusCode.Forbidden, (await (await f.Entrar("operador", "Operador2026", "app")).GetAsync("/api/traspaso/borrador")).StatusCode);
+    }
+
+    [Fact]
+    public async Task LosIndicadoresSeCalculanConDatosYLasParadasSeRegistranSolas()
+    {
+        var ger = await f.Entrar("gerencia", "Gerencia2026", "web");
+        var k = await f.Leer(ger, "/api/kpis?dias=30");
+        Assert.Equal(10, k.GetProperty("kpis").GetArrayLength());
+        var oee = Buscar(k.GetProperty("kpis"), "clave", "oee");
+        Assert.InRange(oee.GetProperty("valor").GetDouble(), 40, 100);
+        Assert.NotEqual("sin datos", Buscar(k.GetProperty("kpis"), "clave", "mttr").GetProperty("estado").GetString());
+        Assert.Equal("sin datos", Buscar(k.GetProperty("kpis"), "clave", "costo_unitario").GetProperty("estado").GetString());   // no se inventa
+        Assert.Equal(15, k.GetProperty("equipos").GetArrayLength());
+        Assert.Equal(HttpStatusCode.Forbidden, (await (await f.Entrar("operador", "Operador2026", "app")).GetAsync("/api/kpis")).StatusCode);
+
+        // una alarma detiene el equipo: se abre una parada, y al normalizarse se cierra
+        var c = f.CreateClient(); c.DefaultRequestHeaders.Add("X-API-Key", "clave-de-prueba");
+        await c.PostAsJsonAsync("/api/ingesta/plc/PLC-03/telemetria", new { estado = "run", lecturas = new[] { new { equipo = "EV-01", variable = "temp_sellado", valor = 215.0 } }, equipos = new[] { new { equipo = "EV-01", estado = "operando" } } });
+        var db = f.NuevaBd(); var ev = db.Equipos.First(e => e.Codigo == "EV-01");
+        Assert.Single(db.Paradas.Where(p => p.EquipoId == ev.Id && p.Fin == null));
+        await c.PostAsJsonAsync("/api/ingesta/plc/PLC-03/telemetria", new { estado = "run", lecturas = new[] { new { equipo = "EV-01", variable = "temp_sellado", valor = 160.0 } }, equipos = new[] { new { equipo = "EV-01", estado = "operando" } } });
+        Assert.Empty(f.NuevaBd().Paradas.Where(p => p.EquipoId == ev.Id && p.Fin == null));
+    }
 }

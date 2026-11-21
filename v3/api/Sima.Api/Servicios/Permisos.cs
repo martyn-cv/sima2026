@@ -11,6 +11,8 @@ public static class Permisos
     public static readonly string[] PerfilesWeb = { "gerencia", "finanzas_adm", "produccion_ing", "calidad_gestion", "logistica", "rrhh", "comercial" };
     public static readonly string[] JefaturasTerreno = { "jefe_mant", "supervisor_mant", "supervisor_turno" };
 
+    static readonly string[] Todos = { "operador", "supervisor_turno", "tecnico", "supervisor_mant", "jefe_mant", "confiabilidad", "ing_automatizacion", "instrumentacion", "panol", "calidad_terreno", "prevencion", "gerencia", "finanzas_adm", "produccion_ing", "calidad_gestion", "logistica", "rrhh", "comercial" };
+
     // recurso → (perfiles que ven, perfiles que editan)
     static readonly Dictionary<string, (string[] ver, string[] editar)> Matriz = new()
     {
@@ -25,6 +27,11 @@ public static class Permisos
         ["habilitaciones"] = (new[] { "rrhh", "gerencia", "jefe_mant", "supervisor_mant", "supervisor_turno", "prevencion" }, new[] { "rrhh", "jefe_mant", "supervisor_mant", "prevencion" }),
         ["auditoria"] = (new[] { "rrhh", "finanzas_adm", "gerencia" }, Array.Empty<string>()),
         ["plc"] = (new[] { "gerencia", "produccion_ing", "ing_automatizacion", "instrumentacion", "jefe_mant", "supervisor_mant", "tecnico", "confiabilidad", "supervisor_turno", "operador" }, new[] { "ing_automatizacion", "instrumentacion" }),
+        ["kpis"] = (new[] { "gerencia", "produccion_ing", "finanzas_adm", "calidad_gestion", "jefe_mant", "supervisor_mant", "supervisor_turno", "confiabilidad", "ing_automatizacion" }, Array.Empty<string>()),
+        ["despachos"] = (new[] { "logistica", "comercial", "gerencia", "produccion_ing", "finanzas_adm", "calidad_gestion" }, new[] { "logistica" }),
+        ["traspaso"] = (new[] { "supervisor_turno", "supervisor_mant", "jefe_mant", "gerencia", "produccion_ing" }, new[] { "supervisor_turno", "supervisor_mant", "jefe_mant" }),
+        ["repuestos"] = (Todos, new[] { "panol", "jefe_mant", "supervisor_mant" }),
+        ["herramientas"] = (Todos, new[] { "instrumentacion", "panol", "jefe_mant", "supervisor_mant" }),
         ["plc_comandos"] = (new[] { "ing_automatizacion" }, new[] { "ing_automatizacion", "supervisor_turno", "jefe_mant", "supervisor_mant", "produccion_ing" }),
     };
 

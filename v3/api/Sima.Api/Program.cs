@@ -101,6 +101,7 @@ app.MapPersonas();
 app.MapPagos();
 app.MapOrganizacion();
 app.MapPlanta(cfg);
+app.MapOperacion();
 app.MapHub<PlantaHub>("/hubs/planta");
 
 // ---- arranque automático: crea el esquema, importa el Excel y carga la planta con sus PLC
@@ -124,7 +125,7 @@ await using (var scope = app.Services.CreateAsyncScope())
         if (excel is null || !File.Exists(excel)) log.LogWarning("No se encontró SIMA_base_de_datos.xlsx: la base queda vacía. Defina Seed:Excel.");
         else log.LogInformation("Excel importado ({Ruta}): {Resumen}", excel, await ImportadorExcel.ImportarAsync(db, excel, claveInicial, reemplazar: true, forzarCambioClave: cfg.GetValue("Seed:ForzarCambioClave", false)));
     }
-    if (cfg.GetValue("Seed:Planta", true)) await SemillaPlanta.CargarAsync(db);
+    if (cfg.GetValue("Seed:Planta", true)) { await SemillaPlanta.CargarAsync(db); await SemillaOperacion.CargarAsync(db); }
     if (cli is not null) return;   // «dotnet run -- importar ruta.xlsx» importa y termina
 }
 

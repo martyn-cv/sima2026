@@ -26,6 +26,15 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
     public DbSet<Lectura> Lecturas => Set<Lectura>();
     public DbSet<Alarma> Alarmas => Set<Alarma>();
     public DbSet<OrdenTrabajo> Ordenes => Set<OrdenTrabajo>();
+    public DbSet<Herramienta> Herramientas => Set<Herramienta>();
+    public DbSet<Repuesto> Repuestos => Set<Repuesto>();
+    public DbSet<MovimientoRepuesto> MovimientosRepuesto => Set<MovimientoRepuesto>();
+    public DbSet<Despacho> Despachos => Set<Despacho>();
+    public DbSet<RutinaPlantilla> Rutinas => Set<RutinaPlantilla>();
+    public DbSet<EjecucionRutina> EjecucionesRutina => Set<EjecucionRutina>();
+    public DbSet<Traspaso> Traspasos => Set<Traspaso>();
+    public DbSet<ProduccionDia> Produccion => Set<ProduccionDia>();
+    public DbSet<Parada> Paradas => Set<Parada>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -93,6 +102,15 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
         mb.Entity<Sensor>(e => { e.ToTable("sensores"); e.HasIndex(x => new { x.EquipoId, x.Variable }).IsUnique(); });
         mb.Entity<Lectura>(e => { e.ToTable("lecturas"); e.HasIndex(x => new { x.SensorId, x.Ts }); e.HasIndex(x => x.Ts); });
         mb.Entity<Alarma>(e => { e.ToTable("alarmas"); e.HasIndex(x => new { x.SensorId, x.Fin }); });
-        mb.Entity<OrdenTrabajo>(e => { e.ToTable("ordenes_trabajo"); e.Ignore(x => x.Codigo); });
+        mb.Entity<OrdenTrabajo>(e => { e.ToTable("ordenes_trabajo"); e.Ignore(x => x.Codigo); e.HasIndex(x => x.Uid).IsUnique(); });
+        mb.Entity<Herramienta>(e => { e.ToTable("herramientas"); e.HasIndex(x => x.Codigo).IsUnique(); });
+        mb.Entity<Repuesto>(e => { e.ToTable("repuestos"); e.HasIndex(x => x.Codigo).IsUnique(); });
+        mb.Entity<MovimientoRepuesto>(e => { e.ToTable("movimientos_repuesto"); e.HasIndex(x => x.RepuestoId); });
+        mb.Entity<Despacho>(e => { e.ToTable("despachos"); e.Ignore(x => x.Codigo); });
+        mb.Entity<RutinaPlantilla>(e => e.ToTable("rutinas"));
+        mb.Entity<EjecucionRutina>(e => { e.ToTable("ejecuciones_rutina"); e.HasIndex(x => x.Uid).IsUnique(); e.HasIndex(x => new { x.RutinaId, x.EquipoId, x.Fecha }); });
+        mb.Entity<Traspaso>(e => e.ToTable("traspasos"));
+        mb.Entity<ProduccionDia>(e => { e.ToTable("produccion_dia"); e.HasIndex(x => new { x.EquipoId, x.Fecha }).IsUnique(); });
+        mb.Entity<Parada>(e => { e.ToTable("paradas"); e.HasIndex(x => new { x.EquipoId, x.Inicio }); });
     }
 }
