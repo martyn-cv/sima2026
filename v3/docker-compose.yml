@@ -1,0 +1,47 @@
+# SIMA v3: base de datos, API y web de administración con un solo comando:  docker compose up --build
+# La base se crea sola y el Excel de datos/ se importa en el primer arranque.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sima}
+      POSTGRES_USER: ${POSTGRES_USER:-sima}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sima}
+    volumes: [sima-db:/var/lib/postgresql/data]
+    ports: ["127.0.0.1:5432:5432"]      # solo para trabajar en local con la API fuera de Docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sima} -d ${POSTGRES_DB:-sima}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./api
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      ConnectionStrings__Sima: Host=db;Port=5432;Database=${POSTGRES_DB:-sima};Username=${POSTGRES_USER:-sima};Password=${POSTGRES_PASSWORD:-sima}
+      Jwt__Clave: ${JWT_CLAVE:-cambie-esta-clave-en-produccion-sima-v3-0123456789abcdef}
+      Ingesta__ApiKey: ${SIMA_INGESTA_KEY:-dev-ingesta-key}
+      Seed__Excel: /datos/SIMA_base_de_datos.xlsx
+      Seed__ClaveInicial: ${SIMA_CLAVE_INICIAL:-Sima2026!}
+      Demo__Habilitado: ${SIMA_DEMO:-true}
+      Simulador__Habilitado: ${SIMA_SIMULADOR_INTERNO:-true}
+      Cors__Origenes: ${CORS_ORIGENES:-*}
+    volumes: ["./datos:/datos:ro"]
+    ports: ["5080:5080"]
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+    restart: unless-stopped
+    depends_on: [api]
+    ports: ["3000:3000"]
+
+volumes:
+  sima-db:

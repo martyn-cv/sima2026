@@ -12,10 +12,16 @@
   "scripts": {
     "web": "npm run dev -w web",
     "build:web": "npm run build -w web",
-    "tipos": "npm run tipos -w web",
+    "tipos": "npm run tipos -w web && npm run tipos -w plc-sim && npm run tipos -w terreno",
     "plc": "npm run dev -w plc-sim",
     "build:plc": "npm run build -w plc-sim",
     "terreno": "npm run dev -w terreno",
-    "build:terreno": "npm run build -w terreno"
+    "build:terreno": "npm run build -w terreno",
+    "plc:escritorio": "npm run tauri -w plc-sim -- dev",
+    "terreno:escritorio": "npm run tauri -w terreno -- dev",
+    "empaquetar:plc": "npm run tauri -w plc-sim -- build",
+    "empaquetar:terreno": "npm run tauri -w terreno -- build",
+    "api": "dotnet run --project api/Sima.Api",
+    "api:pruebas": "dotnet test api/Sima.Api.Tests"
   }
 }
