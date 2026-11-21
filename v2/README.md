@@ -102,3 +102,5 @@ Cubren el catálogo completo, el acceso por canal, permisos por perfil, las hist
 ## Pendiente
 
 Puente OPC UA/MQTT, aplicaciones nativas (Kotlin/Swift), auditoría general de cambios, exportación a PDF/Excel desde el servidor, instaladores de la app de escritorio (`npm run empaquetar`, sin probar), roles de bodega y compras con su propia interfaz, y administración de usuarios desde la web.
+
+Para llegar a una escala profesional, ver [`HOJA_DE_RUTA_2.1.md`](HOJA_DE_RUTA_2.1.md).

@@ -1,0 +1,42 @@
+name: SIMA v3 · pruebas
+on:
+  push:
+    paths: ["v3/**", ".github/workflows/v3-*.yml"]
+  pull_request:
+    paths: ["v3/**", ".github/workflows/v3-*.yml"]
+
+jobs:
+  api:
+    name: API (.NET 8, PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: sima, POSTGRES_PASSWORD: sima, POSTGRES_DB: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sima" --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: "8.0.x" }
+      - name: Pruebas de integración (importan el Excel y usan una base desechable)
+        working-directory: v3/api
+        env:
+          SIMA_TEST_SERVIDOR: Host=localhost;Username=sima;Password=sima
+        run: dotnet test Sima.Api.Tests --nologo
+
+  interfaces:
+    name: Web, simulador de PLC y app de terreno
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: v3 } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: v3/package-lock.json }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run tipos
+      - run: npm run build -w web
+        env: { NEXT_TELEMETRY_DISABLED: "1" }
+      - run: npm run build -w plc-sim
+      - run: npm run build -w terreno

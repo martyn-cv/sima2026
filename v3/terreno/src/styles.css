@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@import "../../paquetes/ui/src/tema.css";
+@source "../../paquetes/ui/src";
+
+html, body, #raiz { min-height: 100%; }
+html { background: var(--color-chapa); color: var(--color-negro); }
+body { font-family: var(--font-sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.num { font-variant-numeric: tabular-nums; }
+.display { font-family: var(--font-display); letter-spacing: 0.005em; }
+:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+::selection { background: var(--color-rojo); color: #fff; }
+* { scrollbar-width: thin; scrollbar-color: #b8bcc4 transparent; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; } }
