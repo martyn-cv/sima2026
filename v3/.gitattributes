@@ -1,0 +1,5 @@
+# Los scripts de shell deben terminar las líneas con LF aunque se descarguen en Windows; los .bat, con CRLF.
+*.sh text eol=lf
+*.bat text eol=crlf
+Caddyfile text eol=lf
+Dockerfile text eol=lf

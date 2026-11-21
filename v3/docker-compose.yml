@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-sima}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sima}
     volumes: [sima-db:/var/lib/postgresql/data]
-    ports: ["127.0.0.1:5432:5432"]      # solo para trabajar en local con la API fuera de Docker
+    ports: ["127.0.0.1:${POSTGRES_PUERTO:-5432}:5432"]      # solo para trabajar en local con la API fuera de Docker (cambie el puerto si ya tiene PostgreSQL)
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sima} -d ${POSTGRES_DB:-sima}"]
       interval: 5s
@@ -68,7 +68,7 @@ services:
       PGDATABASE: ${POSTGRES_DB:-sima}
       RESPALDOS_DIAS: ${RESPALDOS_DIAS:-14}
     volumes: ["./scripts/respaldo.sh:/respaldo.sh:ro", "./respaldos:/respaldos"]
-    entrypoint: ["/bin/sh", "-c", "while true; do /bin/sh /respaldo.sh /respaldos; sleep 86400; done"]
+    entrypoint: ["/bin/sh", "-c", "while true; do tr -d '\\r' < /respaldo.sh | /bin/sh -s -- /respaldos; sleep 86400; done"]
 
 volumes:
   sima-db:

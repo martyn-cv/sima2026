@@ -1,8 +1,11 @@
+# Contexto de la imagen de la web: solo lo que necesita. De plc-sim y terreno basta el package.json (los necesita npm por ser un monorepo).
 node_modules/
 **/node_modules/
 **/.next/
 **/dist/
 **/target/
 api/
-plc-sim/
-terreno/
+plc-sim/*
+!plc-sim/package.json
+terreno/*
+!terreno/package.json
