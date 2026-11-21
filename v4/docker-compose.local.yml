@@ -1,0 +1,7 @@
+# Expone PostgreSQL en este equipo para trabajar con la API fuera de Docker (iniciar.sh local o iniciar.bat local).
+# Uso:  docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db
+# Con docker compose up normal la base de datos NO se publica: solo la usan la API y los respaldos, por dentro de Docker.
+# Si el puerto 5432 está ocupado o reservado por Windows, defina POSTGRES_PUERTO=55432 en el archivo .env.
+services:
+  db:
+    ports: ["127.0.0.1:${POSTGRES_PUERTO:-5432}:5432"]

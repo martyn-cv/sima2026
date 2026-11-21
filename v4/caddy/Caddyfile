@@ -1,0 +1,14 @@
+# Proxy con HTTPS para SIMA. Con un dominio real (SIMA_DOMINIO=sima.miempresa.cl) Caddy obtiene y renueva el certificado solo.
+# Con «localhost» usa un certificado local: el navegador pedirá confiar en él la primera vez.
+{$SIMA_DOMINIO:localhost} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+	}
+	@api path /api/* /hubs/* /salud
+	reverse_proxy @api api:5080
+	reverse_proxy web:3000
+}

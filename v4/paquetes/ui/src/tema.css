@@ -1,0 +1,129 @@
+/* SIMA v4 · «Cordillera de noche». Tokens del tema: los nombres se mantienen (papel, chapa, negro…) pero ahora apuntan a
+   variables que cambian entre el tema noche (por defecto) y el tema día (data-tema="claro" en <html>). */
+@theme inline {
+  --font-sans: "Figtree Variable", "Figtree", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", "Figtree Variable", sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+
+  --color-chapa: var(--s-fondo);
+  --color-papel: var(--s-superficie);
+  --color-papel-2: var(--s-superficie-2);
+  --color-linea: var(--s-borde);
+  --color-linea-suave: var(--s-borde-suave);
+  --color-gris: var(--s-tenue);
+  --color-negro: var(--s-texto);
+  --color-carbon: var(--s-texto-2);
+  --color-sobre-negro: var(--s-sobre-texto);
+  --color-acento: var(--s-acento);
+  --color-acento-claro: var(--s-acento-claro);
+  --color-cobre: var(--s-cobre);
+  --color-rojo: var(--s-rojo);
+  --color-rojo-hondo: var(--s-rojo-hondo);
+  --color-rojo-claro: var(--s-rojo-claro);
+  --color-ambar: var(--s-ambar);
+  --color-ambar-hondo: var(--s-ambar-hondo);
+  --color-ambar-claro: var(--s-ambar-claro);
+  --color-verde: var(--s-verde);
+  --color-verde-claro: var(--s-verde-claro);
+  --color-azul: var(--s-azul);
+  --color-azul-claro: var(--s-azul-claro);
+
+  --animate-latido: latido 1.6s ease-in-out infinite;
+  --animate-parpadeo: parpadeo 0.9s steps(2, jump-none) infinite;
+  --animate-giro: giro 1.2s linear infinite;
+  --animate-flujo: flujo 1s linear infinite;
+  --animate-brillo: brillo 2.2s ease-in-out infinite;
+}
+
+@keyframes latido { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.8); } }
+@keyframes parpadeo { 0% { opacity: 1; } 100% { opacity: .25; } }
+@keyframes giro { to { transform: rotate(360deg); } }
+@keyframes flujo { to { stroke-dashoffset: -24; } }
+@keyframes brillo { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes deriva-a { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(8%, 6%) scale(1.12); } }
+@keyframes deriva-b { 0%, 100% { transform: translate(0, 0) scale(1.05); } 50% { transform: translate(-7%, -5%) scale(.95); } }
+@keyframes destello { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+
+:root {
+  color-scheme: dark;
+  --s-fondo: #0a0f1d;
+  --s-superficie: #10182a;
+  --s-superficie-2: #162036;
+  --s-borde: #24314b;
+  --s-borde-suave: #1b263c;
+  --s-tenue: #8e9ab0;
+  --s-texto: #e9eef6;
+  --s-texto-2: #c4cedd;
+  --s-sobre-texto: #0a0f1d;
+  --s-acento: #2dd4bf;
+  --s-acento-claro: rgb(45 212 191 / .14);
+  --s-cobre: #e8834f;
+  --s-rojo: #ff5470;
+  --s-rojo-hondo: #ff97a8;
+  --s-rojo-claro: rgb(255 84 112 / .14);
+  --s-ambar: #fbbf24;
+  --s-ambar-hondo: #fcd581;
+  --s-ambar-claro: rgb(251 191 36 / .14);
+  --s-verde: #34d399;
+  --s-verde-claro: rgb(52 211 153 / .14);
+  --s-azul: #60a5fa;
+  --s-azul-claro: rgb(96 165 250 / .14);
+  --s-vidrio: rgb(16 24 42 / .72);
+  --s-sombra: 0 24px 60px -24px rgb(0 0 0 / .65);
+  --s-aurora-a: rgb(45 212 191 / .18);
+  --s-aurora-b: rgb(232 131 79 / .14);
+  --s-curvas: rgb(148 163 184 / .06);
+}
+
+:root[data-tema="claro"] {
+  color-scheme: light;
+  --s-fondo: #eef2f8;
+  --s-superficie: #ffffff;
+  --s-superficie-2: #f7f9fc;
+  --s-borde: #d5dce8;
+  --s-borde-suave: #e7ecf3;
+  --s-tenue: #5b6577;
+  --s-texto: #0b1222;
+  --s-texto-2: #1d2738;
+  --s-sobre-texto: #ffffff;
+  --s-acento: #0f9f92;
+  --s-acento-claro: #d5f5f1;
+  --s-cobre: #c2410c;
+  --s-rojo: #e11d48;
+  --s-rojo-hondo: #9f1239;
+  --s-rojo-claro: #ffe4ea;
+  --s-ambar: #b45309;
+  --s-ambar-hondo: #92400e;
+  --s-ambar-claro: #fef3c7;
+  --s-verde: #059669;
+  --s-verde-claro: #dcfce7;
+  --s-azul: #2563eb;
+  --s-azul-claro: #dbeafe;
+  --s-vidrio: rgb(255 255 255 / .78);
+  --s-sombra: 0 18px 50px -24px rgb(15 23 42 / .28);
+  --s-aurora-a: rgb(15 159 146 / .12);
+  --s-aurora-b: rgb(194 65 12 / .08);
+  --s-curvas: rgb(15 23 42 / .05);
+}
+
+html { background: var(--s-fondo); color: var(--s-texto); }
+body { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; font-feature-settings: "ss01", "cv11"; }
+.num { font-variant-numeric: tabular-nums; }
+.display { font-family: var(--font-display); letter-spacing: -0.01em; }
+.mono { font-family: var(--font-mono); }
+:focus-visible { outline: 2px solid var(--s-acento); outline-offset: 2px; }
+::selection { background: var(--s-acento); color: var(--s-sobre-texto); }
+* { scrollbar-width: thin; scrollbar-color: var(--s-borde) transparent; }
+
+/* paneles de vidrio */
+.vidrio { background: var(--s-vidrio); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); }
+.tarjeta { position: relative; border-radius: 18px; border: 1px solid var(--s-borde-suave); background: linear-gradient(180deg, color-mix(in srgb, var(--s-superficie-2) 70%, transparent), var(--s-superficie)); box-shadow: var(--s-sombra); }
+.tarjeta-brillo::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--s-acento) 12%, transparent), transparent 45%); }
+.tarjeta-brillo:hover::before { opacity: 1; }
+.texto-degradado { background: linear-gradient(100deg, var(--s-texto) 30%, var(--s-acento) 70%, var(--s-cobre)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.destello { background: linear-gradient(90deg, var(--s-borde-suave) 25%, color-mix(in srgb, var(--s-borde) 80%, transparent) 50%, var(--s-borde-suave) 75%); background-size: 200% 100%; animation: destello 1.4s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
