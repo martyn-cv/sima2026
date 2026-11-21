@@ -18,8 +18,9 @@ goto fin
 where dotnet >nul 2>nul || (echo Falta el SDK de .NET 8. Ejecute scripts\instalar-herramientas.ps1 & goto fin)
 where npm >nul 2>nul || (echo Falta Node.js 22. Ejecute scripts\instalar-herramientas.ps1 & goto fin)
 if not exist node_modules call npm install --no-audit --no-fund
-where docker >nul 2>nul && docker compose up -d db
-set ConnectionStrings__Sima=Host=localhost;Port=5432;Database=sima;Username=sima;Password=sima
+if not defined POSTGRES_PUERTO set POSTGRES_PUERTO=5432
+where docker >nul 2>nul && docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db
+set ConnectionStrings__Sima=Host=localhost;Port=%POSTGRES_PUERTO%;Database=sima;Username=sima;Password=sima
 start "SIMA API" cmd /k dotnet run --project api\Sima.Api
 timeout /t 15 /nobreak >nul
 start "SIMA Web" cmd /k npm run dev -w web
