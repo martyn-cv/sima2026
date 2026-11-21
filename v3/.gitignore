@@ -11,3 +11,6 @@ target/
 *.log
 .turbo/
 gen/
+*.tsbuildinfo
+next-env.d.ts
+.logs/
