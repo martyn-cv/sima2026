@@ -2,7 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { Bell, BookUser, Briefcase, ClipboardList, Cog, Home, LogOut, Siren } from "lucide-react";
-import { Boton, Campo, Entrada, AvisosProvider, cx, mensajeDe, useAviso } from "@sima/ui";
+import { ApiError } from "@sima/cliente";
+import { Boton, Campo, Entrada, AvisosProvider, PantallaSeguridad, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api, baseUrl, guardarUrl } from "./lib/api";
 import { useAuth } from "./lib/auth";
 import { usePlanta } from "./lib/planta";
@@ -14,12 +15,12 @@ import { Alarmas, Directorio, Inicio, MiCargo } from "./pantallas/Resto";
 
 function Login() {
   const { entrar, aviso } = useAuth();
-  const [correo, setCorreo] = useState(""); const [clave, setClave] = useState(""); const [url, setUrl] = useState(baseUrl());
+  const [correo, setCorreo] = useState(""); const [clave, setClave] = useState(""); const [codigo, setCodigo] = useState(""); const [pideCodigo, setPideCodigo] = useState(false); const [url, setUrl] = useState(baseUrl());
   const [error, setError] = useState<string | null>(null); const [cargando, setCargando] = useState(false); const [ajustes, setAjustes] = useState(false);
   const demo = useQuery({ queryKey: ["demo", url], queryFn: api.demo, retry: 0 });
-  async function enviar(e?: FormEvent, c = correo, k = clave) {
+  async function enviar(e?: FormEvent, c = correo, k = clave, cod = codigo) {
     e?.preventDefault(); guardarUrl(url); setError(null); setCargando(true);
-    try { await entrar(c, k); } catch (x) { setError(mensajeDe(x)); } finally { setCargando(false); }
+    try { await entrar(c, k, cod); } catch (x) { if (x instanceof ApiError && x.datos?.requiere2fa) setPideCodigo(true); setError(mensajeDe(x)); } finally { setCargando(false); }
   }
   const app = (demo.data ?? []).filter((d) => d.canal === "app");
   return (
@@ -37,6 +38,7 @@ function Login() {
           <div className="grid gap-4">
             <Campo etiqueta="Correo corporativo"><Entrada type="email" autoComplete="username" required value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="nombre@manuandina.cl" /></Campo>
             <Campo etiqueta="Clave"><Entrada type="password" autoComplete="current-password" required value={clave} onChange={(e) => setClave(e.target.value)} /></Campo>
+            {pideCodigo && <Campo etiqueta="Código de la aplicación de autenticación" ayuda="Los 6 dígitos que muestra la aplicación en su teléfono."><Entrada inputMode="numeric" autoComplete="one-time-code" maxLength={7} autoFocus required value={codigo} onChange={(e) => setCodigo(e.target.value)} /></Campo>}
             {error && <p role="alert" className="border-l-[3px] border-rojo bg-rojo-claro px-3 py-2 text-[14px] text-rojo-hondo">{error}</p>}
             <Boton type="submit" variante="rojo" cargando={cargando} className="h-12">Ingresar</Boton>
             <button type="button" onClick={() => setAjustes(!ajustes)} className="cursor-pointer text-left text-[14px] text-gris underline decoration-linea underline-offset-2">Dirección del servidor</button>
@@ -101,7 +103,8 @@ function Marco() {
 }
 
 export function App() {
-  const { usuario, cargando } = useAuth();
+  const { usuario, cargando, refrescar, salir } = useAuth();
   if (cargando) return <div className="grid min-h-dvh place-items-center"><span className="display text-3xl font-bold text-linea">SIMA</span></div>;
+  if (usuario?.restringido) return <PantallaSeguridad cliente={api} usuario={usuario} alNuevoToken={(t) => void refrescar(t)} alSalir={() => salir()} />;
   return usuario ? <Marco /> : <Login />;
 }

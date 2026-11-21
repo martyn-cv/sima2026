@@ -43,5 +43,33 @@ services:
     depends_on: [api]
     ports: ["3000:3000"]
 
+  # HTTPS:  docker compose --profile https up --build   →   https://localhost  (o su dominio con SIMA_DOMINIO)
+  # En producción quite los puertos 3000 y 5080 de arriba para que solo se entre por el proxy.
+  https:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on: [web, api]
+    environment:
+      SIMA_DOMINIO: ${SIMA_DOMINIO:-localhost}
+    volumes: ["./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "caddy-datos:/data"]
+    ports: ["80:80", "443:443"]
+
+  # Respaldo diario de la base de datos en ./respaldos (se conservan los últimos RESPALDOS_DIAS días).
+  respaldos:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-sima}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-sima}
+      PGDATABASE: ${POSTGRES_DB:-sima}
+      RESPALDOS_DIAS: ${RESPALDOS_DIAS:-14}
+    volumes: ["./scripts/respaldo.sh:/respaldo.sh:ro", "./respaldos:/respaldos"]
+    entrypoint: ["/bin/sh", "-c", "while true; do /bin/sh /respaldo.sh /respaldos; sleep 86400; done"]
+
 volumes:
   sima-db:
+  caddy-datos:

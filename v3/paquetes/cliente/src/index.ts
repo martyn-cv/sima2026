@@ -7,6 +7,7 @@ export type Permiso = "ver" | "editar" | "no";
 export interface Usuario {
   id: string; nombre: string; correo: string; cargoId: number; cargo: string; familia: string; perfil: string; canal: Canal;
   turno: string; jefe?: string | null; estadoCuenta: string; permisos: Record<string, Permiso>;
+  totpActivo?: boolean; restringido?: "clave" | "2fa" | null;
 }
 export interface RespuestaLogin { token: string; vence: string; usuario: Usuario }
 export interface CuentaDemo { correo: string; clave: string; nombre: string; cargo: string; perfil: string; canal: Canal }
@@ -44,7 +45,7 @@ export interface PlcDetalle extends Omit<PlcResumen, "modulos" | "puntos" | "ent
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, mensaje: string) { super(mensaje); }
+  constructor(public status: number, mensaje: string, public datos?: Record<string, unknown> | null) { super(mensaje); }
 }
 
 // ------------------------------------------------------------------------------------------------ cliente HTTP
@@ -73,7 +74,7 @@ export function crearCliente(o: OpcionesCliente) {
     const texto = await r.text();
     const datos = texto ? JSON.parse(texto) : null;
     if (r.status === 401 && t) o.alExpirar?.();
-    if (!r.ok) throw new ApiError(r.status, (datos && datos.error) || (r.status === 401 ? "La sesión terminó. Ingrese de nuevo." : `Error ${r.status}`));
+    if (!r.ok) throw new ApiError(r.status, (datos && datos.error) || (r.status === 401 ? "La sesión terminó. Ingrese de nuevo." : `Error ${r.status}`), datos);
     return datos as T;
   }
   return {
@@ -81,7 +82,7 @@ export function crearCliente(o: OpcionesCliente) {
     post: <T>(ruta: string, cuerpo?: unknown) => pedir<T>("POST", ruta, cuerpo ?? {}),
     put: <T>(ruta: string, cuerpo: unknown) => pedir<T>("PUT", ruta, cuerpo),
     del: <T>(ruta: string) => pedir<T>("DELETE", ruta),
-    login: (correo: string, clave: string, canal: Canal) => pedir<RespuestaLogin>("POST", "/api/auth/login", { correo, clave, canal }),
+    login: (correo: string, clave: string, canal: Canal, codigo?: string) => pedir<RespuestaLogin>("POST", "/api/auth/login", { correo, clave, canal, codigo: codigo || null }),
     demo: () => pedir<CuentaDemo[]>("GET", "/api/auth/demo"),
   };
 }

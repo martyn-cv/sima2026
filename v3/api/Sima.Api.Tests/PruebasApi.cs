@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using ClosedXML.Excel;
 using Sima.Api.Datos;
+using Sima.Api.Servicios;
 
 namespace Sima.Api.Tests;
 
@@ -93,6 +94,8 @@ public class PruebasApi(Fabrica f)
         var login = await c.PostAsJsonAsync("/api/auth/login", new { correo = "prueba.cierre@manuandina.cl", clave = "Sima2026!", canal = "app" });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         c.DefaultRequestHeaders.Authorization = new("Bearer", (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString());
+        var cambio = await (await c.PostAsJsonAsync("/api/auth/cambiar-clave", new { actual = "Sima2026!", nueva = "OtraClave#2026" })).Content.ReadFromJsonAsync<JsonElement>();   // una persona nueva debe elegir su clave
+        c.DefaultRequestHeaders.Authorization = new("Bearer", cambio.GetProperty("token").GetString());
         Assert.Equal(HttpStatusCode.OK, (await c.GetAsync("/api/directorio")).StatusCode);
 
         var baja = await rrhh.PostAsJsonAsync("/api/terminos", new { trabajadorId = id, fechaTermino = "2026-11-21", causal = "Renuncia voluntaria (art. 159 N°2)", avisoPrevio = true, finiquitoMonto = 100000 });
@@ -101,7 +104,7 @@ public class PruebasApi(Fabrica f)
 
         await Task.Delay(GuardiaDeCuentaEspera);
         Assert.Equal(HttpStatusCode.Unauthorized, (await c.GetAsync("/api/directorio")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo = "prueba.cierre@manuandina.cl", clave = "Sima2026!", canal = "app" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo = "prueba.cierre@manuandina.cl", clave = "OtraClave#2026", canal = "app" })).StatusCode);
         var detalle = await f.Leer(rrhh, "/api/trabajadores/" + id);
         Assert.Equal("Desvinculado", detalle.GetProperty("resumen").GetProperty("estadoLaboral").GetString());
         Assert.False(detalle.GetProperty("cuenta").GetProperty("accesoApp").GetBoolean());
@@ -113,7 +116,7 @@ public class PruebasApi(Fabrica f)
         var tid = terminos.EnumerateArray().First(t => t.GetProperty("trabajadorId").GetString() == id).GetProperty("id").GetInt32();
         Assert.Equal(HttpStatusCode.OK, (await rrhh.DeleteAsync("/api/terminos/" + tid)).StatusCode);
         await Task.Delay(GuardiaDeCuentaEspera);
-        Assert.Equal(HttpStatusCode.OK, (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo = "prueba.cierre@manuandina.cl", clave = "Sima2026!", canal = "app" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo = "prueba.cierre@manuandina.cl", clave = "OtraClave#2026", canal = "app" })).StatusCode);
     }
 
     static readonly TimeSpan GuardiaDeCuentaEspera = Servicios.GuardiaDeCuenta.Vigencia + TimeSpan.FromMilliseconds(500);
@@ -244,5 +247,73 @@ public class PruebasApi(Fabrica f)
         Assert.Contains((await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("comandos").EnumerateArray(), x => x.GetProperty("tag").GetString() == "IN01_MARCHA");
         var op = await f.Entrar("operador", "Operador2026", "app");
         Assert.Equal(HttpStatusCode.Forbidden, (await op.PostAsJsonAsync("/api/plc/PLC-02/comandos", new { tag = "IN01_MARCHA", valor = 1 })).StatusCode);
+    }
+
+    async Task<(string id, string correo)> NuevoTrabajador(HttpClient rrhh, string rut, string correo)
+    {
+        var r = await rrhh.PostAsJsonAsync("/api/trabajadores", Trabajador(rut, correo, NuevoContratoIndef));
+        Assert.Equal(HttpStatusCode.Created, r.StatusCode);
+        return ((await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!, correo);
+    }
+
+    [Fact]
+    public async Task ElSegundoFactorSeExigeAlIngresarYNoSePuedeReutilizar()
+    {
+        var rrhh = await f.Entrar("rrhh", "Rrhh2026", "web");
+        var (_, correo) = await NuevoTrabajador(rrhh, "7.654.321-6", "prueba.2fa@manuandina.cl");
+        // la clave inicial de una persona nueva debe cambiarse: primero se elige una propia
+        var c = f.CreateClient();
+        var l = await (await c.PostAsJsonAsync("/api/auth/login", new { correo, clave = "Sima2026!", canal = "app" })).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("clave", l.GetProperty("usuario").GetProperty("restringido").GetString());
+        c.DefaultRequestHeaders.Authorization = new("Bearer", l.GetProperty("token").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await c.GetAsync("/api/directorio")).StatusCode);              // restringido hasta cambiar la clave
+        Assert.Equal(HttpStatusCode.BadRequest, (await c.PostAsJsonAsync("/api/auth/cambiar-clave", new { actual = "Sima2026!", nueva = "Sima2026!" })).StatusCode);
+        var cambio = await (await c.PostAsJsonAsync("/api/auth/cambiar-clave", new { actual = "Sima2026!", nueva = "ClaveNueva#2026" })).Content.ReadFromJsonAsync<JsonElement>();
+        c.DefaultRequestHeaders.Authorization = new("Bearer", cambio.GetProperty("token").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await c.GetAsync("/api/directorio")).StatusCode);
+
+        // activar el segundo factor
+        var prep = await (await c.PostAsync("/api/auth/2fa/preparar", null)).Content.ReadFromJsonAsync<JsonElement>();
+        var secreto = prep.GetProperty("secreto").GetString()!;
+        Assert.StartsWith("otpauth://totp/SIMA:", prep.GetProperty("uri").GetString());
+        var paso = Totp.Paso(DateTime.UtcNow);
+        Assert.Equal(HttpStatusCode.BadRequest, (await c.PostAsJsonAsync("/api/auth/2fa/activar", new { codigo = "000000" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await c.PostAsJsonAsync("/api/auth/2fa/activar", new { codigo = Totp.Codigo(secreto, paso) })).StatusCode);
+
+        // desde ahora el ingreso pide el código; sin él o con uno malo no entra
+        var sin = await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo, clave = "ClaveNueva#2026", canal = "app" });
+        Assert.Equal(HttpStatusCode.Unauthorized, sin.StatusCode);
+        Assert.True((await sin.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requiere2fa").GetBoolean());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo, clave = "ClaveNueva#2026", canal = "app", codigo = "123456" })).StatusCode);
+        // el código de la ventana siguiente es válido una sola vez
+        var bueno = Totp.Codigo(secreto, paso + 1);
+        Assert.Equal(HttpStatusCode.OK, (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo, clave = "ClaveNueva#2026", canal = "app", codigo = bueno })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo, clave = "ClaveNueva#2026", canal = "app", codigo = bueno })).StatusCode);
+
+        // si pierde el teléfono, Personas quita el segundo factor
+        var id = f.NuevaBd().Trabajadores.First(t => t.CorreoCorporativo == correo).Id;
+        Assert.Equal(HttpStatusCode.OK, (await rrhh.PostAsync($"/api/cuentas/{id}/quitar-2fa", null)).StatusCode);
+        await Task.Delay(GuardiaDeCuentaEspera);
+        Assert.Equal(HttpStatusCode.OK, (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo, clave = "ClaveNueva#2026", canal = "app" })).StatusCode);
+    }
+
+    [Fact]
+    public async Task ElCodigoTotpCoincideConElVectorDePruebaDelRfc6238()
+    {
+        // RFC 6238, apéndice B: secreto ASCII «12345678901234567890», SHA-1, T = 59 s → 94287082 (los 6 últimos dígitos: 287082)
+        var secreto = Totp.Base32(System.Text.Encoding.ASCII.GetBytes("12345678901234567890"));
+        Assert.Equal("287082", Totp.Codigo(secreto, 59 / 30));
+        Assert.Equal("081804", Totp.Codigo(secreto, 1111111109 / 30));
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task ElRestablecimientoDeClaveObligaAElegirUnaPropia()
+    {
+        var rrhh = await f.Entrar("rrhh", "Rrhh2026", "web");
+        var (id, correo) = await NuevoTrabajador(rrhh, "6.543.210-2", "prueba.reset@manuandina.cl");
+        var temporal = (await (await rrhh.PostAsync($"/api/cuentas/{id}/restablecer-clave", null)).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("claveTemporal").GetString()!;
+        var l = await (await f.CreateClient().PostAsJsonAsync("/api/auth/login", new { correo, clave = temporal, canal = "app" })).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("clave", l.GetProperty("usuario").GetProperty("restringido").GetString());
     }
 }

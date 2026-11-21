@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Usuario } from "@sima/cliente";
 import { api, guardarToken, leerToken } from "./api";
 
-interface Ctx { usuario: Usuario | null; cargando: boolean; aviso: string | null; entrar: (correo: string, clave: string) => Promise<void>; salir: (motivo?: string) => void; puede: (r: string, a?: "ver" | "editar") => boolean }
+interface Ctx { usuario: Usuario | null; cargando: boolean; aviso: string | null; entrar: (correo: string, clave: string, codigo?: string) => Promise<void>; refrescar: (token?: string) => Promise<void>; salir: (motivo?: string) => void; puede: (r: string, a?: "ver" | "editar") => boolean }
 const AuthCtx = createContext<Ctx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -23,12 +23,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("sima:sesion-expirada", f);
   }, [salir]);
 
-  const entrar = useCallback(async (correo: string, clave: string) => {
-    const r = await api.login(correo, clave, "app");
+  const entrar = useCallback(async (correo: string, clave: string, codigo?: string) => {
+    const r = await api.login(correo, clave, "app", codigo);
     guardarToken(r.token); setAviso(null); setUsuario(r.usuario);
   }, []);
+  const refrescar = useCallback(async (token?: string) => { if (token) guardarToken(token); setUsuario(await api.get<Usuario>("/api/auth/yo")); }, []);
 
-  const valor = useMemo<Ctx>(() => ({ usuario, cargando, aviso, entrar, salir, puede: (r, a = "ver") => { const p = usuario?.permisos?.[r]; return a === "editar" ? p === "editar" : p === "ver" || p === "editar"; } }), [usuario, cargando, aviso, entrar, salir]);
+  const valor = useMemo<Ctx>(() => ({ usuario, cargando, aviso, entrar, refrescar, salir, puede: (r, a = "ver") => { const p = usuario?.permisos?.[r]; return a === "editar" ? p === "editar" : p === "ver" || p === "editar"; } }), [usuario, cargando, aviso, entrar, refrescar, salir]);
   return <AuthCtx.Provider value={valor}>{children}</AuthCtx.Provider>;
 }
 export const useAuth = () => { const c = useContext(AuthCtx); if (!c) throw new Error("useAuth fuera de AuthProvider"); return c; };

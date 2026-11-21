@@ -2,7 +2,7 @@
 
 Sistema de Información Manufacturero Andino de Manufacturas Andina S.A. La versión 3 reemplaza el backend de Django por **C# y .NET 8**, reescribe la web de administración con **Next.js, React, TypeScript y Tailwind**, y pasa las aplicaciones de escritorio a **Tauri**. Tiene **una sola base de datos PostgreSQL** que comparten la web, la app de terreno y el simulador de PLC.
 
-Todos los datos de personas (nombres, RUT, domicilios, cuentas bancarias) son **ficticios**.
+**Es una aplicación de demostración, experimental.** Todos los datos (personas, RUT, domicilios, cuentas bancarias, sueldos y los valores de las remuneraciones) son **ficticios o de ejemplo**. Si una empresa la adopta, revisa los temas legales y de datos reales por su cuenta; al final hay una lista corta para eso.
 
 | Pieza | Tecnología | Carpeta | Puerto |
 |---|---|---|---|
@@ -79,28 +79,34 @@ Las **remuneraciones** (gratificación, horas extra, AFP, salud, cesantía, impu
 
 La hoja *Permisos* del Excel es la matriz de `api/Sima.Api/Servicios/Permisos.cs`. El servidor valida cada petición; ocultar un botón no protege nada. Por ejemplo: solo Personas edita datos personales, contratos y desvinculaciones; solo Finanzas edita parámetros y bonos; las jefaturas ven la asistencia y las habilitaciones de su propio equipo; el personal de terreno solo ve el directorio, su cargo y sus habilitaciones. Todo cambio queda en la auditoría.
 
+## Seguridad y respaldos
+
+- **Segundo factor** (código de 6 dígitos de Google Authenticator, Microsoft Authenticator o Authy): cada persona lo activa desde el botón del escudo (web) o desde *Mi cargo* (terreno). Con `Seguridad:Exigir2fa=true` se vuelve obligatorio para los perfiles de la web. Personas puede quitarlo si alguien pierde el teléfono.
+- **Clave propia:** las cuentas nuevas y las claves restablecidas por Personas obligan a elegir una clave antes de usar el sistema (`Seed:ForzarCambioClave=true` lo exige también a las cuentas importadas del Excel; en la demostración está apagado para entrar con un clic).
+- **Bloqueo** de la cuenta por 5 intentos fallidos, sesiones que se revocan al instante y cabeceras de seguridad en la API.
+- **HTTPS:** `docker compose --profile https up --build` agrega un proxy Caddy en https://localhost, o en su dominio con `SIMA_DOMINIO`.
+- **Respaldos:** el servicio `respaldos` de Docker guarda un respaldo diario en `respaldos/` y conserva 14 días. A mano: `scripts/respaldo.sh` y `scripts/restaurar.sh archivo.dump base_nueva` (la restauración se probó: 104 trabajadores, 128 contratos y 126 puntos de PLC idénticos).
+
 ## Pruebas
 
 ```bash
 ./iniciar.sh pruebas            # o por separado:
-dotnet test api/Sima.Api.Tests  # 10 pruebas de integración contra PostgreSQL (usan una base desechable)
+dotnet test api/Sima.Api.Tests  # 13 pruebas de integración contra PostgreSQL (usan una base desechable)
 npm run tipos                   # revisión de tipos de las tres interfaces
 ```
 
-Las pruebas de la API cubren la importación completa, el ingreso por canal y por estado de cuenta, el bloqueo por intentos, los permisos, el cierre de cuenta al desvincular (con revocación de la sesión), la suspensión por contrato vencido, la validación de RUT, la equivalencia con las fórmulas del Excel, y la telemetría de PLC con alarmas, órdenes automáticas, bloqueo y etiquetado y mandos. Las interfaces se probaron con navegador real (flujos de la web, del simulador y de la app de terreno).
+Las pruebas de la API cubren la importación completa, el ingreso por canal y por estado de cuenta, el bloqueo por intentos, los permisos, el cierre de cuenta al desvincular (con revocación de la sesión), la suspensión por contrato vencido, la validación de RUT, la equivalencia con las fórmulas del Excel, y la telemetría de PLC con alarmas, órdenes automáticas, bloqueo y etiquetado y mandos, el segundo factor (con el vector de prueba oficial del RFC 6238) y la clave obligatoria tras un restablecimiento. Las interfaces se probaron con navegador real (flujos de la web, del simulador y de la app de terreno).
 
 ## Qué se probó y qué no
 
 - **Probado aquí:** API con PostgreSQL, importación del Excel, las 10 pruebas, web (producción y desarrollo), simulador y app de terreno en el navegador, binarios de Tauri compilados en Linux y abiertos en una pantalla virtual, y `./iniciar.sh` desde una base vacía.
 - **No probado aquí:** las imágenes de Docker (no había servicio de Docker; el archivo `docker-compose.yml` se validó solo en su sintaxis), los instaladores de Windows y macOS (se arman en GitHub con el flujo de instaladores) y la actualización de la clave de firma en un entorno real.
 
-## Qué falta para operar con datos reales
+## Si una empresa quiere adoptarla
 
-Es un prototipo avanzado, no un sistema listo para producción. Lo que sigue de [`../v2/HOJA_DE_RUTA_2.1.md`](../v2/HOJA_DE_RUTA_2.1.md):
+Es una demostración; esto es lo que ella tendría que resolver:
 
-- **Seguridad:** HTTPS con proxy inverso, segundo factor para los perfiles de gestión, recuperación de clave, quitar las cuentas y claves de demostración (`Demo:Habilitado=false`), cambiar `Jwt:Clave` y `Ingesta:ApiKey`, protección de datos personales con asesoría legal (permisos por campo y registro de accesos).
-- **Operación:** respaldos probados de PostgreSQL, observabilidad, pruebas de carga con 500 activos y 30 usuarios.
-- **Telemetría a escala:** base de series de tiempo (TimescaleDB); hoy el historial dura 6 horas. El simulador no necesita PLC reales ni puente OPC UA: es independiente.
-- **App de terreno sin conexión:** la v2 la tenía como PWA con cola de envíos; en la v3 falta portarla.
-- **Cálculo de remuneraciones:** los valores legales (IMM, UF, UTM, topes, comisiones, tramos) son de referencia y el cálculo no modela Isapre en UF, APV, asignación familiar ni licencias. Debe validarlo un contador.
-- **Módulos de la v2 aún no portados a .NET:** rutinas preventivas, herramientas y calibraciones, traspaso de turno, indicadores OEE y MTBF, repuestos y despachos.
+- **Datos y valores legales:** cargar sus trabajadores reales, y que su contador revise los parámetros de remuneraciones (hoy de ejemplo) y el cálculo, que no modela Isapre en UF, APV, asignación familiar ni licencias. Revisar también la política de datos personales.
+- **Producción:** cambiar `Jwt:Clave` y `Ingesta:ApiKey`, apagar las cuentas de demostración (`Demo:Habilitado=false`), usar HTTPS y definir dónde se hospeda.
+- **Escala:** base de series de tiempo para la telemetría (hoy el historial dura 6 horas) y pruebas de carga.
+- **PLC reales:** el simulador es independiente y no los necesita; conectar equipos reales requeriría un puente (OPC UA o MQTT) que no está incluido.

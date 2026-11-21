@@ -84,7 +84,7 @@ public static class EndpointsPersonas
                 cargo = t.Cargo, jefe, equipo,
                 contratos = contratos.Select(c => new { c.Id, c.Codigo, c.Tipo, c.EsActual, c.FechaInicio, c.FechaTermino, c.JornadaHoras, c.SueldoBase, c.Colacion, c.Movilizacion, c.Observaciones, estado = Reglas.EstadoContrato(e.EstadoLaboral == "Desvinculado", c, hoy) }),
                 terminos, habilitaciones = habil,
-                cuenta = new { login = t.CorreoCorporativo, alias = t.LoginAlias, t.UltimoAcceso, estado = e.EstadoCuenta, accesoWeb = e.Activa && t.Cargo!.Canal == "web", accesoApp = e.Activa && t.Cargo!.Canal == "app", bloqueada = t.BloqueadoHasta > DateTime.UtcNow },
+                cuenta = new { login = t.CorreoCorporativo, alias = t.LoginAlias, totpActivo = t.TotpActivo, t.DebeCambiarClave, t.UltimoAcceso, estado = e.EstadoCuenta, accesoWeb = e.Activa && t.Cargo!.Canal == "web", accesoApp = e.Activa && t.Cargo!.Canal == "app", bloqueada = t.BloqueadoHasta > DateTime.UtcNow },
             });
         });
 
@@ -240,7 +240,7 @@ public static class EndpointsPersonas
             {
                 t.Id, nombre = t.NombreCompleto, login = t.CorreoCorporativo, alias = t.LoginAlias, cargo = t.Cargo!.Nombre, perfil = t.Cargo.PerfilSima, canal = t.Cargo.Canal, t.Turno,
                 estadoLaboral = est[t.Id].EstadoLaboral, estadoContrato = est[t.Id].EstadoContrato, estadoCuenta = est[t.Id].EstadoCuenta, accesoWeb = est[t.Id].Activa && t.Cargo.Canal == "web", accesoApp = est[t.Id].Activa && t.Cargo.Canal == "app",
-                t.UltimoAcceso, bloqueada = t.BloqueadoHasta > DateTime.UtcNow,
+                t.UltimoAcceso, bloqueada = t.BloqueadoHasta > DateTime.UtcNow, totpActivo = t.TotpActivo,
             });
             return Results.Ok(string.IsNullOrEmpty(estado) ? lista : lista.Where(x => x.estadoCuenta.StartsWith(estado.ToUpper())));
         });
