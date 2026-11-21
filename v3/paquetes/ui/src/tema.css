@@ -1,0 +1,33 @@
+/* Identidad visual de SIMA: negro, rojo andino y papel, con Barlow. Lo comparten la web y la app de terreno. */
+@theme {
+  --font-sans: "Barlow", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", sans-serif;
+
+  --color-negro: #000000;
+  --color-carbon: #16171a;
+  --color-chapa: #eceef0;
+  --color-papel: #ffffff;
+  --color-linea: #d3d6db;
+  --color-linea-suave: #e4e6ea;
+  --color-gris: #636872;
+  --color-rojo: #d91f26;
+  --color-rojo-hondo: #a8141a;
+  --color-rojo-claro: #fbe6e7;
+  --color-ambar: #d98e00;
+  --color-ambar-claro: #fff1d2;
+  --color-verde: #108046;
+  --color-verde-claro: #dff3e7;
+  --color-azul: #1e5bb8;
+  --color-azul-claro: #e1ecfb;
+
+  --animate-latido: latido 1.6s ease-in-out infinite;
+  @keyframes latido {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(0.82); }
+  }
+  --animate-parpadeo: parpadeo 0.9s steps(2, jump-none) infinite;
+  @keyframes parpadeo {
+    0% { opacity: 1; }
+    100% { opacity: 0.25; }
+  }
+}
