@@ -123,9 +123,10 @@ export function Escalera() {
         <button onClick={() => setEditar(!editar)} aria-pressed={editar} className={cx("flex h-8 cursor-pointer items-center gap-1.5 border px-3 text-[13px] font-medium transition-colors", editar ? "border-rojo bg-rojo text-white" : "border-borde hover:border-tenue")}><Pencil className="size-3.5" />{editar ? "Editando" : "Editar programa"}</button>
         {editar && <button onClick={nuevo} className="flex h-8 cursor-pointer items-center gap-1.5 border border-borde px-3 text-[13px] hover:border-tenue"><Plus className="size-3.5" />Peldaño</button>}
         <span className="ml-auto flex items-center gap-2">
+          {s.programaPropio && !s.programaSucio && <button onClick={() => void s.restablecerPrograma()} className="flex h-8 cursor-pointer items-center gap-1.5 border border-borde px-3 text-[13px] text-tenue hover:border-tenue hover:text-texto">Volver al programa original</button>}
           {s.programaSucio && <span className="text-[12px] text-led-ambar">Cambios sin guardar</span>}
           <button disabled={!s.programaSucio} onClick={() => void s.descartarPrograma()} className="flex h-8 cursor-pointer items-center gap-1.5 border border-borde px-3 text-[13px] hover:border-tenue disabled:pointer-events-none disabled:opacity-40"><Undo2 className="size-3.5" />Descartar</button>
-          <button disabled={!s.programaSucio || guardando} onClick={() => void guardar()} className="flex h-8 cursor-pointer items-center gap-1.5 bg-led-verde px-3 text-[13px] font-semibold text-black disabled:pointer-events-none disabled:opacity-40"><Save className="size-3.5" />Guardar en SIMA</button>
+          <button disabled={!s.programaSucio || guardando} onClick={() => void guardar()} className="flex h-8 cursor-pointer items-center gap-1.5 bg-led-verde px-3 text-[13px] font-semibold text-black disabled:pointer-events-none disabled:opacity-40"><Save className="size-3.5" />{s.conSima ? "Guardar en SIMA" : "Guardar"}</button>
         </span>
       </div>
       {error && <p role="alert" className="border-b border-rojo bg-[#3a1416] px-3 py-1.5 text-[12px] text-rojo-vivo">{error}</p>}

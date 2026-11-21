@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { MotorPlc, crearCliente, type ProgramaPlc, type Valores } from "@sima/cliente";
+import { LISTA_LOCAL, configLocal } from "./catalogo";
 
 // ------------------------------------------------------------------------------------------ tipos de la configuración (vienen de la base de datos)
 export interface CfgModulo { id: number; slot: number; tipo: string; modelo: string; canales: number }
@@ -14,11 +15,11 @@ export interface PlcLista { codigo: string; nombre: string; fabricante: string; 
 export type EstadoCpu = "run" | "stop";
 export type Enlace = "sin_conectar" | "conectando" | "conectado" | "error";
 export interface Evento { t: number; texto: string; nivel: "info" | "aviso" | "alarma" }
-export interface Ajustes { url: string; clave: string; plc: string; autoArranque: boolean; velocidad: number }
+export interface Ajustes { url: string; clave: string; plc: string; autoArranque: boolean; velocidad: number; modo: "autonomo" | "sima"; aleatorias: boolean }
 
 const AJ = "sima.plcsim.ajustes";
 export const ajustesIniciales = (): Ajustes => {
-  const base: Ajustes = { url: "http://localhost:5080", clave: "dev-ingesta-key", plc: "PLC-04", autoArranque: true, velocidad: 1 };
+  const base: Ajustes = { url: "http://localhost:5080", clave: "dev-ingesta-key", plc: "PLC-04", autoArranque: true, velocidad: 1, modo: "autonomo", aleatorias: false };
   try { return { ...base, ...JSON.parse(localStorage.getItem(AJ) ?? "{}") }; } catch { return base; }
 };
 
@@ -33,7 +34,7 @@ export class Simulador {
   ajustes = ajustesIniciales();
   enlace: Enlace = "sin_conectar";
   mensajeEnlace = "";
-  lista: PlcLista[] = [];
+  lista: PlcLista[] = LISTA_LOCAL;
   config: Config | null = null;
   estado: EstadoCpu = "stop";
   motor: MotorPlc | null = null;
@@ -58,6 +59,7 @@ export class Simulador {
   private previos: Valores = {};
   private enviando = false;
   private fallosEnvio = 0;
+  private proximaFalla = 0;
 
   // ---------------------------------------------------------------------------------------- suscripción para React
   suscribir = (f: () => void) => { this.oyentes.add(f); return () => { this.oyentes.delete(f); }; };
@@ -69,24 +71,47 @@ export class Simulador {
     this.eventos = [{ t: Date.now(), texto, nivel }, ...this.eventos].slice(0, 200);
   }
 
-  // ---------------------------------------------------------------------------------------- conexión con la base de datos
+  // ---------------------------------------------------------------------------------------- arranque y conexión opcional con SIMA
+  get conSima() { return this.ajustes.modo === "sima"; }
+
+  /** Por defecto el simulador funciona solo, con la planta incluida. Solo se conecta a SIMA si la persona lo eligió. */
+  async iniciar() {
+    if (this.conSima) { await this.conectar(); if (this.config) return; }
+    this.guardarAjustes({ modo: "autonomo" });
+    this.lista = LISTA_LOCAL;
+    await this.cargarPlc(this.ajustes.plc);
+  }
+
+  /** Conexión opcional: usa los PLC, módulos y programas de la base de datos de SIMA y le envía las lecturas. */
   async conectar() {
     this.enlace = "conectando"; this.mensajeEnlace = ""; this.avisar();
     try {
-      this.lista = await this.api.get<PlcLista[]>("/api/ingesta/plc");
-      this.enlace = "conectado";
-      const elegido = this.lista.find((p) => p.codigo === this.ajustes.plc) ?? this.lista[0];
+      const lista = await this.api.get<PlcLista[]>("/api/ingesta/plc");
+      this.lista = lista; this.guardarAjustes({ modo: "sima" }); this.enlace = "conectado";
+      const elegido = lista.find((p) => p.codigo === this.ajustes.plc) ?? lista[0];
       if (elegido) await this.cargarPlc(elegido.codigo);
     } catch (e) {
       this.enlace = "error"; this.mensajeEnlace = e instanceof Error ? e.message : "No se pudo conectar.";
-      this.log(`Sin conexión con SIMA: ${this.mensajeEnlace}`, "aviso");
+      this.log(`No se pudo conectar con SIMA: ${this.mensajeEnlace}. El simulador sigue en modo autónomo.`, "aviso");
+      if (!this.config) { this.guardarAjustes({ modo: "autonomo" }); this.lista = LISTA_LOCAL; await this.cargarPlc(this.ajustes.plc); }
     }
     this.avisar();
   }
 
+  async desconectar() {
+    this.guardarAjustes({ modo: "autonomo" }); this.enlace = "sin_conectar"; this.mensajeEnlace = ""; this.lista = LISTA_LOCAL;
+    await this.cargarPlc(this.ajustes.plc);
+  }
+
+  private claveLocal = (codigo: string) => `sima.plcsim.programa.${codigo}`;
+  get programaPropio() { return !this.conSima && !!this.config && localStorage.getItem(this.claveLocal(this.config.plc.codigo)) != null; }
+  private programaGuardado(codigo: string): ProgramaPlc | null { try { const t = localStorage.getItem(this.claveLocal(codigo)); return t ? JSON.parse(t) : null; } catch { return null; } }
+
   async cargarPlc(codigo: string) {
     this.detenerReloj();
-    const c = await this.api.get<Config>(`/api/ingesta/plc/${codigo}/config`);
+    let c: Config;
+    if (this.conSima) c = await this.api.get<Config>(`/api/ingesta/plc/${codigo}/config`);
+    else { c = configLocal(codigo); const propio = this.programaGuardado(codigo); if (propio) c = { ...c, programa: propio }; }
     this.config = c;
     this.guardarAjustes({ plc: codigo });
     this.motor = new MotorPlc(c.programa);
@@ -95,7 +120,7 @@ export class Simulador {
     for (const p of c.puntos) if (p.tipo === "DI") this.entradas[p.tag] = 0;
     for (const e of c.equipos) for (const s of e.sensores) this.valores[`${e.codigo}.${s.variable}`] = s.min + 0.08 * (s.max - s.min);
     this.eventos = [];
-    this.log(`${c.plc.codigo} cargado desde la base de datos: ${c.modulos.length} módulos, ${c.puntos.length} puntos, ${c.programa.peldanos.length} peldaños.`);
+    this.log(`${c.plc.codigo} cargado ${this.conSima ? "desde la base de datos de SIMA" : "en modo autónomo"}: ${c.modulos.length} módulos, ${c.puntos.length} puntos, ${c.programa.peldanos.length} peldaños.`);
     this.estado = "run";
     this.iniciarReloj();
     if (this.ajustes.autoArranque) c.equipos.forEach((e, i) => setTimeout(() => this.pulso(`${prefijo(e.codigo)}_MARCHA`), 600 + i * 350));
@@ -163,12 +188,25 @@ export class Simulador {
   }
   async guardarPrograma() {
     if (!this.config) return;
-    await this.api.put(`/api/ingesta/plc/${this.config.plc.codigo}/programa`, this.config.programa);
+    if (this.conSima) {
+      await this.api.put(`/api/ingesta/plc/${this.config.plc.codigo}/programa`, this.config.programa);
+      this.log("Programa guardado en la base de datos de SIMA", "info");
+    } else {
+      localStorage.setItem(this.claveLocal(this.config.plc.codigo), JSON.stringify(this.config.programa));
+      this.log("Programa guardado en este equipo", "info");
+    }
     this.programaSucio = false;
-    this.log("Programa guardado en la base de datos de SIMA", "info");
     this.avisar();
   }
   async descartarPrograma() { if (this.config) await this.cargarPlc(this.config.plc.codigo); }
+  /** Vuelve al programa original del PLC (solo en modo autónomo). */
+  async restablecerPrograma() {
+    if (!this.config || this.conSima) return;
+    localStorage.removeItem(this.claveLocal(this.config.plc.codigo));
+    await this.cargarPlc(this.config.plc.codigo);
+    this.log("Programa original restablecido", "info");
+    this.avisar();
+  }
 
   // ---------------------------------------------------------------------------------------- bucle de ejecución
   private iniciarReloj() {
@@ -189,6 +227,7 @@ export class Simulador {
 
     for (const [tag, hasta] of this.pulsos) if (t0 >= hasta) { this.entradas[tag] = 0; this.pulsos.delete(tag); }
     this.procesoFisico(dt);
+    this.fallasAleatorias(t0);
 
     const entradas: Valores = { ...this.entradas, ...this.analogicas() };
     for (const [k, v] of Object.entries(this.forzados)) entradas[k] = v;
@@ -207,6 +246,16 @@ export class Simulador {
     }
     if (t0 - this.ultimoEnvio > 1000) { this.ultimoEnvio = t0; void this.enviar(false); }
     this.avisar();
+  }
+
+  /** Modo entrenamiento: cada tanto una máquina en marcha empieza a fallar, para practicar el diagnóstico. */
+  private fallasAleatorias(ahora: number) {
+    if (!this.ajustes.aleatorias || this.estado !== "run" || !this.config) { this.proximaFalla = 0; return; }
+    if (this.proximaFalla === 0) this.proximaFalla = ahora + 20_000 + Math.random() * 30_000;
+    if (ahora < this.proximaFalla) return;
+    const sanos = this.config.equipos.filter((e) => (this.imagen[`${prefijo(e.codigo)}_CONTACTOR`] ?? 0) > 0 && !(this.imagen[`${prefijo(e.codigo)}_FALLA`] ?? 0) && e.sensores.every((s) => !(this.deriva[`${e.codigo}.${s.variable}`] > 0)));
+    if (sanos.length) this.inyectarFalla(sanos[Math.floor(Math.random() * sanos.length)].codigo);
+    this.proximaFalla = ahora + 30_000 + Math.random() * 60_000;
   }
 
   private analogicas(): Valores {
@@ -248,7 +297,7 @@ export class Simulador {
 
   // ---------------------------------------------------------------------------------------- envío a SIMA
   private async enviar(inmediato: boolean) {
-    if (!this.config || this.enviando && !inmediato) return;
+    if (!this.config || !this.conSima || this.enviando && !inmediato) return;
     this.enviando = true;
     try {
       const cfg = this.config;

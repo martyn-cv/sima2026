@@ -22,14 +22,14 @@ function Conexion({ abierto, onCerrar }: { abierto: boolean; onCerrar: () => voi
       {abierto && (
         <div className="fixed inset-0 z-50 grid place-items-center p-4">
           <motion.div className="absolute inset-0 bg-black/70" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onCerrar} />
-          <motion.form onSubmit={enviar} role="dialog" aria-label="Conexión con SIMA" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="relative w-full max-w-[480px] border-t-[3px] border-rojo bg-panel p-6">
-            <h2 className="display text-[28px] font-bold leading-none">Conexión con SIMA</h2>
-            <p className="mb-4 mt-1 text-tenue">El simulador lee el PLC, sus módulos y su programa desde la base de datos y le envía las lecturas.</p>
+          <motion.form onSubmit={enviar} role="dialog" aria-label="Conectar con SIMA" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="relative w-full max-w-[480px] border-t-[3px] border-rojo bg-panel p-6">
+            <h2 className="display text-[28px] font-bold leading-none">Conectar con SIMA</h2>
+            <p className="mb-4 mt-1 text-tenue">Opcional. El simulador funciona solo, con la planta incluida. Si se conecta, usa los PLC y programas de la base de datos de SIMA y le envía las lecturas para verlas en la web y en la app de terreno.</p>
             <label className="mb-3 block text-[12px] text-tenue">Dirección de la API<input value={url} onChange={(e) => setUrl(e.target.value)} className="mono mt-1 h-10 w-full border border-borde bg-panel2 px-3 text-[14px] text-texto outline-none focus:border-rojo-vivo" /></label>
             <label className="mb-3 block text-[12px] text-tenue">Clave de ingesta<input value={clave} onChange={(e) => setClave(e.target.value)} type="password" className="mono mt-1 h-10 w-full border border-borde bg-panel2 px-3 text-[14px] text-texto outline-none focus:border-rojo-vivo" /></label>
             <label className="mb-5 flex items-center gap-2 text-[13px]"><input type="checkbox" className="size-4 accent-[#d91f26]" checked={auto} onChange={(e) => setAuto(e.target.checked)} />Arrancar los equipos al cargar el PLC</label>
             {s.enlace === "error" && <p role="alert" className="mb-4 border-l-[3px] border-rojo bg-[#3a1416] px-3 py-2 text-[13px] text-rojo-vivo">{s.mensajeEnlace}</p>}
-            <div className="flex justify-end gap-2"><button type="button" onClick={onCerrar} className="h-10 cursor-pointer border border-borde px-4 hover:border-tenue">Cancelar</button><button type="submit" className="h-10 cursor-pointer bg-rojo px-5 font-semibold text-white hover:bg-[#b8181e]">Conectar</button></div>
+            <div className="flex flex-wrap justify-end gap-2">{s.conSima && <button type="button" onClick={() => { void s.desconectar(); onCerrar(); }} className="mr-auto h-10 cursor-pointer border border-borde px-4 hover:border-tenue">Volver al modo autónomo</button>}<button type="button" onClick={onCerrar} className="h-10 cursor-pointer border border-borde px-4 hover:border-tenue">Cancelar</button><button type="submit" className="h-10 cursor-pointer bg-rojo px-5 font-semibold text-white hover:bg-[#b8181e]">Conectar</button></div>
           </motion.form>
         </div>
       )}
@@ -41,8 +41,8 @@ export function App() {
   const s = useSim();
   const [tab, setTab] = useState<Pestana>("escalera");
   const [dialogo, setDialogo] = useState(false);
-  useEffect(() => { void sim.conectar(); return () => sim.destruir(); }, []);
-  const enlace = { sin_conectar: ["Sin conectar", "bg-tenue"], conectando: ["Conectando…", "bg-led-ambar animate-parpadeo"], conectado: ["Conectado a SIMA", "bg-led-verde animate-latido"], error: ["Sin conexión", "bg-rojo-vivo"] }[s.enlace];
+  useEffect(() => { void sim.iniciar(); return () => sim.destruir(); }, []);
+  const enlace = s.conSima ? { sin_conectar: ["Sin conectar", "bg-tenue"], conectando: ["Conectando con SIMA…", "bg-led-ambar animate-parpadeo"], conectado: ["Conectado a SIMA", "bg-led-verde animate-latido"], error: ["SIMA no responde", "bg-rojo-vivo"] }[s.enlace] : s.enlace === "conectando" ? ["Conectando con SIMA…", "bg-led-ambar animate-parpadeo"] : ["Modo autónomo", "bg-led-azul"];
 
   return (
     <div className="flex h-full flex-col">
@@ -60,12 +60,13 @@ export function App() {
           {s.config && <>
             <span className="text-[12px] text-tenue">Ciclo <b className="mono text-texto">{s.motor?.ciclos.toLocaleString("es-CL")}</b></span>
             <span className="text-[12px] text-tenue">Scan <b className="mono text-texto">{s.tiempoCicloMs.toFixed(1)} ms</b></span>
+            <label className="flex cursor-pointer items-center gap-1.5 text-[12px] text-tenue" title="Cada tanto una máquina empieza a fallar, para practicar el diagnóstico"><input type="checkbox" className="size-3.5 accent-[#d91f26]" checked={s.ajustes.aleatorias} onChange={(e) => s.guardarAjustes({ aleatorias: e.target.checked })} />Fallas aleatorias</label>
             <label className="flex items-center gap-1.5 text-[12px] text-tenue">Velocidad
               <select value={s.ajustes.velocidad} onChange={(e) => s.guardarAjustes({ velocidad: Number(e.target.value) })} className="h-7 border border-borde bg-panel2 px-1.5 text-[12px] text-texto outline-none">{[1, 2, 5, 10].map((v) => <option key={v} value={v}>{v}×</option>)}</select>
             </label>
           </>}
           <span className="flex items-center gap-2 text-[12px]"><span className={cx("size-2.5 rounded-full", enlace[1])} />{enlace[0]}</span>
-          <button onClick={() => setDialogo(true)} className="flex h-8 cursor-pointer items-center gap-1.5 border border-borde px-3 text-[12px] hover:border-tenue"><Settings className="size-3.5" />Conexión</button>
+          <button onClick={() => setDialogo(true)} className="flex h-8 cursor-pointer items-center gap-1.5 border border-borde px-3 text-[12px] hover:border-tenue"><Settings className="size-3.5" />{s.conSima ? "Conexión" : "Conectar con SIMA"}</button>
         </div>
       </header>
 
@@ -73,10 +74,10 @@ export function App() {
         <main className="grid flex-1 place-items-center p-8 text-center">
           <div className="max-w-[460px]">
             <Cable className="mx-auto size-10 text-tenue" strokeWidth={1.5} />
-            <h1 className="display mt-3 text-[34px] font-bold leading-none">{s.enlace === "conectando" ? "Conectando con SIMA…" : "El simulador necesita la base de datos"}</h1>
-            <p className="mt-2 text-tenue">Los controladores, sus módulos y sus programas viven en la base de datos de SIMA. Inicie la API y conecte.</p>
+            <h1 className="display mt-3 text-[34px] font-bold leading-none">Preparando la planta…</h1>
+            <p className="mt-2 text-tenue">Cargando los controladores, sus módulos y sus programas.</p>
             {s.enlace === "error" && <p role="alert" className="mt-4 border-l-[3px] border-rojo bg-[#3a1416] px-3 py-2 text-left text-[13px] text-rojo-vivo">{s.mensajeEnlace}</p>}
-            <button onClick={() => setDialogo(true)} className="mt-5 h-10 cursor-pointer bg-rojo px-5 font-semibold text-white hover:bg-[#b8181e]">Configurar conexión</button>
+            <button onClick={() => setDialogo(true)} className="mt-5 h-10 cursor-pointer bg-rojo px-5 font-semibold text-white hover:bg-[#b8181e]">Conectar con SIMA</button>
           </div>
         </main>
       ) : (

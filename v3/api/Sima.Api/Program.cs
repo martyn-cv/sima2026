@@ -19,6 +19,7 @@ var jwt = new OpcionesJwt { Clave = cfg["Jwt:Clave"] ?? new OpcionesJwt().Clave,
 if (jwt.Clave.Length < 32) throw new InvalidOperationException("Jwt:Clave debe tener al menos 32 caracteres.");
 builder.Services.AddSingleton(jwt);
 builder.Services.AddSingleton<ServicioToken>();
+builder.Services.AddSingleton<CifradoSecretos>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<GuardiaDeCuenta>();
 builder.Services.AddScoped<ProcesadorTelemetria>();
@@ -71,6 +72,29 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// cabeceras de seguridad en todas las respuestas
+app.Use(async (ctx, next) =>
+{
+    var h = ctx.Response.Headers;
+    h["X-Content-Type-Options"] = "nosniff"; h["X-Frame-Options"] = "DENY"; h["Referrer-Policy"] = "no-referrer"; h["Cross-Origin-Opener-Policy"] = "same-origin";
+    if (ctx.Request.IsHttps) h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+    await next();
+});
+
+// quien debe elegir su clave o activar el segundo factor solo puede usar los endpoints de seguridad hasta hacerlo
+app.Use(async (ctx, next) =>
+{
+    var r = ctx.User.FindFirst("restringido")?.Value;
+    var ruta = ctx.Request.Path.Value ?? "";
+    if (r is not null && !(ruta.StartsWith("/api/auth/") && !ruta.EndsWith("/login")) && !ruta.StartsWith("/hubs"))
+    {
+        ctx.Response.StatusCode = 403;
+        await ctx.Response.WriteAsJsonAsync(new { error = r == "clave" ? "Debe elegir una clave propia antes de continuar." : "Debe activar el segundo factor antes de continuar.", restringido = r });
+        return;
+    }
+    await next();
+});
+
 app.MapGet("/salud", async (SimaDb db) => Results.Ok(new { estado = "ok", trabajadores = await db.Trabajadores.CountAsync(), equipos = await db.Equipos.CountAsync(), hora = DateTime.UtcNow }));
 app.MapAuth(cfg);
 app.MapPersonas();
@@ -98,7 +122,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     if (cli is not null || (cfg.GetValue("Seed:Importar", true) && !await db.Trabajadores.AnyAsync()))
     {
         if (excel is null || !File.Exists(excel)) log.LogWarning("No se encontró SIMA_base_de_datos.xlsx: la base queda vacía. Defina Seed:Excel.");
-        else log.LogInformation("Excel importado ({Ruta}): {Resumen}", excel, await ImportadorExcel.ImportarAsync(db, excel, claveInicial, reemplazar: true));
+        else log.LogInformation("Excel importado ({Ruta}): {Resumen}", excel, await ImportadorExcel.ImportarAsync(db, excel, claveInicial, reemplazar: true, forzarCambioClave: cfg.GetValue("Seed:ForzarCambioClave", false)));
     }
     if (cfg.GetValue("Seed:Planta", true)) await SemillaPlanta.CargarAsync(db);
     if (cli is not null) return;   // «dotnet run -- importar ruta.xlsx» importa y termina

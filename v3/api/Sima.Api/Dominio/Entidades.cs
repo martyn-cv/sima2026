@@ -59,6 +59,10 @@ public class Trabajador
     public int IntentosFallidos { get; set; }
     public DateTime? BloqueadoHasta { get; set; }
     public DateTime? UltimoAcceso { get; set; }
+    public bool DebeCambiarClave { get; set; }           // tras un restablecimiento o una clave inicial: debe elegir una propia
+    public bool TotpActivo { get; set; }                 // segundo factor (aplicación de autenticación)
+    public string? TotpSecreto { get; set; }             // cifrado con AES-GCM; nunca sale de la API
+    public long TotpUltimoPaso { get; set; }             // evita reutilizar un código ya usado
 
     public string NombreCompleto => $"{Nombres} {ApellidoPaterno} {ApellidoMaterno}".Trim();
 }

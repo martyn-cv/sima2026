@@ -827,6 +827,9 @@ namespace Sima.Api.Datos.Migraciones
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("DebeCambiarClave")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Domicilio")
                         .IsRequired()
                         .HasColumnType("text");
@@ -893,6 +896,15 @@ namespace Sima.Api.Datos.Migraciones
                     b.Property<string>("TipoCuenta")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("TotpActivo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TotpSecreto")
+                        .HasColumnType("text");
+
+                    b.Property<long>("TotpUltimoPaso")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Turno")
                         .IsRequired()

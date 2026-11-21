@@ -10,7 +10,7 @@ Todos los datos de personas (nombres, RUT, domicilios, cuentas bancarias) son **
 | Base de datos | PostgreSQL 16 | (`docker-compose.yml`) | 5432 |
 | Web de administración | Next.js 16, React 19, TypeScript, Tailwind 4, Motion | `web/` | 3000 |
 | App de terreno (escritorio y navegador) | Tauri 2, React, TypeScript, Tailwind | `terreno/` | 1421 |
-| Simulador de PLC (escritorio) | Tauri 2, React, TypeScript, Tailwind | `plc-sim/` | 1420 |
+| Simulador de PLC (escritorio), **funciona solo** | Tauri 2, React, TypeScript, Tailwind | `plc-sim/` | 1420 |
 | Cliente de la API, tiempo real y motor de PLC | TypeScript | `paquetes/cliente/` | |
 | Componentes y tema compartidos | React, Tailwind | `paquetes/ui/` | |
 | Datos de partida | Excel y su generador | `datos/` | |
@@ -30,7 +30,7 @@ Después abra http://localhost:3000. Para las aplicaciones de escritorio:
 
 ```bash
 npm install                     # una vez, en esta carpeta
-npm run plc:escritorio          # simulador de PLC en su propia ventana
+npm run plc:escritorio          # simulador de PLC en su propia ventana (no necesita la API ni la base de datos)
 npm run terreno:escritorio      # app de terreno en su propia ventana
 npm run plc                     # el simulador en el navegador (puerto 1420), para probar
 ```
@@ -69,7 +69,11 @@ Cuando RR. HH. desvincula a alguien en la web, el servidor sube la versión de s
 
 Las **remuneraciones** (gratificación, horas extra, AFP, salud, cesantía, impuesto único, retención de honorarios) se calculan en el servidor con los contratos, la asistencia y los conceptos del mes. Una prueba automática compara las 296 liquidaciones del Excel con las del servidor, con una tolerancia de un peso.
 
-**Los PLC también están en la base:** 4 controladores (`plc`), sus módulos (`plc_modulos`), entre 17 y 51 puntos de entrada y salida cada uno (126 en total) (`plc_puntos`, enlazados a su equipo y a su sensor) y su programa en escalera. El simulador de PLC los lee de ahí, ejecuta el programa, mueve el proceso de cada equipo y publica lecturas; la API abre alarmas, crea la orden de trabajo automática y avisa en vivo a la web y a la app. Cerrar la orden en la app envía una orden de reparación de vuelta al PLC.
+**Los PLC también están en la base:** 4 controladores (`plc`), sus módulos (`plc_modulos`), entre 17 y 51 puntos de entrada y salida cada uno (126 en total) (`plc_puntos`, enlazados a su equipo y a su sensor) y su programa en escalera.
+
+**El simulador de PLC no necesita nada más para funcionar.** Trae la misma planta incluida (4 PLC, 15 equipos, módulos, puntos y programas): se abre, los equipos arrancan y se puede jugar con él. Ejecuta el programa en escalera como un PLC real, mueve el proceso físico de cada equipo, permite inyectar fallas o activar las **fallas aleatorias** para practicar el diagnóstico, editar el programa (se guarda en el equipo) y observar variables y tendencias. Es una herramienta de entrenamiento y de ingeniería, no un juego de un tema en particular.
+
+**Conectarlo a SIMA es opcional** (botón *Conectar con SIMA*). Entonces usa los PLC y programas de la base de datos y publica lecturas: la API abre alarmas, crea la orden de trabajo automática y avisa en vivo a la web y a la app. Cerrar la orden en la app envía una orden de reparación de vuelta al simulador.
 
 ## Permisos
 
@@ -96,7 +100,7 @@ Es un prototipo avanzado, no un sistema listo para producción. Lo que sigue de 
 
 - **Seguridad:** HTTPS con proxy inverso, segundo factor para los perfiles de gestión, recuperación de clave, quitar las cuentas y claves de demostración (`Demo:Habilitado=false`), cambiar `Jwt:Clave` y `Ingesta:ApiKey`, protección de datos personales con asesoría legal (permisos por campo y registro de accesos).
 - **Operación:** respaldos probados de PostgreSQL, observabilidad, pruebas de carga con 500 activos y 30 usuarios.
-- **Telemetría a escala:** base de series de tiempo (TimescaleDB) y puente OPC UA o MQTT hacia PLC reales; hoy el simulador publica por HTTP y el historial dura 6 horas.
+- **Telemetría a escala:** base de series de tiempo (TimescaleDB); hoy el historial dura 6 horas. El simulador no necesita PLC reales ni puente OPC UA: es independiente.
 - **App de terreno sin conexión:** la v2 la tenía como PWA con cola de envíos; en la v3 falta portarla.
 - **Cálculo de remuneraciones:** los valores legales (IMM, UF, UTM, topes, comisiones, tramos) son de referencia y el cálculo no modela Isapre en UF, APV, asignación familiar ni licencias. Debe validarlo un contador.
 - **Módulos de la v2 aún no portados a .NET:** rutinas preventivas, herramientas y calibraciones, traspaso de turno, indicadores OEE y MTBF, repuestos y despachos.

@@ -54,7 +54,7 @@ public static class ImportadorExcel
         return lista;
     }
 
-    public static async Task<ResumenImportacion> ImportarAsync(SimaDb db, string ruta, string claveInicial, bool reemplazar = true, CancellationToken ct = default)
+    public static async Task<ResumenImportacion> ImportarAsync(SimaDb db, string ruta, string claveInicial, bool reemplazar = true, bool forzarCambioClave = false, CancellationToken ct = default)
     {
         using var wb = new XLWorkbook(ruta);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -111,6 +111,7 @@ public static class ImportadorExcel
                 ContactoEmergencia = f.S("contacto_emergencia"), TelefonoEmergencia = f.S("telefono_emergencia"), Afp = f.S("afp"), SistemaSalud = f.S("sistema_salud"), Banco = f.S("banco"),
                 TipoCuenta = f.S("tipo_cuenta"), NumeroCuenta = f.S("numero_cuenta"), FechaIngreso = f.D("fecha_ingreso") ?? default, CargoId = f.I("id_cargo"), Turno = f.S("turno"),
                 LoginAlias = al.Length > 0 ? al.ToLowerInvariant() : null, PasswordHash = Claves.Hash(clave),
+                DebeCambiarClave = forzarCambioClave && !(al.Length > 0 && ClavesDemo.ContainsKey(al.Split('@')[0])),
             });
         }
         await db.SaveChangesAsync(ct);
