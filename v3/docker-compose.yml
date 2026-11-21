@@ -42,6 +42,17 @@ services:
     depends_on: [api]
     ports: ["3000:3000"]
 
+  # App de terreno (http://localhost:1421) y simulador de PLC (http://localhost:1420): se abren en el navegador.
+  terreno:
+    build: { context: ., dockerfile: docker/Dockerfile.estatica, args: { APP: terreno } }
+    restart: unless-stopped
+    ports: ["1421:80"]
+
+  simulador:
+    build: { context: ., dockerfile: docker/Dockerfile.estatica, args: { APP: plc-sim } }
+    restart: unless-stopped
+    ports: ["1420:80"]
+
   # HTTPS:  docker compose --profile https up --build   →   https://localhost  (o su dominio con SIMA_DOMINIO)
   # En producción quite los puertos 3000 y 5080 de arriba para que solo se entre por el proxy.
   https:

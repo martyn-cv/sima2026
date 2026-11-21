@@ -17,13 +17,15 @@ Sistema de Información Manufacturero Andino de Manufacturas Andina S.A. La vers
 
 ## Cómo arrancarlo
 
+**En Windows, a un clic:** instale Docker Desktop, abra la carpeta `v3` (fuera de `C:\Windows`) y haga doble clic en **`Iniciar SIMA.bat`**. Levanta la base de datos, la API, la web, la app de terreno y el simulador de PLC, y abre el navegador con las tres. **`Detener SIMA.bat`** lo apaga. Para que arranque solo con el equipo: en Docker Desktop, *Settings → General → Start Docker Desktop when you sign in*; los contenedores se reinician solos y basta con abrir el navegador. Conviene crear un acceso directo de `Iniciar SIMA.bat` en el escritorio (clic derecho → *Enviar a → Escritorio*).
+
 Un solo comando levanta todo; la base se crea sola y el Excel de `datos/` se importa en el primer arranque.
 
 | Equipo | Comando |
 |---|---|
-| Con Docker (base de datos, API y web) | `docker compose up --build` |
+| Con Docker (base de datos, API, web, app de terreno y simulador) | `docker compose up --build` |
 | Linux o macOS, sin Docker para la API | `./iniciar.sh` |
-| Windows | `iniciar.bat` (usa Docker Desktop si está; con `iniciar.bat local` usa .NET y Node) |
+| Windows | doble clic en `Iniciar SIMA.bat`, o `iniciar.bat` (con `iniciar.bat local` usa .NET y Node) |
 | Instalar las herramientas | `scripts/instalar-herramientas.sh` (Ubuntu o Debian) o `scripts/instalar-herramientas.ps1` (Windows) |
 
 Después abra http://localhost:3000. Para las aplicaciones de escritorio:
