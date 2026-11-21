@@ -1,0 +1,12 @@
+{
+  "name": "sima-v3",
+  "private": true,
+  "version": "3.0.0",
+  "description": "SIMA v3: web de administración (Next.js), app de terreno y simulador de PLC (Tauri), API en .NET",
+  "workspaces": ["paquetes/*", "web"],
+  "scripts": {
+    "web": "npm run dev -w web",
+    "build:web": "npm run build -w web",
+    "tipos": "npm run tipos -w web"
+  }
+}
