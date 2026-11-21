@@ -436,4 +436,16 @@ public class PruebasApi(Fabrica f)
         await c.PostAsJsonAsync("/api/ingesta/plc/PLC-03/telemetria", new { estado = "run", lecturas = new[] { new { equipo = "EV-01", variable = "temp_sellado", valor = 160.0 } }, equipos = new[] { new { equipo = "EV-01", estado = "operando" } } });
         Assert.Empty(f.NuevaBd().Paradas.Where(p => p.EquipoId == ev.Id && p.Fin == null));
     }
+
+    [Fact]
+    public async Task ReenviarUnaFallaConElMismoIdentificadorNoCreaOtraOrden()
+    {
+        var op = await f.Entrar("operador", "Operador2026", "app");
+        var cuerpo = new { equipo = "TC-02", titulo = "Prueba de reenvío sin conexión", prioridad = "media", uid = "uid-prueba-ordenes-1" };
+        Assert.Equal(HttpStatusCode.Created, (await op.PostAsJsonAsync("/api/ordenes", cuerpo)).StatusCode);
+        var otra = await op.PostAsJsonAsync("/api/ordenes", cuerpo);                      // la app reenvía porque no vio la respuesta
+        Assert.Equal(HttpStatusCode.OK, otra.StatusCode);
+        Assert.True((await otra.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("repetida").GetBoolean());
+        Assert.Equal(1, (await f.Leer(op, "/api/ordenes")).EnumerateArray().Count(o => o.GetProperty("titulo").GetString() == "Prueba de reenvío sin conexión"));
+    }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, BookUser, Briefcase, ClipboardList, Cog, Home, LogOut, Siren } from "lucide-react";
+import { Bell, BookUser, Briefcase, ClipboardList, ClipboardCheck, Cog, Home, LogOut, Repeat, Siren, Wrench } from "lucide-react";
 import { ApiError } from "@sima/cliente";
 import { Boton, Campo, Entrada, AvisosProvider, PantallaSeguridad, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api, baseUrl, guardarUrl } from "./lib/api";
@@ -12,6 +12,8 @@ import { EquipoDetalle, Equipos } from "./pantallas/Equipos";
 import { Ordenes } from "./pantallas/Ordenes";
 import { Reportar } from "./pantallas/Reportar";
 import { Alarmas, Directorio, Inicio, MiCargo } from "./pantallas/Resto";
+import { Panol, Rutinas, Traspaso } from "./pantallas/Operacion";
+import { usePendientes, vaciar } from "./lib/offline";
 
 function Login() {
   const { entrar, aviso } = useAuth();
@@ -55,7 +57,7 @@ function Login() {
   );
 }
 
-const NAV = [{ r: "/", t: "Inicio", i: Home }, { r: "/equipos", t: "Equipos", i: Cog }, { r: "/alarmas", t: "Alarmas", i: Bell }, { r: "/ordenes", t: "Órdenes", i: ClipboardList }, { r: "/cargo", t: "Mi cargo", i: Briefcase }, { r: "/directorio", t: "Directorio", i: BookUser }];
+const NAV = [{ r: "/", t: "Inicio", i: Home }, { r: "/equipos", t: "Equipos", i: Cog }, { r: "/alarmas", t: "Alarmas", i: Bell }, { r: "/ordenes", t: "Órdenes", i: ClipboardList }, { r: "/rutinas", t: "Rutinas", i: ClipboardCheck }, { r: "/panol", t: "Pañol", i: Wrench }, { r: "/traspaso", t: "Traspaso", i: Repeat, permiso: "traspaso" }, { r: "/cargo", t: "Mi cargo", i: Briefcase }, { r: "/directorio", t: "Directorio", i: BookUser }];
 
 function Avisos() {
   const { aviso } = usePlanta();
@@ -65,19 +67,21 @@ function Avisos() {
 }
 
 function Marco() {
-  const { usuario, salir } = useAuth();
+  const { usuario, salir, puede } = useAuth();
   const { conexion, equipos } = usePlanta();
+  const pendientes = usePendientes();
+  const nav = NAV.filter((n) => !n.permiso || puede(n.permiso));
   const r = useRuta();
   const activa = (x: string) => (x === "/" ? r === "/" : r.startsWith(x));
   const alarmas = equipos.filter((e) => e.estado === "alarma").length;
   const [, p1, p2] = r.split("/");
-  const pantalla = p1 === "equipos" && p2 ? <EquipoDetalle codigo={decodeURIComponent(p2)} /> : p1 === "equipos" ? <Equipos /> : p1 === "alarmas" ? <Alarmas /> : p1 === "ordenes" ? <Ordenes /> : p1 === "reportar" ? <Reportar equipo={p2} /> : p1 === "cargo" ? <MiCargo /> : p1 === "directorio" ? <Directorio /> : <Inicio />;
+  const pantalla = p1 === "equipos" && p2 ? <EquipoDetalle codigo={decodeURIComponent(p2)} /> : p1 === "equipos" ? <Equipos /> : p1 === "alarmas" ? <Alarmas /> : p1 === "ordenes" ? <Ordenes /> : p1 === "reportar" ? <Reportar equipo={p2} /> : p1 === "rutinas" ? <Rutinas /> : p1 === "panol" ? <Panol /> : p1 === "traspaso" ? <Traspaso /> : p1 === "cargo" ? <MiCargo /> : p1 === "directorio" ? <Directorio /> : <Inicio />;
   return (
     <AvisosProvider>
       <Avisos />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-negro lg:flex">
         <div className="flex items-center gap-2.5 px-5 pb-5 pt-6"><span className="grid size-9 place-items-center bg-rojo display text-[26px] font-bold leading-none text-white">S</span><div><p className="display text-[28px] font-bold leading-[0.9] text-white">SIMA</p><p className="text-[12px] text-[#9aa0a9]">Terreno</p></div></div>
-        <nav className="flex-1 px-3" aria-label="Secciones">{NAV.map((n) => (
+        <nav className="flex-1 px-3" aria-label="Secciones">{nav.map((n) => (
           <a key={n.r} href={`#${n.r}`} aria-current={activa(n.r) ? "page" : undefined} className={cx("relative flex h-11 items-center gap-3 px-3 text-[16px] transition-colors", activa(n.r) ? "text-white" : "text-[#b4b8c0] hover:text-white")}>
             {activa(n.r) && <motion.span layoutId="rail" className="absolute inset-0 bg-[#1d1e22]" transition={{ type: "spring", stiffness: 520, damping: 42 }} />}
             {activa(n.r) && <motion.span layoutId="rail-barra" className="absolute inset-y-0 left-0 w-[3px] bg-rojo" transition={{ type: "spring", stiffness: 520, damping: 42 }} />}
@@ -90,13 +94,14 @@ function Marco() {
       <div className="min-h-dvh pb-20 lg:pb-0 lg:pl-[220px]">
         <div className="sticky top-0 z-20 flex h-11 items-center gap-3 border-b border-linea bg-papel px-4 lg:px-9">
           <span className="flex items-center gap-2 text-[14px] font-medium"><span className={cx("size-2 rounded-full", conexion === "conectado" ? "animate-latido bg-verde" : conexion === "reconectando" ? "animate-parpadeo bg-ambar" : "bg-gris")} />{conexion === "conectado" ? "En vivo" : conexion === "reconectando" ? "Reconectando…" : "Sin conexión en vivo"}</span>
+          {pendientes > 0 && <button onClick={() => void vaciar()} className="flex cursor-pointer items-center gap-1.5 bg-ambar-claro px-2 py-0.5 text-[13px] font-medium text-[#8a5a00]" title="Se envían solos al volver la señal. Toque para reintentar ahora.">{pendientes} {pendientes === 1 ? "envío pendiente" : "envíos pendientes"}</button>}
           {alarmas > 0 && <button onClick={() => ir("/alarmas")} className="flex cursor-pointer items-center gap-1.5 text-[14px] font-semibold text-rojo"><Siren className="size-4" />{alarmas} {alarmas === 1 ? "equipo con alarma" : "equipos con alarma"}</button>}
           <button onClick={() => salir()} className="ml-auto text-[14px] text-gris underline decoration-linea underline-offset-2 hover:text-negro lg:hidden">Salir</button>
         </div>
         <main className="mx-auto w-full max-w-[1200px] px-4 py-6 lg:px-9"><AnimatePresence mode="wait"><motion.div key={r} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>{pantalla}</motion.div></AnimatePresence></main>
       </div>
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-linea bg-papel lg:hidden" aria-label="Secciones">{NAV.map((n) => (
-        <a key={n.r} href={`#${n.r}`} aria-current={activa(n.r) ? "page" : undefined} className={cx("flex h-16 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", activa(n.r) ? "text-rojo" : "text-gris")}><n.i className="size-5" strokeWidth={1.75} />{n.t}</a>))}
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t border-linea bg-papel lg:hidden" aria-label="Secciones">{nav.map((n) => (
+        <a key={n.r} href={`#${n.r}`} aria-current={activa(n.r) ? "page" : undefined} className={cx("flex h-16 min-w-[76px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", activa(n.r) ? "text-rojo" : "text-gris")}><n.i className="size-5" strokeWidth={1.75} />{n.t}</a>))}
       </nav>
     </AvisosProvider>
   );

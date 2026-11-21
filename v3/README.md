@@ -79,6 +79,20 @@ Las **remuneraciones** (gratificación, horas extra, AFP, salud, cesantía, impu
 
 La hoja *Permisos* del Excel es la matriz de `api/Sima.Api/Servicios/Permisos.cs`. El servidor valida cada petición; ocultar un botón no protege nada. Por ejemplo: solo Personas edita datos personales, contratos y desvinculaciones; solo Finanzas edita parámetros y bonos; las jefaturas ven la asistencia y las habilitaciones de su propio equipo; el personal de terreno solo ve el directorio, su cargo y sus habilitaciones. Todo cambio queda en la auditoría.
 
+## Operación de planta
+
+Todo esto viene de la v2 y ahora vive en la API de .NET, con permisos por perfil y registro en la auditoría:
+
+- **Pañol:** herramientas que se retiran y se devuelven (una con la calibración vencida no se puede retirar; instrumentación o el pañol registran la calibración) y repuestos con stock, mínimo, críticos y movimientos.
+- **Rutinas preventivas** por turno, semana, mes y trimestre, con lista de verificación por equipo. Si algo está mal, se crea una orden de trabajo sola.
+- **Traspaso de turno** armado con el estado real de la planta (equipos fuera de servicio, alarmas, órdenes, repuestos críticos) y las seis revisiones del informe.
+- **Logística:** despachos con estado y compromiso de entrega.
+- **Indicadores:** los diez del informe (cumplimiento del plan, OEE, defectos, MTTR, MTBF, OTIF, exactitud de inventario, ausentismo, costo unitario, cierre de acciones). Las paradas se registran solas cuando un equipo deja de operar. Los que esta base no puede calcular (exactitud de inventario y costo unitario) dicen «sin datos» en vez de inventarse.
+
+## App de terreno sin conexión
+
+Lo que se envía sin señal (reportar una falla, hacer una rutina, entregar el turno) queda en una cola en el equipo y se reenvía solo al volver la conexión, sin duplicarse: cada envío lleva un identificador único que el servidor reconoce. Las consultas se guardan para verlas sin señal. Arriba aparece «N envíos pendientes». Lo que necesita señal es cambiar el estado de una orden (bloqueo y cierre), mover repuestos y herramientas y reconocer alarmas, para no pisar a otras personas.
+
 ## Seguridad y respaldos
 
 - **Segundo factor** (código de 6 dígitos de Google Authenticator, Microsoft Authenticator o Authy): cada persona lo activa desde el botón del escudo (web) o desde *Mi cargo* (terreno). Con `Seguridad:Exigir2fa=true` se vuelve obligatorio para los perfiles de la web. Personas puede quitarlo si alguien pierde el teléfono.
@@ -91,11 +105,11 @@ La hoja *Permisos* del Excel es la matriz de `api/Sima.Api/Servicios/Permisos.cs
 
 ```bash
 ./iniciar.sh pruebas            # o por separado:
-dotnet test api/Sima.Api.Tests  # 13 pruebas de integración contra PostgreSQL (usan una base desechable)
+dotnet test api/Sima.Api.Tests  # 20 pruebas de integración contra PostgreSQL (usan una base desechable)
 npm run tipos                   # revisión de tipos de las tres interfaces
 ```
 
-Las pruebas de la API cubren la importación completa, el ingreso por canal y por estado de cuenta, el bloqueo por intentos, los permisos, el cierre de cuenta al desvincular (con revocación de la sesión), la suspensión por contrato vencido, la validación de RUT, la equivalencia con las fórmulas del Excel, y la telemetría de PLC con alarmas, órdenes automáticas, bloqueo y etiquetado y mandos, el segundo factor (con el vector de prueba oficial del RFC 6238) y la clave obligatoria tras un restablecimiento. Las interfaces se probaron con navegador real (flujos de la web, del simulador y de la app de terreno).
+Las pruebas de la API cubren la importación completa, el ingreso por canal y por estado de cuenta, el bloqueo por intentos, los permisos, el cierre de cuenta al desvincular (con revocación de la sesión), la suspensión por contrato vencido, la validación de RUT, la equivalencia con las fórmulas del Excel, y la telemetría de PLC con alarmas, órdenes automáticas, bloqueo y etiquetado y mandos, el segundo factor (con el vector de prueba oficial del RFC 6238), la clave obligatoria tras un restablecimiento, y los módulos de operación (pañol con bloqueo por calibración vencida, repuestos, logística, rutinas con hallazgos, traspaso de turno e indicadores). Las interfaces se probaron con navegador real (flujos de la web, del simulador y de la app de terreno).
 
 ## Qué se probó y qué no
 
@@ -108,5 +122,5 @@ Es una demostración; esto es lo que ella tendría que resolver:
 
 - **Datos y valores legales:** cargar sus trabajadores reales, y que su contador revise los parámetros de remuneraciones (hoy de ejemplo) y el cálculo, que no modela Isapre en UF, APV, asignación familiar ni licencias. Revisar también la política de datos personales.
 - **Producción:** cambiar `Jwt:Clave` y `Ingesta:ApiKey`, apagar las cuentas de demostración (`Demo:Habilitado=false`), usar HTTPS y definir dónde se hospeda.
-- **Escala:** base de series de tiempo para la telemetría (hoy el historial dura 6 horas) y pruebas de carga.
+- **Escala:** base de series de tiempo para la telemetría (hoy el historial dura 6 horas) y pruebas de carga. Los reportes de seguridad (condiciones inseguras, incidentes) de la v2 no se portaron.
 - **PLC reales:** el simulador es independiente y no los necesita; conectar equipos reales requeriría un puente (OPC UA o MQTT) que no está incluido.

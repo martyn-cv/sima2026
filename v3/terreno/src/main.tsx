@@ -13,7 +13,7 @@ import { App } from "./App";
 import { AuthProvider } from "./lib/auth";
 import { PlantaProvider } from "./lib/planta";
 
-const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, retry: 1, refetchOnWindowFocus: false } } });
+const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, retry: 1, refetchOnWindowFocus: false, networkMode: "always" }, mutations: { networkMode: "always" } } });
 createRoot(document.getElementById("raiz")!).render(
   <StrictMode>
     <QueryClientProvider client={qc}><MotionConfig reducedMotion="user"><AuthProvider><PlantaProvider><App /></PlantaProvider></AuthProvider></MotionConfig></QueryClientProvider>

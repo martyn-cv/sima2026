@@ -46,11 +46,13 @@ public static class SemillaOperacion
                 ("Cliente Concepción", "Inyectados, 8 pallets", "Camión 10 t", "Raúl Soto", "entregado", -4), ("Cliente Rancagua", "Piezas soldadas, 1 pallet", "Camioneta", "Mario Díaz", "en_ruta", 3), ("Cliente Temuco", "Envases PET, 10 pallets", "Camión 10 t", "Juan Pérez", "en_ruta", 7),
                 ("Cliente Valparaíso", "Piezas mecanizadas, 4 pallets", "Camión 3/4", "Raúl Soto", "pendiente", 26), ("Cliente Concepción", "Inyectados, 6 pallets", "Camión 10 t", "Mario Díaz", "pendiente", 52),
             };
+            var desfaseEntrega = new[] { -35, -10, 85, -20 };   // minutos respecto del compromiso: tres a tiempo y uno tarde
+            var n = 0;
             foreach (var x in d)
             {
                 var comp = ahora.AddHours(x.comp);
                 db.Despachos.Add(new Despacho { Destino = x.dest, Carga = x.carga, Vehiculo = x.veh, Conductor = x.cond, Estado = x.est, Compromiso = comp, Creado = comp.AddHours(-30),
-                    Salida = x.est == "pendiente" ? null : comp.AddHours(-8), Entrega = x.est == "entregado" ? comp.AddMinutes(rnd.Next(-90, x.dest == "Cliente Valparaíso" && x.comp < -20 ? 240 : 40)) : null });
+                    Salida = x.est == "pendiente" ? null : comp.AddHours(-8), Entrega = x.est == "entregado" ? comp.AddMinutes(desfaseEntrega[n++ % desfaseEntrega.Length]) : null });
             }
         }
         if (!await db.Rutinas.AnyAsync(ct))
@@ -61,6 +63,16 @@ public static class SemillaOperacion
                 new RutinaPlantilla { Nombre = "Rutina semanal", Frecuencia = "semanal", Items = J("Limpieza de sensores", "Drenaje de condensados", "Revisión de bandas") },
                 new RutinaPlantilla { Nombre = "Rutina mensual", Frecuencia = "mensual", Items = J("Inspección de conexiones", "Lubricación según manual", "Holguras", "Vibraciones") },
                 new RutinaPlantilla { Nombre = "Rutina trimestral", Frecuencia = "trimestral", Items = J("Calibraciones (personal autorizado)", "Revisión de tableros (personal autorizado)") });
+        }
+        if (!await db.Ordenes.AnyAsync(o => o.Estado == "cerrada", ct) && await db.Equipos.AnyAsync(ct))
+        {
+            var eqs = await db.Equipos.ToListAsync(ct);
+            var titulos = new[] { "Cambio de rodamiento", "Limpieza de intercambiador", "Ajuste de correa", "Fuga de aceite hidráulico", "Reemplazo de sensor de temperatura", "Lubricación general", "Revisión de contactor" };
+            for (var i = 0; i < 16; i++)
+            {
+                var e = eqs[rnd.Next(eqs.Count)]; var creada = DateTime.UtcNow.AddDays(-rnd.Next(2, 29)).AddHours(-rnd.Next(0, 12));
+                db.Ordenes.Add(new OrdenTrabajo { EquipoId = e.Id, Titulo = $"{titulos[rnd.Next(titulos.Length)]} en {e.Nombre}", Prioridad = rnd.NextDouble() < 0.25 ? "alta" : "media", Estado = "cerrada", Automatica = rnd.NextDouble() < 0.4, LotoConfirmado = true, Creada = creada, Cerrada = creada.AddHours(1 + rnd.NextDouble() * 9) });
+            }
         }
         await db.SaveChangesAsync(ct);
 

@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
-import { Banknote, Briefcase, Cpu, Factory, FileSignature, KeyRound, LayoutDashboard, LogOut, Menu, Network, ScrollText, ShieldCheck, SlidersHorizontal, UserMinus, Users, X, type LucideIcon } from "lucide-react";
+import { Banknote, BarChart3, Boxes, Briefcase, Cpu, Factory, FileSignature, KeyRound, LayoutDashboard, LogOut, Truck, Menu, Network, ScrollText, ShieldCheck, SlidersHorizontal, UserMinus, Users, X, type LucideIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { usePlanta } from "@/lib/planta";
@@ -26,6 +26,11 @@ const GRUPOS: { titulo: string; items: Item[] }[] = [
   { titulo: "Organización", items: [
     { href: "/cargos", titulo: "Cargos y dotación", icono: Briefcase },
     { href: "/organigrama", titulo: "Organigrama", icono: Network },
+  ] },
+  { titulo: "Operación", items: [
+    { href: "/indicadores", titulo: "Indicadores", icono: BarChart3, recurso: "kpis" },
+    { href: "/inventario", titulo: "Inventario", icono: Boxes },
+    { href: "/logistica", titulo: "Logística", icono: Truck, recurso: "despachos" },
   ] },
   { titulo: "Planta", items: [
     { href: "/planta", titulo: "Equipos y alarmas", icono: Factory },
