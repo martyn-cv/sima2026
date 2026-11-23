@@ -12,6 +12,8 @@ on:
 jobs:
   windows:
     runs-on: windows-latest
+    permissions:
+      contents: write          # para crear la publicación en Releases cuando se sube una etiqueta v4.1.*
     env:
       TIENE_CERT: ${{ secrets.WINDOWS_CERT_PFX != '' }}
     steps:
