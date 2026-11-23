@@ -28,7 +28,7 @@ export function App() {
             </button>
           ))}
         </nav>
-        <p className="ml-auto hidden text-[11px] text-tenue lg:block">v4.1 · no controla maquinaria real</p>
+        <p className="ml-auto hidden text-[11px] text-tenue lg:block">v4.1.1 · no controla maquinaria real</p>
       </header>
       <div className="min-h-0 flex-1">
         <AnimatePresence mode="wait">

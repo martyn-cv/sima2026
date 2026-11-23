@@ -14,7 +14,7 @@ import { usePendientes, vaciar } from "./lib/offline";
 import { ir } from "./ruta";
 import { SECCIONES, experienciaDe, seccionesDe, tiene, type Seccion } from "./roles";
 
-export const VERSION = "4.2.0";
+export const VERSION = "4.1.1";
 
 // ------------------------------------------------------------------------------------------------ marca
 export function Logo({ tam = 28 }: { tam?: number }) {

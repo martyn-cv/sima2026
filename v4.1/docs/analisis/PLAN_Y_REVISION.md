@@ -74,3 +74,18 @@ marcha* en el explorador (equipo `operando`).
 **Pendiente para la fase 2** (no se implementó en esta iteración): solicitudes de repuesto (H7), asistencia diaria y
 asignación de puestos (H11), alcance *propio* del operador sobre equipos (requiere la asignación operador-equipo),
 indicadores con origen simulado o real (H8).
+
+## 11 · Fase 2: estados, liberación por etapas, plataformas y rediseño de la interfaz
+
+| Definición | Qué se hizo | Cómo se verificó |
+|---|---|---|
+| Diez estados de equipo con registro de quién y cuándo | `EstadosEquipo` (operativo, con observaciones, falla, fuera de servicio, bloqueado por seguridad, diagnóstico, mantenimiento, pruebas, pendiente de liberación, liberado). Cada cambio guarda persona, cargo y plataforma (migración `EstadoEquipoQuien`); el PLC no cambia los estados protegidos. | Historial de la ficha en Desktop y web; `ElBloqueoPorSeguridadNoLoCambiaUnPlcYSoloPrevencionLoLevanta` |
+| Jerarquía de liberación | Técnica (supervisión o jefatura de mantenimiento, o responsable de turno habilitado) → seguridad si afecta la seguridad → calidad si afecta la calidad → confirmación de producción. Quien ejecutó o probó no firma; una persona por etapa; soporte TI no libera. Las pruebas son requisito. | `ElCierreTecnicoNoPoneLaMaquinaEnMarchaYLaLiberacionSeFirmaPorEtapas`, `SiLaIntervencionAfectaSeguridadYCalidadFirmanPrevencionYCalidadAntesQueProduccion`; recorrido completo en el navegador |
+| Calidad firma sin ver todas las OT | Quien tiene una capacidad de firma lee solo las órdenes que esperan (o esperaron) su etapa. | Misma prueba, con lectura permitida y denegada |
+| Separación Web / Desktop | Autorización por plataforma con motivo, revocación independiente (versión de sesión por plataforma), registro de accesos, capacidades filtradas por plataforma. | `CadaPlataformaExigeAutorizacionYSeRevocaPorSeparado`; técnico rechazado en la web en el navegador |
+| Notificaciones | Persistentes por persona, con categoría, origen, referencia y lectura; centro de notificaciones común. | `LasNotificacionesQuedanGuardadasHastaQueSeLeen`; navegador |
+| Auditoría | Cargo, plataforma, valor anterior y nuevo, motivo. | Prueba de bloqueo por seguridad; pantalla de auditoría |
+| Interfaz | Sistema de diseño común y rediseño de Desktop y Web: ver [`docs/DISENO.md`](../DISENO.md). | 53 de 53 pruebas; tipos sin errores; Playwright en 8 cargos de Desktop y 4 de la web |
+
+**Pendiente:** módulo completo de habilitaciones, pedidos y compras como entidades separadas (preparadas para ERP),
+columnas redimensionables y virtualización de tablas, conectores industriales reales (ver `docs/DISENO.md` §8).

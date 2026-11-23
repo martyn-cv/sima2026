@@ -9,7 +9,7 @@ import { api, baseUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Avatar, Boton, Campo, CURVA, Entrada, MarcaSimulado, cx, mensajeDe } from "@/components/ui";
 
-const VERSION = "4.2.0";
+const VERSION = "4.1.1";
 
 const AREAS = [
   { icono: Users, t: "Personas y contratos", d: "Fichas, contratos, desvinculaciones y cuentas de acceso" },

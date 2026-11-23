@@ -10,13 +10,15 @@ Tres aplicaciones con distinta interfaz y distinto público, sobre **un solo bac
 
 | Aplicación | Para quién | Qué se ve |
 |---|---|---|
-| **SIMA Web** (`web/`) | Administración y supervisión | Inicio por cargo, planta en vivo con máquinas animadas, estructura Planta → Área → Línea → Máquina, mantenimiento, producción, calidad, seguridad, permisos por cargo, consola de eventos |
-| **SIMA-Desktop.exe** (`terreno/`) | Operadores y técnicos | Panel operativo, explorador de planta, centro de mantenimiento con flujo guiado (LOTO, diagnóstico, intervención, repuestos, cierre), modo sin conexión |
+| **SIMA Web** (`web/`) | Administración, gestión y supervisión | Inicio por cargo, cuentas y autorización por plataforma, registro de accesos, auditoría, firma de liberaciones, planta en vivo, estructura Planta → Área → Línea → Máquina, mantenimiento, producción, calidad, seguridad, permisos por cargo, consola de eventos |
+| **SIMA-Desktop.exe** (`terreno/`) | Operación, mantenimiento y supervisión en planta | Estación de trabajo con barra lateral, buscador, notificaciones y barra de estado; inicio por cargo; mapa SVG de cada línea; ficha de máquina por perfil; órdenes con LOTO, diagnóstico, intervención, pruebas y liberación por etapas; modo sin conexión |
 | **SIMA-PLC-Simulator.exe** (`plc-sim/`) | Automatización y formación | Laboratorio con tres escenarios animados (cinta, llenado, máquina), fallas simuladas, consola, inspector; modo local o sincronizado con SIMA. Conserva la estación de ingeniería (rack y escalera) |
 
 - Arquitectura de integración, matriz de datos y evaluación de MQTT/OPC UA: [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 - Cómo se generan y distribuyen los dos `.exe`: [`docs/EJECUTABLES.md`](docs/EJECUTABLES.md).
-- Identidad visual compartida: índigo con violeta y cian en la web, grafito con cian en Desktop y azul casi negro con rejilla técnica en el simulador. Los colores de estado son los mismos en las tres.
+- Sistema de diseño común (grafito y ámbar, tema oscuro en Desktop y claro en la web, Inter, IBM Plex Sans y JetBrains Mono): [`docs/DISENO.md`](docs/DISENO.md). Los diez estados de equipo y la marca de dato simulado son los mismos en las tres aplicaciones.
+- Cada plataforma tiene su propia autorización y sesión: un cargo de terreno no entra a SIMA Web (ni uno de oficina a SIMA Desktop) salvo que Personas lo autorice con motivo; revocar una no cierra la otra.
+- Después de intervenir un equipo, la liberación se firma por etapas (técnica, seguridad si corresponde, calidad si corresponde y producción), siempre por personas distintas de quien ejecutó; un administrador informático no libera equipos.
 - 39 pruebas automáticas, entre ellas el ciclo completo entre las tres aplicaciones: falla en el simulador → orden en Desktop → cierre → el simulador se recupera.
 
 | Pieza | Tecnología | Carpeta | Puerto |
