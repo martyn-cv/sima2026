@@ -1,13 +1,13 @@
 [package]
-name = "sima-plc-sim"
-version = "3.0.0"
-description = "SIMA · Simulador de PLC"
+name = "sima-plc-simulator"
+version = "4.1.0"
+description = "SIMA PLC Simulator"
 authors = ["Manufacturas Andina"]
 edition = "2021"
 rust-version = "1.77"
 
 [lib]
-name = "sima_plc_sim_lib"
+name = "sima_plc_simulator_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

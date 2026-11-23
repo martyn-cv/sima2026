@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "SIMA Terreno",
-  "version": "3.0.0",
-  "identifier": "cl.manuandina.sima.terreno",
+  "productName": "SIMA Desktop",
+  "version": "4.1.0",
+  "identifier": "cl.manuandina.sima.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1421",
@@ -13,12 +13,14 @@
     "windows": [
       {
         "label": "main",
-        "title": "SIMA · Terreno",
-        "width": 1200,
-        "height": 800,
-        "minWidth": 420,
-        "minHeight": 640,
-        "center": true
+        "title": "SIMA Desktop",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1100,
+        "minHeight": 700,
+        "center": true,
+        "resizable": true,
+        "backgroundColor": "#0a0c10"
       }
     ],
     "security": {
@@ -27,15 +29,19 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "nsis"
+    ],
     "category": "Productivity",
-    "shortDescription": "App de terreno de SIMA: equipos, alarmas y órdenes de trabajo",
+    "shortDescription": "Centro de operaciones y mantenimiento de SIMA",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Manufacturas Andina (demostración)",
+    "copyright": "SIMA 4.1 · proyecto experimental"
   }
 }

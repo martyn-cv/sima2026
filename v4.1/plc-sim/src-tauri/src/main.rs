@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    sima_plc_sim_lib::run()
+    sima_plc_simulator_lib::run()
 }

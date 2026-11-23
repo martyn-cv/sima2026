@@ -1,13 +1,13 @@
 [package]
-name = "sima-terreno"
-version = "3.0.0"
-description = "SIMA · Terreno"
+name = "sima-desktop"
+version = "4.1.0"
+description = "SIMA Desktop"
 authors = ["Manufacturas Andina"]
 edition = "2021"
 rust-version = "1.77"
 
 [lib]
-name = "sima_terreno_lib"
+name = "sima_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

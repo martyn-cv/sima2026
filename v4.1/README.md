@@ -1,8 +1,23 @@
-# SIMA v3 · prototipo a escala profesional
+# SIMA 4.1 · ecosistema industrial integrado
 
 Sistema de Información Manufacturero Andino de Manufacturas Andina S.A. La versión 3 reemplaza el backend de Django por **C# y .NET 8**, reescribe la web de administración con **Next.js, React, TypeScript y Tailwind**, y pasa las aplicaciones de escritorio a **Tauri**. Tiene **una sola base de datos PostgreSQL** que comparten la web, la app de terreno y el simulador de PLC.
 
 **Es una aplicación de demostración, experimental.** Todos los datos (personas, RUT, domicilios, cuentas bancarias, sueldos y los valores de las remuneraciones) son **ficticios o de ejemplo**. Si una empresa la adopta, revisa los temas legales y de datos reales por su cuenta; al final hay una lista corta para eso.
+
+## Qué trae la 4.1
+
+Tres aplicaciones con distinta interfaz y distinto público, sobre **un solo backend y una sola base PostgreSQL**:
+
+| Aplicación | Para quién | Qué se ve |
+|---|---|---|
+| **SIMA Web** (`web/`) | Administración y supervisión | Inicio por cargo, planta en vivo con máquinas animadas, estructura Planta → Área → Línea → Máquina, mantenimiento, producción, calidad, seguridad, permisos por cargo, consola de eventos |
+| **SIMA-Desktop.exe** (`terreno/`) | Operadores y técnicos | Panel operativo, explorador de planta, centro de mantenimiento con flujo guiado (LOTO, diagnóstico, intervención, repuestos, cierre), modo sin conexión |
+| **SIMA-PLC-Simulator.exe** (`plc-sim/`) | Automatización y formación | Laboratorio con tres escenarios animados (cinta, llenado, máquina), fallas simuladas, consola, inspector; modo local o sincronizado con SIMA. Conserva la estación de ingeniería (rack y escalera) |
+
+- Arquitectura de integración, matriz de datos y evaluación de MQTT/OPC UA: [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+- Cómo se generan y distribuyen los dos `.exe`: [`docs/EJECUTABLES.md`](docs/EJECUTABLES.md).
+- Identidad visual compartida: índigo con violeta y cian en la web, grafito con cian en Desktop y azul casi negro con rejilla técnica en el simulador. Los colores de estado son los mismos en las tres.
+- 39 pruebas automáticas, entre ellas el ciclo completo entre las tres aplicaciones: falla en el simulador → orden en Desktop → cierre → el simulador se recupera.
 
 | Pieza | Tecnología | Carpeta | Puerto |
 |---|---|---|---|
@@ -17,7 +32,7 @@ Sistema de Información Manufacturero Andino de Manufacturas Andina S.A. La vers
 
 ## Cómo arrancarlo
 
-**En Windows, a un clic:** instale Docker Desktop, abra la carpeta `v3` (fuera de `C:\Windows`) y haga doble clic en **`Iniciar SIMA.bat`**. Levanta la base de datos, la API, la web, la app de terreno y el simulador de PLC, y abre el navegador con las tres. **`Detener SIMA.bat`** lo apaga. Para que arranque solo con el equipo: en Docker Desktop, *Settings → General → Start Docker Desktop when you sign in*; los contenedores se reinician solos y basta con abrir el navegador. Conviene crear un acceso directo de `Iniciar SIMA.bat` en el escritorio (clic derecho → *Enviar a → Escritorio*).
+**En Windows, a un clic:** instale Docker Desktop, abra la carpeta `v4.1` (fuera de `C:\Windows`) y haga doble clic en **`Iniciar SIMA.bat`**. Levanta la base de datos, la API, la web, la app de terreno y el simulador de PLC, y abre el navegador con las tres. **`Detener SIMA.bat`** lo apaga. Para que arranque solo con el equipo: en Docker Desktop, *Settings → General → Start Docker Desktop when you sign in*; los contenedores se reinician solos y basta con abrir el navegador. Conviene crear un acceso directo de `Iniciar SIMA.bat` en el escritorio (clic derecho → *Enviar a → Escritorio*).
 
 Un solo comando levanta todo; la base se crea sola y el Excel de `datos/` se importa en el primer arranque.
 
@@ -37,7 +52,7 @@ npm run terreno:escritorio      # app de terreno en su propia ventana
 npm run plc                     # el simulador en el navegador (puerto 1420), para probar
 ```
 
-Para generar los instaladores (`.msi` y `.exe` en Windows) use `npm run empaquetar:plc` y `npm run empaquetar:terreno` **en el sistema operativo de destino**, o ejecute en GitHub el flujo *SIMA v3 · instaladores de escritorio*, que los arma para Windows, macOS y Linux.
+Para generar `SIMA-Desktop.exe` y `SIMA-PLC-Simulator.exe` vea [`docs/EJECUTABLES.md`](docs/EJECUTABLES.md): el flujo de GitHub *SIMA 4.1 · ejecutables de Windows* los genera como archivo único, y `scripts/construir-exe.sh` los compila desde Linux como carpeta portable.
 
 ## Accesos de demostración
 
