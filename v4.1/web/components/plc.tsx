@@ -58,9 +58,9 @@ export function Rack({ modulos, puntos, io, estado, escala = 1, seleccionado, al
             <motion.div key={m.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: mi * 0.05 }}
               className="relative flex shrink-0 flex-col rounded-lg border border-[#353b47] bg-[linear-gradient(180deg,#2b303a,#1e222a)] text-white shadow-[inset_0_1px_0_#ffffff14]" style={{ width: ancho }}>
               <div className="flex items-center justify-between px-2.5 pt-2"><Tornillo /><span className="num text-[11px] text-[#8b93a3]">R{m.slot}</span><Tornillo /></div>
-              <div className={cx("mx-2.5 mt-2 rounded-md px-2 py-1.5", esCpu ? "bg-[linear-gradient(90deg,#0f9f92,#2dd4bf)] text-[#06221f]" : m.tipo === "PS" ? "bg-[#3a404c]" : "bg-[#151922]")}>
+              <div className={cx("mx-2.5 mt-2 rounded-md px-2 py-1.5", esCpu ? "bg-[linear-gradient(90deg,#7c3aed,#22d3ee)] text-white" : m.tipo === "PS" ? "bg-[#3a404c]" : "bg-[#151922]")}>
                 <p className="display text-[17px] font-extrabold leading-none tracking-wide">{m.tipo}</p>
-                <p className={cx("mt-0.5 truncate text-[10.5px] leading-tight", esCpu ? "text-[#06221f]/80" : "text-[#9aa3b2]")} title={m.modelo}>{m.modelo}</p>
+                <p className={cx("mt-0.5 truncate text-[10.5px] leading-tight", esCpu ? "text-white/80" : "text-[#9aa3b2]")} title={m.modelo}>{m.modelo}</p>
               </div>
               <div className="flex-1 px-2.5 py-3">
                 {esCpu && (
@@ -80,7 +80,7 @@ export function Rack({ modulos, puntos, io, estado, escala = 1, seleccionado, al
                       return (
                         <li key={ch}>
                           <button type="button" disabled={!p} onClick={() => p && alElegir?.(p.tag)} title={p ? `${p.direccion} · ${p.tag}\n${p.descripcion}` : `Canal ${ch} sin usar`}
-                            className={cx("flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left", p && "cursor-pointer hover:bg-white/5", seleccionado && p?.tag === seleccionado && "bg-white/10 ring-1 ring-[#2dd4bf]")}>
+                            className={cx("flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left", p && "cursor-pointer hover:bg-white/5", seleccionado && p?.tag === seleccionado && "bg-white/10 ring-1 ring-[#22d3ee]")}>
                             <Led on={on} color={m.tipo === "DI" ? COL_DI : COL_DO} tam={11} />
                             <span className={cx("num text-[11px]", p ? "text-[#c9cfd9]" : "text-[#4a505c]")}>{ch}</span>
                           </button>
@@ -98,7 +98,7 @@ export function Rack({ modulos, puntos, io, estado, escala = 1, seleccionado, al
                       return (
                         <li key={ch}>
                           <button type="button" disabled={!p} onClick={() => p && alElegir?.(p.tag)} title={p ? `${p.direccion} · ${p.tag}\n${p.descripcion}` : `Canal ${ch} sin usar`}
-                            className={cx("w-full rounded px-1 py-0.5 text-left", p && "cursor-pointer hover:bg-white/5", seleccionado && p?.tag === seleccionado && "bg-white/10 ring-1 ring-[#2dd4bf]")}>
+                            className={cx("w-full rounded px-1 py-0.5 text-left", p && "cursor-pointer hover:bg-white/5", seleccionado && p?.tag === seleccionado && "bg-white/10 ring-1 ring-[#22d3ee]")}>
                             <div className="flex justify-between text-[11px]"><span className="num text-[#8b93a3]">{ch}</span><span className="num font-semibold text-[#e6e9ef]">{p && v != null ? `${v.toFixed(1)}` : "—"}<span className="ml-0.5 font-normal text-[#8b93a3]">{p?.unidad}</span></span></div>
                             <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-[#0b0d12]"><div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${Math.max(0, Math.min(1, frac)) * 100}%`, background: `linear-gradient(90deg,#1d4f8a,${COL_AI})`, boxShadow: `0 0 8px ${COL_AI}` }} /></div>
                           </button>

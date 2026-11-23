@@ -174,11 +174,11 @@ export function ModPlanta({ panel, delay }: { panel: Panel; delay?: number }) {
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
         <Tarjeta className="p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">Mapa de equipos</p><Leyenda items={[{ texto: "Operando", color: ESTADO_COLOR.operando }, { texto: "Alarma", color: ESTADO_COLOR.alarma }, { texto: "Mantención", color: ESTADO_COLOR.en_mantencion }, { texto: "Detenido", color: ESTADO_COLOR.detenido }]} /></div>
-          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2">
             {zonas.map((z) => (
               <div key={z} className="rounded-2xl border border-linea-suave bg-papel-2/60 p-3">
                 <p className="mb-2 text-[12.5px] font-medium text-gris">{z}</p>
-                <ul className="grid grid-cols-2 gap-2">
+                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {equipos.filter((e) => e.zona === z).map((e) => (
                     <li key={e.codigo}>
                       <Link href={`/planta?equipo=${e.codigo}`} title={e.nombre} className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-linea-suave bg-papel px-2.5 py-2 transition-colors hover:border-acento/40">

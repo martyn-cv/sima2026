@@ -4,10 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  Banknote, BarChart3, Bell, Boxes, Briefcase, ChevronsLeft, ChevronsRight, ClipboardCheck, Cpu, Factory, FileSignature, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Network, ScrollText,
-  Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sun, Truck, UserMinus, Users, Wrench, X, type LucideIcon,
-} from "lucide-react";
+import { Banknote, BarChart3, Bell, Boxes, Briefcase, ChevronsLeft, ChevronsRight, ClipboardCheck, Cpu, Factory, FileSignature, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Network, ScrollText, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Sun, Truck, UserMinus, Users, Wrench, X, type LucideIcon, Activity } from "lucide-react";
 import { hace } from "@sima/cliente";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -37,13 +34,16 @@ export const GRUPOS: { titulo: string; items: Item[] }[] = [
     { href: "/logistica", titulo: "Logística", icono: Truck, recurso: "despachos", detalle: "Despachos a clientes" },
   ] },
   { titulo: "Planta", items: [
-    { href: "/planta", titulo: "Planta en vivo", icono: Factory, detalle: "Equipos, alarmas y órdenes" },
+    { href: "/planta", titulo: "Planta en vivo", icono: Factory, detalle: "Mapa animado, alarmas y órdenes" },
+    { href: "/estructura", titulo: "Estructura y equipos", icono: Network, detalle: "Planta, áreas, líneas y máquinas" },
     { href: "/plc", titulo: "Controladores PLC", icono: Cpu, recurso: "plc", detalle: "Racks, E/S y programas" },
-    { href: "/mantenimiento", titulo: "Cambios de PLC", icono: Wrench, recurso: "plc_cambios", detalle: "Solicitudes y aprobaciones" },
+    { href: "/mantenimiento", titulo: "Mantenimiento", icono: Wrench, detalle: "Órdenes, intervenciones y cambios de PLC" },
+    { href: "/eventos", titulo: "Eventos", icono: Activity, detalle: "Consola de lo que ocurre en planta" },
   ] },
   { titulo: "Organización", items: [
     { href: "/cargos", titulo: "Cargos y dotación", icono: Briefcase, detalle: "64 cargos del informe" },
     { href: "/organigrama", titulo: "Organigrama", icono: Network, detalle: "Jefaturas y equipos" },
+    { href: "/permisos", titulo: "Permisos por cargo", icono: KeyRound, recurso: "permisos", detalle: "Capacidades y alcance" },
     { href: "/auditoria", titulo: "Auditoría", icono: ScrollText, recurso: "auditoria", detalle: "Quién hizo qué" },
   ] },
 ];

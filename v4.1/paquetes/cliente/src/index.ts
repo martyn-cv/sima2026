@@ -27,7 +27,27 @@ export interface Liquidacion {
   descuentoSalud: number; seguroCesantia: number; baseTributable: number; impuestoUnico: number; retencionHonorarios: number; otrosDescuentos: number; totalDescuentos: number; liquidoAPagar: number; estadoPago: string;
 }
 export interface Sensor { variable: string; nombre: string; unidad: string; ultimo: number | null; min: number; max: number; nominal: number; aviso: number; alarma: number; nivel: "ok" | "aviso" | "alarma" }
-export interface Equipo { id: number; codigo: string; nombre: string; tipo: string; zona: string; linea: string; ubicacion: string; marca: string; modelo: string; criticidad: string; estado: string; plc?: string | null; alarmasAbiertas: number; sensores: Sensor[] }
+export interface Equipo { id: number; codigo: string; nombre: string; tipo: string; zona: string; linea: string; lineaId?: number; areaId?: number; modeloSimulacion?: string | null; simulado?: boolean; version?: number; ubicacion: string; marca: string; modelo: string; criticidad: string; estado: string; plc?: string | null; alarmasAbiertas: number; sensores: Sensor[] }
+
+// ------------------------------------------------------------------------------------------------ estructura de planta (v4.1)
+export interface EquipoNodo { codigo: string; nombre: string; tipo: string; estado: string; criticidad: string; plc?: string | null; simulado: boolean; modeloSimulacion?: string | null; alarmas: number }
+export interface LineaNodo { id: number; codigo: string; nombre: string; equipos: EquipoNodo[] }
+export interface AreaNodo { id: number; codigo: string; nombre: string; tipo: string; plcs: { codigo: string; nombre: string; estado: string; origen: string }[]; lineas: LineaNodo[] }
+export interface PlantaNodo { id: number; codigo: string; nombre: string; ciudad: string; areas: AreaNodo[] }
+
+export interface FichaEquipo {
+  equipo: { codigo: string; nombre: string; tipo: string; marca: string; modelo: string; criticidad: string; estado: string; ubicacion: string; modeloSimulacion?: string | null; version: number; simulado: boolean; lineaId: number };
+  jerarquia: { planta: string; area: { id: number; codigo: string; nombre: string }; linea: { id: number; codigo: string; nombre: string } };
+  plc: null | { codigo: string; nombre: string; fabricante: string; modelo: string; estado: string; origen: string; direccion: string; puntos: { direccion: string; tag: string; tipo: string; descripcion: string; unidad: string }[] };
+  sensores: Sensor[] & { ultimoEn?: string }[];
+  indicadores: null | { disponibilidad: number; rendimiento: number; calidad: number; oee: number; mttrHoras: number; mtbfHoras: number; fallas: number; horasParada: number };
+  alarmas: { id: number; nivel: string; mensaje: string; inicio: string; fin?: string | null; reconocidaPor?: string | null; simulado: boolean }[];
+  ordenes: { id: number; codigo: string; titulo: string; tipo: string; prioridad: string; estado: string; automatica: boolean; creada: string; cerrada?: string | null; asignado?: string | null; intervenciones: number }[];
+  intervenciones: { id: number; orden: string; tecnicoNombre: string; inicio: string; fin: string; horas: number; causa: string; diagnostico: string; accion: string; resultado: string; observaciones: string; repuestos: { codigo: string; nombre: string; cantidad: number }[]; herramientas: string[] }[];
+  historial: { ts: string; desde: string; hasta: string; origen: string; simulado: boolean; causa: string }[];
+  documentos: { id: number; titulo: string; clase: string; version: string; contenido: string }[];
+  repuestos: { id: number; codigo: string; nombre: string; stock: number; stockMinimo: number; ubicacion: string; critico: boolean; sugerida: number }[];
+}
 export interface PlcResumen { id: number; codigo: string; nombre: string; fabricante: string; modelo: string; direccion: string; zona: string; estado: string; ultimoContacto?: string | null; cicloMs: number; modulos: number; puntos: number; entradas: number; salidas: number; equipos: string[] }
 export interface PlcModulo { id: number; slot: number; tipo: string; modelo: string; canales: number }
 export interface PlcPunto { id: number; moduloId: number; canal: number; direccion: string; tag: string; tipo: "DI" | "DO" | "AI" | "AO"; descripcion: string; equipo?: string | null; unidad: string; minimo: number; maximo: number }
@@ -89,6 +109,9 @@ export function crearCliente(o: OpcionesCliente) {
 export type Cliente = ReturnType<typeof crearCliente>;
 
 // ------------------------------------------------------------------------------------------------ tiempo real (SignalR)
+/** Evento del historial de planta (simulador, gateway, web, desktop o sistema). */
+export interface EventoPlanta { id?: number; uid: string; ts: string; origen: string; simulado: boolean; tipo: string; nivel: "info" | "aviso" | "alarma" | "ok"; mensaje: string; equipo?: string | null; plc?: string | null; datos?: unknown }
+
 export interface EventosPlanta {
   lecturas?: (l: { equipo: string; variable: string; valor: number; ts: string }[]) => void;
   equipo?: (e: { codigo: string; estado: string }) => void;
@@ -101,6 +124,9 @@ export interface EventosPlanta {
   calidad?: (c: { id: number; codigo: string; estado: string; severidad: string; texto: string }) => void;
   sst?: (s: { id: number; codigo: string; tipo: string; severidad: string; texto: string }) => void;
   cambioPlc?: (c: { id: number; plc: string; estado: string; por: string; resumen: string; version?: number }) => void;
+  evento?: (e: EventoPlanta) => void;
+  intervencion?: (i: { id: number; orden: string; equipo: string; tecnico: string; cerrada: boolean }) => void;
+  estructura?: (e: { tipo: string; codigo: string }) => void;
   conexion?: (estado: "conectado" | "reconectando" | "desconectado") => void;
 }
 
@@ -110,7 +136,7 @@ export function conectarTiempoReal(baseUrl: string, token: () => string | null, 
     .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
     .configureLogging(LogLevel.Error)
     .build();
-  (["lecturas", "equipo", "alarma", "orden", "plc", "plcIO", "cuentaCerrada", "produccion", "calidad", "sst", "cambioPlc"] as const).forEach((n) => {
+  (["lecturas", "equipo", "alarma", "orden", "plc", "plcIO", "cuentaCerrada", "produccion", "calidad", "sst", "cambioPlc", "evento", "intervencion", "estructura"] as const).forEach((n) => {
     const f = ev[n] as ((x: never) => unknown) | undefined;
     // el manejador no debe devolver nada: SignalR toma un valor devuelto como respuesta al servidor
     if (f) c.on(n, (...a: unknown[]) => { (f as (...x: unknown[]) => unknown)(...a); });

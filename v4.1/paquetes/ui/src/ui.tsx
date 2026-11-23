@@ -290,7 +290,7 @@ export function Cajon({ abierto, onCerrar, titulo, children, ancho = 560 }: { ab
               <h2 className="display text-[24px] font-bold leading-tight">{titulo}</h2>
               <button aria-label="Cerrar" onClick={onCerrar} className="-mr-2 grid size-9 cursor-pointer place-items-center rounded-xl text-gris hover:bg-linea-suave hover:text-negro"><X className="size-5" /></button>
             </div>
-            <div className="flex-1 overflow-auto px-6 py-5">{children}</div>
+            <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-5">{children}</div>
           </motion.aside>
         </div>
       )}
@@ -347,8 +347,7 @@ export function Kpi({ titulo, valor, formato, sufijo, detalle, tono = "acento", 
   const color = { acento: "var(--s-acento)", verde: "var(--s-verde)", ambar: "var(--s-ambar)", rojo: "var(--s-rojo)", azul: "var(--s-azul)", cobre: "var(--s-cobre)" }[tono];
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay, ease: CURVA }} whileHover={{ y: -3 }}>
-      <Tarjeta className="h-full overflow-hidden p-5">
-        <span className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full opacity-25 blur-2xl" style={{ background: color }} />
+      <Tarjeta className="h-full overflow-hidden p-5" style={{ background: `radial-gradient(130% 100% at 0% 0%, color-mix(in srgb, ${color} 17%, transparent), transparent 58%), linear-gradient(160deg, var(--s-superficie-2), var(--s-superficie) 65%)`, borderColor: `color-mix(in srgb, ${color} 24%, var(--s-borde-suave))` }}>
         <div className="relative flex items-start justify-between gap-3">
           <p className="text-[13.5px] font-medium text-gris">{titulo}</p>
           {icono && <span className="grid size-9 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}>{icono}</span>}

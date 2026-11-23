@@ -1,8 +1,8 @@
-/* SIMA v4 · «Cordillera de noche». Tokens del tema: los nombres se mantienen (papel, chapa, negro…) pero ahora apuntan a
+/* SIMA 4.1 · «Índigo industrial» (violeta y cian sobre índigo profundo). Tokens del tema: los nombres se mantienen (papel, chapa, negro…) pero ahora apuntan a
    variables que cambian entre el tema noche (por defecto) y el tema día (data-tema="claro" en <html>). */
 @theme inline {
-  --font-sans: "Figtree Variable", "Figtree", system-ui, sans-serif;
-  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", "Figtree Variable", sans-serif;
+  --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-display: "Sora Variable", "Sora", "Plus Jakarta Sans Variable", sans-serif;
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
 
   --color-chapa: var(--s-fondo);
@@ -17,6 +17,8 @@
   --color-acento: var(--s-acento);
   --color-acento-claro: var(--s-acento-claro);
   --color-cobre: var(--s-cobre);
+  --color-cian: var(--s-cobre);
+  --color-violeta: var(--s-acento);
   --color-rojo: var(--s-rojo);
   --color-rojo-hondo: var(--s-rojo-hondo);
   --color-rojo-claro: var(--s-rojo-claro);
@@ -46,21 +48,21 @@
 
 :root {
   color-scheme: dark;
-  --s-fondo: #0a0f1d;
-  --s-superficie: #10182a;
-  --s-superficie-2: #162036;
-  --s-borde: #24314b;
-  --s-borde-suave: #1b263c;
-  --s-tenue: #8e9ab0;
-  --s-texto: #e9eef6;
-  --s-texto-2: #c4cedd;
-  --s-sobre-texto: #0a0f1d;
-  --s-acento: #2dd4bf;
-  --s-acento-claro: rgb(45 212 191 / .14);
-  --s-cobre: #e8834f;
-  --s-rojo: #ff5470;
-  --s-rojo-hondo: #ff97a8;
-  --s-rojo-claro: rgb(255 84 112 / .14);
+  --s-fondo: #080a17;
+  --s-superficie: #0f1229;
+  --s-superficie-2: #151936;
+  --s-borde: #262b52;
+  --s-borde-suave: #1b1f40;
+  --s-tenue: #8a8fb8;
+  --s-texto: #eef0ff;
+  --s-texto-2: #c6cbec;
+  --s-sobre-texto: #080a17;
+  --s-acento: #8b5cf6;               /* violeta: acción principal */
+  --s-acento-claro: rgb(139 92 246 / .16);
+  --s-cobre: #22d3ee;                /* cian: segundo acento y datos en vivo */
+  --s-rojo: #fb7185;
+  --s-rojo-hondo: #fda4af;
+  --s-rojo-claro: rgb(251 113 133 / .14);
   --s-ambar: #fbbf24;
   --s-ambar-hondo: #fcd581;
   --s-ambar-claro: rgb(251 191 36 / .14);
@@ -68,27 +70,29 @@
   --s-verde-claro: rgb(52 211 153 / .14);
   --s-azul: #60a5fa;
   --s-azul-claro: rgb(96 165 250 / .14);
-  --s-vidrio: rgb(16 24 42 / .72);
-  --s-sombra: 0 24px 60px -24px rgb(0 0 0 / .65);
-  --s-aurora-a: rgb(45 212 191 / .18);
-  --s-aurora-b: rgb(232 131 79 / .14);
-  --s-curvas: rgb(148 163 184 / .06);
+  --s-vidrio: rgb(15 18 41 / .72);
+  --s-sombra: 0 24px 60px -28px rgb(0 0 0 / .8);
+  --s-aurora-a: rgb(139 92 246 / .22);
+  --s-aurora-b: rgb(34 211 238 / .14);
+  --s-curvas: rgb(148 163 255 / .05);
+  --s-brillo-violeta: 0 0 24px -4px rgb(139 92 246 / .55);
+  --s-brillo-cian: 0 0 24px -4px rgb(34 211 238 / .55);
 }
 
 :root[data-tema="claro"] {
   color-scheme: light;
-  --s-fondo: #eef2f8;
+  --s-fondo: #f3f4fb;
   --s-superficie: #ffffff;
-  --s-superficie-2: #f7f9fc;
-  --s-borde: #d5dce8;
-  --s-borde-suave: #e7ecf3;
-  --s-tenue: #5b6577;
-  --s-texto: #0b1222;
-  --s-texto-2: #1d2738;
+  --s-superficie-2: #f7f7fd;
+  --s-borde: #d9dbee;
+  --s-borde-suave: #e8e9f5;
+  --s-tenue: #5d6185;
+  --s-texto: #0d0f24;
+  --s-texto-2: #22264a;
   --s-sobre-texto: #ffffff;
-  --s-acento: #0f9f92;
-  --s-acento-claro: #d5f5f1;
-  --s-cobre: #c2410c;
+  --s-acento: #7c3aed;
+  --s-acento-claro: #ede6ff;
+  --s-cobre: #0891b2;
   --s-rojo: #e11d48;
   --s-rojo-hondo: #9f1239;
   --s-rojo-claro: #ffe4ea;
@@ -99,11 +103,13 @@
   --s-verde-claro: #dcfce7;
   --s-azul: #2563eb;
   --s-azul-claro: #dbeafe;
-  --s-vidrio: rgb(255 255 255 / .78);
-  --s-sombra: 0 18px 50px -24px rgb(15 23 42 / .28);
-  --s-aurora-a: rgb(15 159 146 / .12);
-  --s-aurora-b: rgb(194 65 12 / .08);
-  --s-curvas: rgb(15 23 42 / .05);
+  --s-vidrio: rgb(255 255 255 / .8);
+  --s-sombra: 0 18px 50px -26px rgb(30 27 75 / .25);
+  --s-aurora-a: rgb(124 58 237 / .10);
+  --s-aurora-b: rgb(8 145 178 / .08);
+  --s-curvas: rgb(30 27 75 / .05);
+  --s-brillo-violeta: 0 0 0 0 transparent;
+  --s-brillo-cian: 0 0 0 0 transparent;
 }
 
 html { background: var(--s-fondo); color: var(--s-texto); }
@@ -117,11 +123,17 @@ body { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; -webkit
 
 /* paneles de vidrio */
 .vidrio { background: var(--s-vidrio); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); }
-.tarjeta { position: relative; border-radius: 18px; border: 1px solid var(--s-borde-suave); background: linear-gradient(180deg, color-mix(in srgb, var(--s-superficie-2) 70%, transparent), var(--s-superficie)); box-shadow: var(--s-sombra); }
+.tarjeta { position: relative; border-radius: 16px; border: 1px solid var(--s-borde-suave); background: linear-gradient(160deg, color-mix(in srgb, var(--s-superficie-2) 85%, transparent), var(--s-superficie) 60%); box-shadow: var(--s-sombra), inset 0 1px 0 rgb(255 255 255 / .03); }
+/* tinte de color en una esquina, como en los indicadores de la referencia */
+.tinte-violeta { background: radial-gradient(120% 90% at 0% 0%, rgb(139 92 246 / .20), transparent 55%), linear-gradient(160deg, var(--s-superficie-2), var(--s-superficie) 60%); }
+.tinte-cian { background: radial-gradient(120% 90% at 0% 0%, rgb(34 211 238 / .16), transparent 55%), linear-gradient(160deg, var(--s-superficie-2), var(--s-superficie) 60%); }
+.brillo-violeta { box-shadow: var(--s-brillo-violeta); }
+.brillo-cian { box-shadow: var(--s-brillo-cian); }
 .tarjeta-brillo::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
   background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--s-acento) 12%, transparent), transparent 45%); }
 .tarjeta-brillo:hover::before { opacity: 1; }
-.texto-degradado { background: linear-gradient(100deg, var(--s-texto) 30%, var(--s-acento) 70%, var(--s-cobre)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.texto-degradado { background: linear-gradient(100deg, var(--s-texto) 25%, color-mix(in srgb, var(--s-acento) 80%, white) 62%, var(--s-cobre)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.degradado-marca { background: linear-gradient(135deg, var(--s-acento), var(--s-cobre)); }
 .destello { background: linear-gradient(90deg, var(--s-borde-suave) 25%, color-mix(in srgb, var(--s-borde) 80%, transparent) 50%, var(--s-borde-suave) 75%); background-size: 200% 100%; animation: destello 1.4s linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {

@@ -45,10 +45,13 @@ export function GraficoArea({ series, etiquetas, alto = 240, formato = (n: numbe
         <defs>
           {series.map((s, i) => (
             <linearGradient key={i} id={`g${id}${i}`} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={s.color} stopOpacity="0.35" /><stop offset="100%" stopColor={s.color} stopOpacity="0" />
+              <stop offset="0%" stopColor={s.color} stopOpacity="0.38" /><stop offset="100%" stopColor={s.color} stopOpacity="0" />
             </linearGradient>
           ))}
+          <filter id={`b${id}`} x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="5" /></filter>
+          <linearGradient id={`f${id}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--s-cobre)" stopOpacity=".28" /><stop offset="100%" stopColor="var(--s-cobre)" stopOpacity="0" /></linearGradient>
         </defs>
+        {hover != null && <rect x={x(hover) - Math.max(10, (W - P.l - P.r) / Math.max(1, n - 1) / 2.2)} width={Math.max(20, (W - P.l - P.r) / Math.max(1, n - 1) / 1.1)} y={P.t} height={H - P.t - P.b} fill={`url(#f${id})`} rx="6" />}
         {marcas.map((m) => (
           <g key={m}><line x1={P.l} x2={W - P.r} y1={y(m)} y2={y(m)} stroke="var(--s-borde-suave)" strokeDasharray="3 5" />
             <text x={P.l - 8} y={y(m) + 4} textAnchor="end" fontSize="11" fill="var(--s-tenue)">{formato(Math.round(m))}</text></g>
@@ -60,14 +63,15 @@ export function GraficoArea({ series, etiquetas, alto = 240, formato = (n: numbe
           return (
             <g key={s.nombre}>
               <motion.path d={`${linea} L${pts[pts.length - 1]?.[0] ?? 0},${H - P.b} L${pts[0]?.[0] ?? 0},${H - P.b} Z`} fill={`url(#g${id}${i})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.4 + i * 0.15 }} />
+              <motion.path d={linea} fill="none" stroke={s.color} strokeWidth="6" strokeLinecap="round" opacity=".45" filter={`url(#b${id})`} initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, delay: i * 0.15, ease: CURVA }} />
               <motion.path d={linea} fill="none" stroke={s.color} strokeWidth="2.5" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, delay: i * 0.15, ease: CURVA }} />
             </g>
           );
         })}
         {hover != null && (
           <g>
-            <line x1={x(hover)} x2={x(hover)} y1={P.t} y2={H - P.b} stroke="var(--s-tenue)" strokeOpacity=".4" />
-            {series.map((s) => s.valores[hover] != null && <circle key={s.nombre} cx={x(hover)} cy={y(s.valores[hover])} r="4.5" fill="var(--s-superficie)" stroke={s.color} strokeWidth="2.5" />)}
+            <line x1={x(hover)} x2={x(hover)} y1={P.t} y2={H - P.b} stroke="var(--s-cobre)" strokeOpacity=".5" strokeDasharray="3 4" />
+            {series.map((s) => s.valores[hover] != null && <g key={s.nombre}><circle cx={x(hover)} cy={y(s.valores[hover])} r="10" fill={s.color} opacity=".25" /><circle cx={x(hover)} cy={y(s.valores[hover])} r="5" fill="var(--s-superficie)" stroke={s.color} strokeWidth="2.5" /></g>)}
           </g>
         )}
       </svg>
@@ -83,16 +87,18 @@ export function GraficoArea({ series, etiquetas, alto = 240, formato = (n: numbe
 
 /** Dona animada con el total al centro. */
 export function Dona({ partes, tam = 180, grosor = 22, centro }: { partes: { etiqueta: string; valor: number; color: string }[]; tam?: number; grosor?: number; centro?: ReactNode }) {
+  const id = useId().replace(/:/g, "");
   const total = partes.reduce((a, p) => a + p.valor, 0) || 1;
   const r = (tam - grosor) / 2, C = 2 * Math.PI * r;
   let acumulado = 0;
   return (
     <div className="relative inline-grid place-items-center" style={{ width: tam, height: tam }}>
       <svg width={tam} height={tam} viewBox={`0 0 ${tam} ${tam}`} className="-rotate-90" role="img" aria-label={partes.map((p) => `${p.etiqueta} ${p.valor}`).join(", ")}>
+        <defs>{partes.map((p, i) => <linearGradient key={i} id={`d${id}${i}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor={p.color} /><stop offset="100%" stopColor={p.color} stopOpacity=".7" /></linearGradient>)}</defs>
         <circle cx={tam / 2} cy={tam / 2} r={r} fill="none" stroke="var(--s-borde-suave)" strokeWidth={grosor} />
         {partes.filter((p) => p.valor > 0).map((p, i) => {
           const frac = p.valor / total; const ini = acumulado; acumulado += frac;
-          return <motion.circle key={p.etiqueta} cx={tam / 2} cy={tam / 2} r={r} fill="none" stroke={p.color} strokeWidth={grosor} strokeLinecap="butt"
+          return <motion.circle key={p.etiqueta} cx={tam / 2} cy={tam / 2} r={r} fill="none" stroke={`url(#d${id}${partes.indexOf(p)})`} strokeWidth={grosor} strokeLinecap="butt" style={{ filter: `drop-shadow(0 0 6px color-mix(in srgb, ${p.color} 50%, transparent))` }}
             strokeDasharray={`${C * frac - 2} ${C}`} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: -C * ini }} transition={{ duration: 1.1, delay: 0.1 + i * 0.1, ease: CURVA }} />;
         })}
       </svg>

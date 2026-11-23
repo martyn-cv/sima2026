@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { conectarTiempoReal, type Equipo } from "@sima/cliente";
+import { conectarTiempoReal, type Equipo, type EventoPlanta } from "@sima/cliente";
 import { api, baseUrl, leerToken } from "./api";
 import { useAuth } from "./auth";
 
@@ -49,6 +49,9 @@ export function PlantaProvider({ children }: { children: ReactNode }) {
       calidad: (c) => { void qc.invalidateQueries({ queryKey: ["calidad"] }); void qc.invalidateQueries({ queryKey: ["aprobaciones"] }); evento({ tipo: "calidad", texto: c.texto, nivel: c.estado === "abierta" ? (c.severidad === "critica" ? "alarma" : "aviso") : "ok", enlace: "/calidad" }); },
       sst: (x) => { void qc.invalidateQueries({ queryKey: ["sst"] }); void qc.invalidateQueries({ queryKey: ["aprobaciones"] }); evento({ tipo: "sst", texto: x.texto, nivel: x.severidad === "leve" ? "aviso" : "alarma", enlace: "/seguridad" }); },
       cambioPlc: (c) => { void qc.invalidateQueries({ queryKey: ["cambios"] }); void qc.invalidateQueries({ queryKey: ["aprobaciones"] }); void qc.invalidateQueries({ queryKey: ["plc"] }); evento({ tipo: "plc", texto: c.estado === "pendiente" ? `${c.plc}: cambio de programa por aprobar (${c.resumen})` : `${c.plc}: cambio ${c.estado} por ${c.por}`, nivel: c.estado === "aprobado" ? "ok" : c.estado === "rechazado" ? "aviso" : "info", enlace: "/mantenimiento" }); },
+      evento: (e) => { qc.setQueryData<EventoPlanta[]>(["eventos", "vivo"], (prev) => [e, ...(prev ?? [])].slice(0, 300)); },
+      intervencion: (i) => { void qc.invalidateQueries({ queryKey: ["ordenes"] }); void qc.invalidateQueries({ queryKey: ["equipo"] }); evento({ tipo: "orden", texto: `${i.orden}: intervención de ${i.tecnico} en ${i.equipo}${i.cerrada ? " (cerrada)" : ""}`, nivel: i.cerrada ? "ok" : "info", enlace: "/mantenimiento" }); },
+      estructura: () => { void qc.invalidateQueries({ queryKey: ["estructura"] }); void qc.invalidateQueries({ queryKey: ["equipos"] }); },
       cuentaCerrada: (m) => salir(m.motivo),
     });
     return () => { void h.detener(); };
