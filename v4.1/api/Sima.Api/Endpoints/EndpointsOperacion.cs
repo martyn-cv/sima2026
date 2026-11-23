@@ -204,7 +204,7 @@ public static class EndpointsOperacion
                 fecha = ahora, turno = s.Turno, items = ItemsTraspaso, rutinasVencidas = vencidas,
                 ordenesAbiertas = ordenes.Where(o => o.Estado == "abierta").Select(o => new { o.Codigo, equipo = eq[o.EquipoId].Codigo, o.Titulo, o.Prioridad }),
                 ordenesEnCurso = ordenes.Where(o => o.Estado == "en_curso").Select(o => new { o.Codigo, equipo = eq[o.EquipoId].Codigo, o.Titulo, asignado = o.AsignadoAId == null ? null : nombres.GetValueOrDefault(o.AsignadoAId) }),
-                equiposFuera = eq.Values.Where(e => e.Estado != "operando").Select(e => new { e.Codigo, e.Nombre, e.Estado }),
+                equiposFuera = eq.Values.Where(e => !EstadosEquipo.Marcha(e.Estado)).Select(e => new { e.Codigo, e.Nombre, e.Estado }),
                 alarmasAbiertas = (await db.Alarmas.AsNoTracking().Where(a => a.Fin == null).ToListAsync()).Select(a => new { equipo = eq[a.EquipoId].Codigo, a.Nivel, a.Mensaje }),
                 repuestosCriticos = (await db.Repuestos.AsNoTracking().Where(r => r.Critico && r.Stock <= r.StockMinimo).ToListAsync()).Select(r => new { r.Codigo, r.Nombre, r.Stock, minimo = r.StockMinimo }),
             });
@@ -223,7 +223,7 @@ public static class EndpointsOperacion
             var resumen = new
             {
                 ordenesAbiertas = await db.Ordenes.CountAsync(o => o.Estado == "abierta"), ordenesEnCurso = await db.Ordenes.CountAsync(o => o.Estado == "en_curso"),
-                equiposFuera = eq.Where(x => x.Estado != "operando").Select(x => $"{x.Codigo}: {x.Estado}"), alarmasAbiertas = await db.Alarmas.CountAsync(a => a.Fin == null),
+                equiposFuera = eq.Where(x => !EstadosEquipo.Marcha(x.Estado)).Select(x => $"{x.Codigo}: {EstadosEquipo.Texto(x.Estado)}"), alarmasAbiertas = await db.Alarmas.CountAsync(a => a.Fin == null),
                 repuestosCriticosBajos = await db.Repuestos.CountAsync(r => r.Critico && r.Stock <= r.StockMinimo),
             };
             var t = new Traspaso { Turno = s.Turno, PorId = s.Id, PorNombre = s.Nombre, Notas = e.Notas ?? "", Resumen = JsonSerializer.Serialize(resumen),

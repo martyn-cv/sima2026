@@ -166,6 +166,11 @@ public class Auditoria
     public string Entidad { get; set; } = "";
     public string EntidadId { get; set; } = "";
     public string Detalle { get; set; } = "";
+    public string Cargo { get; set; } = "";
+    public string Plataforma { get; set; } = "";         // web | app
+    public string? ValorAnterior { get; set; }
+    public string? ValorNuevo { get; set; }
+    public string? Motivo { get; set; }
 }
 
 // ----------------------------------------------------------------------------- planta y PLC
@@ -241,7 +246,18 @@ public class Equipo
     public string Marca { get; set; } = "";
     public string Modelo { get; set; } = "";
     public string Criticidad { get; set; } = "media";
-    public string Estado { get; set; } = "operando";     // operando | alarma | detenido | en_mantencion
+    public string Estado { get; set; } = "operativo";    // ver EstadosEquipo: operativo, falla, en_mantenimiento, liberado…
+    // ficha técnica (los valores de demostración se marcan en FichaDemo)
+    public string NumeroSerie { get; set; } = "";
+    public string Fabricante { get; set; } = "";
+    public DateOnly? FechaInstalacion { get; set; }
+    public double HorasFuncionamiento { get; set; }
+    public string EspecElectrica { get; set; } = "";     // tensión, potencia, corriente
+    public string EspecMecanica { get; set; } = "";      // capacidad, velocidad, dimensiones
+    public string? ResponsableMantId { get; set; }
+    public string? ResponsableProdId { get; set; }
+    public bool FichaDemo { get; set; }                  // la ficha técnica es de demostración
+    public List<ComponenteEquipo> Componentes { get; set; } = new();
     public string? ModeloSimulacion { get; set; }        // escenario del simulador compatible (cinta, llenado, maquina…); nulo = sin modelo
     public uint Version { get; set; }                    // xmin de PostgreSQL: detecta modificaciones simultáneas
     public int? PlcId { get; set; }
@@ -311,6 +327,9 @@ public class OrdenTrabajo
     public DateTime? CierreSolicitado { get; set; }      // el técnico terminó y retiró el bloqueo; espera la verificación
     public string? VerificadaPorId { get; set; }         // quien verificó el trabajo y liberó el equipo (no puede ser el ejecutor)
     public DateTime? VerificadaEn { get; set; }
+    public bool AfectaSeguridad { get; set; }            // la liberación exige la validación de prevención de riesgos
+    public bool AfectaCalidad { get; set; }              // la liberación exige la validación de calidad
+    public int RondaLiberacion { get; set; }             // cuántas veces el técnico pidió la liberación
     public uint Version { get; set; }                    // xmin: dos técnicos no pueden tomar la misma orden
     public string Codigo => $"OT-{Id:0000}";
 }

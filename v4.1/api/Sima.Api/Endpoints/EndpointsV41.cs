@@ -13,7 +13,7 @@ public record LineaEntrada(int AreaId, string Codigo, string Nombre);
 public record ConsumoEntrada(int RepuestoId, int Cantidad);
 public record PlanificarEntrada(uint Version, string? AsignadoAId, DateOnly? Programada, string? Prioridad, string? Especialidad, bool QuitarAsignacion = false, bool QuitarFecha = false);
 public record IntervencionEntrada(string? Uid, DateTime? Inicio, DateTime? Fin, string Causa, string Diagnostico, string Accion, string Resultado, string? Observaciones,
-    List<ConsumoEntrada>? Repuestos, List<int>? Herramientas, bool Cerrar, bool LotoRetirado);
+    List<ConsumoEntrada>? Repuestos, List<int>? Herramientas, bool Cerrar, bool LotoRetirado, List<PruebaEntrada>? Pruebas = null, bool? AfectaSeguridad = null, bool? AfectaCalidad = null);
 
 /// <summary>Integración v4.1: estructura de planta, ficha completa de equipos, eventos e intervenciones técnicas.</summary>
 public static class EndpointsV41
@@ -88,7 +88,7 @@ public static class EndpointsV41
         g.MapGet("/equipos/{codigo}", async (string codigo, ClaimsPrincipal u, SimaDb db) =>
         {
             if (!u.S().Tiene("planta.ver")) return Ayudas.Sin();
-            var e = await db.Equipos.AsNoTracking().Include(x => x.Sensores).Include(x => x.Plc).ThenInclude(p => p!.Puntos).Include(x => x.Linea).ThenInclude(l => l!.Area).ThenInclude(a => a!.Planta)
+            var e = await db.Equipos.AsNoTracking().Include(x => x.Sensores).Include(x => x.Componentes).Include(x => x.Plc).ThenInclude(p => p!.Puntos).Include(x => x.Linea).ThenInclude(l => l!.Area).ThenInclude(a => a!.Planta)
                 .FirstOrDefaultAsync(x => x.Codigo == codigo);
             if (e is null) return Ayudas.Error("No existe ese equipo.", 404);
             var nombres = await db.Trabajadores.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Nombres + " " + t.ApellidoPaterno);
@@ -104,7 +104,15 @@ public static class EndpointsV41
             var ind = indic.FirstOrDefault(i => i.Codigo == e.Codigo);
             return Results.Ok(new
             {
-                equipo = new { e.Codigo, e.Nombre, e.Tipo, e.Marca, e.Modelo, e.Criticidad, e.Estado, e.Ubicacion, e.ModeloSimulacion, e.Version, simulado = e.Plc?.Origen != "real", e.LineaId },
+                equipo = new { e.Codigo, e.Nombre, e.Tipo, e.Marca, e.Modelo, e.Criticidad, e.Estado, estadoTexto = EstadosEquipo.Texto(e.Estado), e.Ubicacion, e.ModeloSimulacion, e.Version, simulado = e.Plc?.Origen != "real", e.LineaId },
+                ficha = new
+                {
+                    e.NumeroSerie, e.Fabricante, e.FechaInstalacion, horasFuncionamiento = Math.Round(e.HorasFuncionamiento), e.EspecElectrica, e.EspecMecanica, demo = e.FichaDemo,
+                    responsableMant = e.ResponsableMantId is null ? null : await db.Trabajadores.AsNoTracking().Where(t => t.Id == e.ResponsableMantId).Select(t => t.Nombres + " " + t.ApellidoPaterno).FirstOrDefaultAsync(),
+                    responsableProd = e.ResponsableProdId is null ? null : await db.Trabajadores.AsNoTracking().Where(t => t.Id == e.ResponsableProdId).Select(t => t.Nombres + " " + t.ApellidoPaterno).FirstOrDefaultAsync(),
+                    proximaPreventiva = await db.Ordenes.AsNoTracking().Where(o => o.EquipoId == e.Id && o.Tipo == "preventiva" && o.Estado != "cerrada" && o.Programada != null).OrderBy(o => o.Programada).Select(o => new { o.Id, o.Codigo, o.Programada }).FirstOrDefaultAsync(),
+                },
+                componentes = e.Componentes.OrderBy(c => c.Tipo).ThenBy(c => c.Codigo).Select(c => new { c.Id, c.Tipo, c.Codigo, c.Nombre, c.Marca, c.Modelo, c.Especificacion, c.Demo }),
                 jerarquia = new { planta = e.Linea!.Area!.Planta!.Nombre, area = new { e.Linea.Area.Id, e.Linea.Area.Codigo, e.Linea.Area.Nombre }, linea = new { e.Linea.Id, e.Linea.Codigo, e.Linea.Nombre } },
                 plc = e.Plc is null ? null : new { e.Plc.Codigo, e.Plc.Nombre, e.Plc.Fabricante, e.Plc.Modelo, estado = EstadoPlc(e.Plc), e.Plc.Origen, e.Plc.Direccion,
                     puntos = e.Plc.Puntos.Where(p => p.EquipoId == e.Id).OrderBy(p => p.Tipo).ThenBy(p => p.Canal).Select(p => new { p.Direccion, p.Tag, p.Tipo, p.Descripcion, p.Unidad }) },
@@ -139,7 +147,7 @@ public static class EndpointsV41
             var eq = new Equipo
             {
                 Codigo = codigo, Nombre = e.Nombre.Trim(), Tipo = e.Tipo.Trim(), LineaId = linea.Id, Ubicacion = e.Ubicacion?.Trim() ?? linea.Area!.Nombre, Marca = e.Marca?.Trim() ?? "", Modelo = e.Modelo?.Trim() ?? "",
-                Criticidad = e.Criticidad is "baja" or "media" or "alta" ? e.Criticidad : "media", Estado = "detenido", PlcId = plc?.Id,
+                Criticidad = e.Criticidad is "baja" or "media" or "alta" ? e.Criticidad : "media", Estado = EstadosEquipo.Liberado, PlcId = plc?.Id,
                 ModeloSimulacion = e.ModeloSimulacion is "cinta" or "llenado" or "maquina" ? e.ModeloSimulacion : null,
             };
             if (SemillaPlanta.Sensores.TryGetValue(eq.Tipo, out var sens))
@@ -208,7 +216,12 @@ public static class EndpointsV41
             var plcCod = plcs.ToDictionary(p => p.Id, p => p.Codigo);
             return Results.Ok(new
             {
-                equipos = new { total = equipos.Count, operando = equipos.Count(e => e.Estado == "operando"), alarma = equipos.Count(e => e.Estado == "alarma"), detenido = equipos.Count(e => e.Estado == "detenido"), mantencion = equipos.Count(e => e.Estado == "en_mantencion") },
+                equipos = new
+                {
+                    total = equipos.Count, operando = equipos.Count(e => EstadosEquipo.Marcha(e.Estado)), alarma = equipos.Count(e => e.Estado == EstadosEquipo.Falla),
+                    detenido = equipos.Count(e => e.Estado is EstadosEquipo.Liberado or EstadosEquipo.FueraServicio), mantencion = equipos.Count(e => EstadosEquipo.DeMantenimiento.Contains(e.Estado)),
+                    bloqueado = equipos.Count(e => e.Estado == EstadosEquipo.Bloqueado), porEstado = EstadosEquipo.Validos.ToDictionary(x => x, x => equipos.Count(e => e.Estado == x)),
+                },
                 plcs = new { total = plcs.Count, conectados = plcs.Count(p => EstadoPlc(p) == "run"), falla = plcs.Count(p => EstadoPlc(p) == "error"), desconectados = plcs.Count(p => EstadoPlc(p) == "sin_conexion"), lista = plcs.OrderBy(p => p.Codigo).Select(p => new { p.Codigo, p.Nombre, estado = EstadoPlc(p), p.Origen }) },
                 alarmas = new { abiertas = abiertas.Count, criticas = abiertas.Count(a => a.Nivel == "alarma"), recientes = abiertas.OrderByDescending(a => a.Inicio).Take(6).Select(a => new { a.Id, a.Nivel, a.Mensaje, a.Inicio, equipo = eqN[a.EquipoId].Codigo, a.Simulado }) },
                 ordenes = new
@@ -245,6 +258,7 @@ public static class EndpointsV41
                 o.Especialidad, o.Programada, o.Simulada, o.CierreSolicitado, o.VerificadaEn, o.CreadaPorId,
                 asignado = o.AsignadoAId is null ? null : nombres.GetValueOrDefault(o.AsignadoAId),
                 verificadaPor = o.VerificadaPorId is null ? null : nombres.GetValueOrDefault(o.VerificadaPorId),
+                liberacion = await Liberaciones.ResumenAsync(db, o),
                 equipo = new { eq.Codigo, eq.Nombre, eq.Tipo, eq.Estado, area = eq.Linea!.Area!.Nombre, linea = eq.Linea.Nombre },
                 intervenciones = inter.Select(i => new { i.Id, i.TecnicoNombre, i.Inicio, i.Fin, i.Causa, i.Diagnostico, i.Accion, i.Resultado, i.Observaciones, herramientas = i.Herramientas.Select(h => herr.GetValueOrDefault(h.HerramientaId)) }),
                 repuestos = movs.Select(m => new { rep[m.RepuestoId].Codigo, rep[m.RepuestoId].Nombre, cantidad = -m.Cantidad, m.Fecha, m.PorNombre }),
@@ -279,7 +293,7 @@ public static class EndpointsV41
             await db.SaveChangesAsync();
             var eq = await db.Equipos.AsNoTracking().FirstAsync(x => x.Id == o.EquipoId);
             await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado, asignadoAId = o.AsignadoAId });
-            if (asignadaAhora) await Avisos.AUsuarioAsync(hub, o.AsignadoAId, $"Se le asignó {o.Codigo} · {eq.Codigo}: {o.Titulo}{(o.Programada is { } d ? $" (programada el {d:dd-MM})" : "")}", o.Prioridad == "critica" ? "alarma" : "aviso", $"/mantenimiento?orden={o.Id}");
+            if (asignadaAhora) await Avisos.AUsuarioAsync(db, hub, o.AsignadoAId, $"Se le asignó {o.Codigo} · {eq.Codigo}: {o.Titulo}{(o.Programada is { } d ? $" (programada el {d:dd-MM})" : "")}", "tarea", $"/mantenimiento?orden={o.Id}", "mantenimiento", o.Codigo);
             return Results.Ok(new { o.Version, cambios });
         });
 
@@ -296,7 +310,7 @@ public static class EndpointsV41
             if (!Causas.Contains(e.Causa) || !Resultados.Contains(e.Resultado)) return Ayudas.Error("Causa o resultado no válidos.");
             if (string.IsNullOrWhiteSpace(e.Diagnostico) || string.IsNullOrWhiteSpace(e.Accion)) return Ayudas.Error("Describa el diagnóstico y la acción realizada.");
             if (e.Cerrar && !e.LotoRetirado) return Ayudas.Error("Para terminar la orden debe confirmar que retiró el bloqueo y etiquetado.");
-            if (e.Cerrar && o.AsignadoAId != s.Id) return Ayudas.Error("Solo el técnico que ejecutó la orden pide su verificación de cierre.", 403);
+            if (e.Cerrar && o.AsignadoAId != s.Id) return Ayudas.Error("Solo el técnico que ejecutó la orden pide su liberación.", 403);
             var consumos = (e.Repuestos ?? new()).Where(c => c.Cantidad > 0).GroupBy(c => c.RepuestoId).Select(gr => new ConsumoEntrada(gr.Key, gr.Sum(c => c.Cantidad))).ToList();
             if (consumos.Count > 0 && !s.Tiene("repuestos.retirar")) return Ayudas.Error("Su cargo no puede retirar repuestos.", 403);
 
@@ -326,17 +340,23 @@ public static class EndpointsV41
                 stock.Add(new { r.Id, r.Codigo, r.Stock, bajoMinimo = r.Stock <= r.StockMinimo });
             }
             var eq = await db.Equipos.Include(x => x.Sensores).Include(x => x.Plc).FirstAsync(x => x.Id == o.EquipoId);
-            var avisos = new List<(string, object)>();
-            // terminar no libera el equipo: queda en mantención hasta que la supervisión verifique (POST /ordenes/{id}/verificar)
-            if (e.Cerrar) { o.Estado = "por_verificar"; o.CierreSolicitado = ahora; }
+            // registrar la intervención pasa el equipo de diagnóstico a mantenimiento
+            if (eq.Estado == EstadosEquipo.Diagnostico) EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Mantenimiento, "desktop", false, $"{o.Codigo}: intervención de {s.Nombre}", ahora);
+            foreach (var pr in e.Pruebas ?? new())
+            {
+                if (string.IsNullOrWhiteSpace(pr.Descripcion) || pr.Resultado is not ("conforme" or "no_conforme")) return Ayudas.Error("Cada prueba necesita una descripción y un resultado (conforme o no conforme).");
+                if (pr.Uid is { Length: > 0 } && await db.PruebasOrden.AnyAsync(x => x.Uid == pr.Uid)) continue;
+                db.PruebasOrden.Add(new PruebaOrden { OrdenId = o.Id, Uid = pr.Uid, Descripcion = pr.Descripcion.Trim(), Resultado = pr.Resultado, Valores = pr.Valores?.Trim() ?? "", RegistradaPorId = s.Id, RegistradaPor = s.Nombre, Fecha = ahora });
+            }
             Eventos.Agregar(db, "mantenimiento", e.Cerrar ? "ok" : "info", $"{o.Codigo}: {i.Accion}", "desktop", false, eq.Id, eq.PlcId, ahora, new { orden = o.Codigo, i.Causa, i.Resultado, repuestos = consumos.Count, cerrada = e.Cerrar }, usuarioId: s.Id);
-            db.Auditar(s, e.Cerrar ? "registró la intervención y pidió la verificación de cierre" : "registró una intervención", "orden", o.Codigo, $"{eq.Codigo} · {i.Causa} · {consumos.Sum(c => c.Cantidad)} repuestos");
+            db.Auditar(s, "registró una intervención", "orden", o.Codigo, $"{eq.Codigo} · {i.Causa} · {consumos.Sum(c => c.Cantidad)} repuestos");
             await db.SaveChangesAsync();          // si otra persona movió el mismo repuesto u orden, la versión no coincide: 409 y no queda nada a medias
+            // terminar no libera el equipo: queda «pendiente de liberación» hasta que firmen quienes corresponde
+            if (e.Cerrar && await Ordenes.PedirLiberacionAsync(db, hub, s, o, null, e.AfectaSeguridad, e.AfectaCalidad) is { } error) return error;   // sin pruebas conformes: nada queda a medias
             await tx.CommitAsync();
-            foreach (var (n, d) in avisos) await hub.Clients.Group("planta").SendAsync(n, d);
+            await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
             await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
             await hub.Clients.Group("planta").SendAsync("intervencion", new { id = i.Id, orden = o.Codigo, equipo = eq.Codigo, tecnico = s.Nombre, cerrada = e.Cerrar });
-            if (e.Cerrar) await Avisos.ACargosAsync(hub, Avisos.Verificadores, $"{o.Codigo} en {eq.Codigo} espera su verificación de cierre ({s.Nombre})", "aviso", $"/mantenimiento?orden={o.Id}");
             return Results.Created($"/api/ordenes/{o.Id}", new { i.Id, ordenEstado = o.Estado, stock });
         });
     }

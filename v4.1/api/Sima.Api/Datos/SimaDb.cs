@@ -52,6 +52,13 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
     public DbSet<IntervencionHerramienta> IntervencionHerramientas => Set<IntervencionHerramienta>();
     public DbSet<Documento> Documentos => Set<Documento>();
     public DbSet<EquipoRepuesto> EquipoRepuestos => Set<EquipoRepuesto>();
+    // fase 2: liberación jerárquica, notificaciones, plataformas y ficha técnica
+    public DbSet<PruebaOrden> PruebasOrden => Set<PruebaOrden>();
+    public DbSet<ValidacionLiberacion> Validaciones => Set<ValidacionLiberacion>();
+    public DbSet<ComponenteEquipo> Componentes => Set<ComponenteEquipo>();
+    public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
+    public DbSet<AccesoPlataforma> AccesosPlataforma => Set<AccesoPlataforma>();
+    public DbSet<RegistroAcceso> RegistrosAcceso => Set<RegistroAcceso>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -188,5 +195,20 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
             e.HasOne<Equipo>().WithMany().HasForeignKey(x => x.EquipoId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Repuesto>().WithMany().HasForeignKey(x => x.RepuestoId).OnDelete(DeleteBehavior.Cascade);
         });
+        mb.Entity<PruebaOrden>(e => { e.ToTable("pruebas_orden"); e.HasIndex(x => x.Uid).IsUnique(); e.HasIndex(x => x.OrdenId); e.HasOne<OrdenTrabajo>().WithMany().HasForeignKey(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade); });
+        mb.Entity<ValidacionLiberacion>(e =>
+        {
+            e.ToTable("validaciones_liberacion"); e.HasIndex(x => new { x.OrdenId, x.Ronda, x.Tipo });
+            e.HasOne<OrdenTrabajo>().WithMany().HasForeignKey(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Equipo>().WithMany().HasForeignKey(x => x.EquipoId).OnDelete(DeleteBehavior.Restrict);
+        });
+        mb.Entity<ComponenteEquipo>(e => { e.ToTable("componentes_equipo"); e.HasOne<Equipo>().WithMany(x => x.Componentes).HasForeignKey(x => x.EquipoId).OnDelete(DeleteBehavior.Cascade); });
+        mb.Entity<Notificacion>(e => { e.ToTable("notificaciones"); e.HasIndex(x => new { x.UsuarioId, x.LeidaEn }); e.HasIndex(x => x.Fecha); });
+        mb.Entity<AccesoPlataforma>(e =>
+        {
+            e.ToTable("accesos_plataforma"); e.HasIndex(x => new { x.TrabajadorId, x.Plataforma }).IsUnique();
+            e.HasOne<Trabajador>().WithMany().HasForeignKey(x => x.TrabajadorId).OnDelete(DeleteBehavior.Cascade);
+        });
+        mb.Entity<RegistroAcceso>(e => { e.ToTable("registros_acceso"); e.HasIndex(x => x.Fecha); e.HasIndex(x => x.TrabajadorId); });
     }
 }

@@ -85,9 +85,13 @@ public class ProcesadorTelemetria(IHubContext<PlantaHub> hub)
         foreach (var eq in equiposTocados)
         {
             var hayAlarma = abiertas.Any(a => a.EquipoId == eq.Id && a.Nivel == "alarma");
-            if (eq.Estado != "en_mantencion")
+            var hayAviso = abiertas.Any(a => a.EquipoId == eq.Id && a.Nivel == "aviso");
+            if (!EstadosEquipo.Protegido(eq.Estado))
             {
-                var nuevo = hayAlarma ? "alarma" : reportados.TryGetValue(eq.Codigo, out var rep) && rep is "operando" or "detenido" or "alarma" ? rep : eq.Estado == "alarma" ? "operando" : eq.Estado;
+                var informado = reportados.TryGetValue(eq.Codigo, out var rep) ? EstadosEquipo.DeDispositivo(rep) : null;
+                var nuevo = hayAlarma ? EstadosEquipo.Falla : informado ?? (eq.Estado == EstadosEquipo.Falla ? EstadosEquipo.Operativo : eq.Estado);
+                // en marcha con un aviso abierto (variable sobre el umbral de aviso): operativo con observaciones
+                if (EstadosEquipo.Marcha(nuevo)) nuevo = hayAviso ? EstadosEquipo.OperativoObs : EstadosEquipo.Operativo;
                 EstadosEquipo.Cambiar(db, eq, nuevo, origen, simulado, hayAlarma ? "variable sobre el límite de alarma" : reportados.ContainsKey(eq.Codigo) ? "informado por el PLC" : "variables normalizadas", ahora, avisos);
             }
             if (hayAlarma && !await db.Ordenes.AnyAsync(o => o.EquipoId == eq.Id && o.Automatica && o.Estado != "cerrada", ct))
@@ -131,7 +135,7 @@ public class SimuladorInterno(IServiceScopeFactory fabrica, IConfiguration cfg, 
         if (activas.Count == 0) return;
         var estados = await db.Equipos.AsNoTracking().ToDictionaryAsync(e => e.Id, e => e.Estado, ct);
         var hoy = Reloj.Hoy();
-        foreach (var o in activas.Where(o => estados.GetValueOrDefault(o.EquipoId) == "operando"))
+        foreach (var o in activas.Where(o => EstadosEquipo.Marcha(estados.GetValueOrDefault(o.EquipoId) ?? "")))
         {
             var piezas = Math.Max(2, o.Cantidad / 240 + Random.Shared.Next(-1, 3));
             var malas = Random.Shared.NextDouble() < 0.25 ? 1 : 0;
@@ -165,22 +169,22 @@ public class SimuladorInterno(IServiceScopeFactory fabrica, IConfiguration cfg, 
                 var limite = DateTime.UtcNow.AddSeconds(-10);
                 var libres = (await db.Sensores.Include(s => s.Equipo).ThenInclude(e => e!.Plc).ToListAsync(ct))
                     .Where(s => s.Equipo!.Plc is null || s.Equipo.Plc.UltimoContacto is null || s.Equipo.Plc.UltimoContacto < limite).ToList();
-                var operando = libres.Where(s => s.Equipo!.Estado == "operando" && s.Deriva == 0).ToList();
+                var operando = libres.Where(s => EstadosEquipo.Marcha(s.Equipo!.Estado) && s.Deriva == 0).ToList();
                 if (operando.Count > 0 && Random.Shared.NextDouble() < 0.012) operando[Random.Shared.Next(operando.Count)].Deriva = 0.02;
                 var lecturas = new List<LecturaEntrada>();
                 foreach (var s in libres)
                 {
                     var eq = s.Equipo!; var rango = s.EscalaMax - s.EscalaMin;
                     double objetivo;
-                    if (eq.Estado is "en_mantencion" or "detenido") objetivo = s.EscalaMin + 0.08 * rango;
-                    else { objetivo = s.Nominal + s.Deriva * (s.Alarma * 1.06 - s.Nominal); if (s.Deriva > 0 && eq.Estado != "alarma") s.Deriva = Math.Min(1.0, s.Deriva + 0.06); }
+                    if (!EstadosEquipo.Marcha(eq.Estado) && eq.Estado != EstadosEquipo.Falla) objetivo = s.EscalaMin + 0.08 * rango;
+                    else { objetivo = s.Nominal + s.Deriva * (s.Alarma * 1.06 - s.Nominal); if (s.Deriva > 0 && eq.Estado != EstadosEquipo.Falla) s.Deriva = Math.Min(1.0, s.Deriva + 0.06); }
                     var @base = s.Ultimo ?? s.Nominal;
                     lecturas.Add(new LecturaEntrada(eq.Codigo, s.Variable, Math.Clamp(@base + (objetivo - @base) * 0.4 + Gauss(rango * 0.01), s.EscalaMin, s.EscalaMax)));
                 }
                 if (lecturas.Count > 0) await proc.RegistrarAsync(db, lecturas, ct: ct);
                 // si nadie atiende la falla, la planta se recupera sola a los 6 minutos
                 var viejas = DateTime.UtcNow.AddMinutes(-6);
-                foreach (var eq in libres.Select(s => s.Equipo!).Distinct().Where(e => e.Estado == "alarma"))
+                foreach (var eq in libres.Select(s => s.Equipo!).Distinct().Where(e => e.Estado == EstadosEquipo.Falla))
                     if (!await db.Alarmas.AnyAsync(a => a.EquipoId == eq.Id && a.Nivel == "alarma" && a.Inicio > viejas, ct))
                         foreach (var s in libres.Where(s => s.EquipoId == eq.Id)) s.Deriva = 0;
                 await db.SaveChangesAsync(ct);

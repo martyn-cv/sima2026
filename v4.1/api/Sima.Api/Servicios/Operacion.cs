@@ -10,9 +10,14 @@ public static class Paradas
     public static void Cambio(SimaDb db, Equipo eq, string antes, DateTime ts)
     {
         if (antes == eq.Estado) return;
-        if (antes == "operando")
-            db.Paradas.Add(new Parada { EquipoId = eq.Id, Inicio = ts, Motivo = eq.Estado == "alarma" ? "falla" : eq.Estado == "en_mantencion" ? "mantencion" : "detencion" });
-        else if (eq.Estado == "operando")
+        var marchaAntes = EstadosEquipo.Marcha(antes); var marchaAhora = EstadosEquipo.Marcha(eq.Estado);
+        if (marchaAntes && !marchaAhora)
+            db.Paradas.Add(new Parada
+            {
+                EquipoId = eq.Id, Inicio = ts,
+                Motivo = eq.Estado == EstadosEquipo.Falla ? "falla" : EstadosEquipo.DeMantenimiento.Contains(eq.Estado) ? "mantencion" : eq.Estado == EstadosEquipo.Bloqueado ? "seguridad" : "detencion",
+            });
+        else if (!marchaAntes && marchaAhora)
             foreach (var p in db.Paradas.Where(x => x.EquipoId == eq.Id && x.Fin == null).ToList()) p.Fin = ts;
     }
 }

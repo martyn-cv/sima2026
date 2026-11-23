@@ -82,7 +82,9 @@ public class PruebasV4(Fabrica f)
         var tec = await f.Entrar("tecnico", "Tecnico2026", "app");
         Assert.Equal(HttpStatusCode.OK, (await tec.PostAsJsonAsync($"/api/ordenes/{id}/tomar", new { lotoConfirmado = true })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await pl.PostAsJsonAsync($"/api/ordenes/{id}/cerrar", new { lotoRetirado = true })).StatusCode);
+        await Fabrica.Probar(tec, id);
         Assert.Equal(HttpStatusCode.OK, (await tec.PostAsJsonAsync($"/api/ordenes/{id}/cerrar", new { lotoRetirado = true, nota = "ok" })).StatusCode);
+        await f.Liberar(id, await f.Entrar("jefe.mantenimiento", "Jefemant2026", "app"));
     }
 
     [Fact]

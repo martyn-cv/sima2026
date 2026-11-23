@@ -206,7 +206,7 @@ public class PruebasApi(Fabrica f)
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         var tec = await f.Entrar("tecnico", "Tecnico2026", "app");
         var eq = (await f.Leer(tec, "/api/equipos")).EnumerateArray().First(e => e.GetProperty("codigo").GetString() == "CP-01");
-        Assert.Equal("alarma", eq.GetProperty("estado").GetString());
+        Assert.Equal("falla", eq.GetProperty("estado").GetString());
         var alarmas = await f.Leer(tec, "/api/alarmas?abiertas=true");
         Assert.Contains(alarmas.EnumerateArray(), a => a.GetProperty("equipo").GetString() == "CP-01" && a.GetProperty("nivel").GetString() == "alarma");
         var ordenes = await f.Leer(tec, "/api/ordenes?estado=abierta");
@@ -224,22 +224,24 @@ public class PruebasApi(Fabrica f)
         Assert.Equal(HttpStatusCode.Forbidden, (await op.PostAsJsonAsync($"/api/ordenes/{otId}/tomar", new { lotoConfirmado = true })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await tec.PostAsJsonAsync($"/api/ordenes/{otId}/tomar", new { lotoConfirmado = true })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await tec.PostAsJsonAsync($"/api/ordenes/{otId}/cerrar", new { nota = "ok", lotoRetirado = false })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await tec.PostAsJsonAsync($"/api/ordenes/{otId}/cerrar", new { nota = "sin pruebas", lotoRetirado = true })).StatusCode);   // sin pruebas no se pide la liberación
+        await Fabrica.Probar(tec, otId);
         Assert.Equal(HttpStatusCode.OK, (await tec.PostAsJsonAsync($"/api/ordenes/{otId}/cerrar", new { nota = "Se limpió el intercambiador", lotoRetirado = true })).StatusCode);
         Assert.Equal("por_verificar", (await f.Leer(tec, $"/api/ordenes/{otId}")).GetProperty("estado").GetString());
 
         // terminar no libera el equipo: aunque el PLC informe marcha, sigue en mantención hasta la verificación
         await c.PostAsJsonAsync("/api/ingesta/plc/PLC-04/telemetria", new { estado = "run", lecturas = new[] { new { equipo = "CP-01", variable = "temp_descarga", valor = 85.0 } }, equipos = new[] { new { equipo = "CP-01", estado = "operando" } } });
         eq = (await f.Leer(tec, "/api/equipos")).EnumerateArray().First(e => e.GetProperty("codigo").GetString() == "CP-01");
-        Assert.Equal("en_mantencion", eq.GetProperty("estado").GetString());
+        Assert.Equal("pendiente_liberacion", eq.GetProperty("estado").GetString());
         Assert.Equal(HttpStatusCode.Forbidden, (await tec.PostAsJsonAsync($"/api/ordenes/{otId}/verificar", new { aprobar = true })).StatusCode);
         var jm = await f.Entrar("jefe.mantenimiento", "Jefemant2026", "app");
-        Assert.Equal(HttpStatusCode.OK, (await jm.PostAsJsonAsync($"/api/ordenes/{otId}/verificar", new { aprobar = true, nota = "Prueba de presión conforme" })).StatusCode);
+        await f.Liberar(otId, jm);
 
         // al volver a rango la alarma se cierra; la verificación dejó un comando de reparación para el PLC, que vuelve a mandar el estado
         var vuelta = await c.PostAsJsonAsync("/api/ingesta/plc/PLC-04/telemetria", new { estado = "run", lecturas = new[] { new { equipo = "CP-01", variable = "temp_descarga", valor = 85.0 } }, equipos = new[] { new { equipo = "CP-01", estado = "operando" } } });
         Assert.DoesNotContain((await f.Leer(tec, "/api/alarmas?abiertas=true")).EnumerateArray(), a => a.GetProperty("equipo").GetString() == "CP-01");
         eq = (await f.Leer(tec, "/api/equipos")).EnumerateArray().First(e => e.GetProperty("codigo").GetString() == "CP-01");
-        Assert.Equal("operando", eq.GetProperty("estado").GetString());
+        Assert.Equal("operativo", eq.GetProperty("estado").GetString());
         var comandos = (await vuelta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("comandos");
         Assert.Contains(comandos.EnumerateArray(), x => x.GetProperty("tag").GetString() == "CP01_REPARAR");
     }

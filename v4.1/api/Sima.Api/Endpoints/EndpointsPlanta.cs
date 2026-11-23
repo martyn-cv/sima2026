@@ -14,6 +14,11 @@ public record OrdenEntrada(string Equipo, string Titulo, string? Descripcion, st
 public record TomarOrdenEntrada(bool LotoConfirmado);
 public record CerrarOrdenEntrada(string? Nota, bool LotoRetirado);
 public record VerificarOrdenEntrada(bool Aprobar, string? Nota);
+public record CerrarOrdenEntradaV2(string? Nota, bool LotoRetirado, bool? AfectaSeguridad, bool? AfectaCalidad);
+public record ValidarOrdenEntrada(string Tipo, bool Aprobar, string? Nota);
+public record EtapaEntrada(string Etapa);
+public record PruebaEntrada(string Descripcion, string Resultado, string? Valores, string? Uid);
+public record MotivoEntrada(string? Motivo);
 public record ComandoEntrada(string Tag, double Valor);
 public record TelemetriaPlcEntrada(string? Estado, List<LecturaEntrada>? Lecturas, List<EstadoEntrada>? Equipos, Dictionary<string, double>? Io, int? CicloMs, long? Ciclos, string? Uid = null);
 public record IngestaEntrada(List<LecturaEntrada>? Lecturas);
@@ -121,14 +126,14 @@ public static class EndpointsPlanta
             db.Ordenes.Add(o);
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad });
-            await Avisos.ACargosAsync(hub, Avisos.Mantencion, $"Aviso de falla {o.Codigo} en {eq.Codigo}: {o.Titulo}", "aviso", $"/mantenimiento?orden={o.Id}");
+            await Avisos.ACargosAsync(db, hub, Avisos.Mantencion, $"Aviso de falla {o.Codigo} en {eq.Codigo}: {o.Titulo}", o.Prioridad == "critica" ? "critica" : "tarea", $"/mantenimiento?orden={o.Id}", "mantenimiento", o.Codigo, excepto: u.S().Id);
             return Results.Created($"/api/ordenes/{o.Id}", new { o.Id, o.Codigo });
         });
 
         g.MapPost("/ordenes/{id:int}/tomar", async (int id, TomarOrdenEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
         {
             var s = u.S();
-            if (!s.Tiene("ordenes.ejecutar")) return Ayudas.Error("Su cargo prepara órdenes de trabajo, pero la ejecución la firma el técnico asignado.", 403);
+            if (!s.Tiene("ordenes.ejecutar")) return Ayudas.Error("Su cargo prepara órdenes de trabajo, pero la ejecución la firma el técnico asignado (en SIMA Desktop).", 403);
             var o = await db.Ordenes.FindAsync(id);
             if (o is null) return Ayudas.Error("No existe esa orden.", 404);
             if (o.Estado != "abierta") return Ayudas.Error("La orden ya fue tomada o cerrada.", 409);
@@ -140,91 +145,94 @@ public static class EndpointsPlanta
             if (!(await db.Habilitaciones.AsNoTracking().Where(h => h.TrabajadorId == s.Id && h.Nombre == Competencias.Loto).ToListAsync()).Any(h => h.Vencimiento >= hoy))
                 return Ayudas.Error("No tiene vigente la habilitación de bloqueo y etiquetado (LOTO). No puede intervenir el equipo hasta renovarla.", 403);
             var eq = await db.Equipos.FirstAsync(x => x.Id == o.EquipoId);
+            var antes = eq.Estado;
+            // corregir una condición insegura exige que prevención valide la liberación
+            if (eq.Estado == EstadosEquipo.Bloqueado) o.AfectaSeguridad = true;
             o.Estado = "en_curso"; o.AsignadoAId = s.Id; o.LotoConfirmado = true;
-            EstadosEquipo.Cambiar(db, eq, "en_mantencion", "desktop", false, $"{o.Codigo} iniciada por {s.Nombre} con bloqueo LOTO");
-            db.Auditar(s, "inició una orden con bloqueo confirmado", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}");
+            if (!(eq.Estado is EstadosEquipo.Mantenimiento or EstadosEquipo.Pruebas))
+                EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Diagnostico, "desktop", false, $"{o.Codigo} iniciada por {s.Nombre} con bloqueo LOTO");
+            db.Auditar(s, "inició una orden con bloqueo confirmado", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}", antes, eq.Estado);
             await db.SaveChangesAsync();      // si otro técnico la tomó al mismo tiempo, la versión (xmin) no coincide y responde 409
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
             await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
-            await Avisos.ACargosAsync(hub, Avisos.Produccion, $"{eq.Codigo} en mantención: {s.Nombre} inició {o.Codigo} con bloqueo", "aviso", $"/explorador?equipo={eq.Codigo}");
+            await Avisos.ACargosAsync(db, hub, Avisos.Produccion, $"{eq.Codigo} en diagnóstico: {s.Nombre} inició {o.Codigo} con bloqueo", "advertencia", $"/explorador?equipo={eq.Codigo}", "mantenimiento", eq.Codigo);
             return Results.Ok(new { ok = true });
         });
 
-        // El técnico termina: retira el bloqueo y pide la verificación. El equipo sigue en mantención (no vuelve a operar
-        // por un cierre administrativo); lo libera quien verifica, y la marcha la da operación o el propio PLC.
-        g.MapPost("/ordenes/{id:int}/cerrar", async (int id, CerrarOrdenEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
+        // etapas de la intervención que ve toda la planta: en mantenimiento → en pruebas
+        g.MapPost("/ordenes/{id:int}/etapa", async (int id, EtapaEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
         {
             var s = u.S();
             var o = await db.Ordenes.FindAsync(id);
             if (o is null) return Ayudas.Error("No existe esa orden.", 404);
-            if (!(s.Tiene("ordenes.ejecutar") && o.AsignadoAId == s.Id))
-                return Ayudas.Error("Solo el técnico que ejecutó la orden pide su verificación de cierre.", 403);
-            if (o.Estado != "en_curso") return Ayudas.Error("La orden debe estar en curso para terminarla.", 409);
-            if (!e.LotoRetirado) return Ayudas.Error("Para terminar debe retirar el bloqueo y etiquetado.");
-            if (string.IsNullOrWhiteSpace(e.Nota) && !await db.Intervenciones.AnyAsync(i => i.OrdenId == o.Id))
-                return Ayudas.Error("Registre la intervención o escriba una nota de cierre antes de pedir la verificación.");
+            if (!(s.Tiene("ordenes.ejecutar") && o.AsignadoAId == s.Id)) return Ayudas.Error("Solo el técnico que ejecuta la orden informa su avance.", 403);
+            if (o.Estado != "en_curso") return Ayudas.Error("La orden debe estar en curso.", 409);
+            var nuevo = e.Etapa switch { "mantenimiento" => EstadosEquipo.Mantenimiento, "pruebas" => EstadosEquipo.Pruebas, "diagnostico" => EstadosEquipo.Diagnostico, _ => null };
+            if (nuevo is null) return Ayudas.Error("Etapa no válida.");
             var eq = await db.Equipos.FirstAsync(x => x.Id == o.EquipoId);
-            o.Estado = "por_verificar"; o.CierreSolicitado = DateTime.UtcNow;
-            if (!string.IsNullOrWhiteSpace(e.Nota)) o.Descripcion = (o.Descripcion + "\nCierre técnico: " + e.Nota.Trim()).Trim();
-            db.Auditar(s, "terminó una orden y pidió su verificación", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}");
-            await db.SaveChangesAsync();
-            await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
-            await Avisos.ACargosAsync(hub, Avisos.Verificadores, $"{o.Codigo} en {eq.Codigo} espera su verificación de cierre ({s.Nombre})", "aviso", $"/mantenimiento?orden={o.Id}");
-            return Results.Ok(new { ok = true, estado = o.Estado });
+            var antes = eq.Estado;
+            if (EstadosEquipo.Cambiar(db, eq, nuevo, "desktop", false, $"{o.Codigo}: {EstadosEquipo.Texto(nuevo)} ({s.Nombre})"))
+            {
+                db.Auditar(s, "informó el avance de una orden", "orden", o.Codigo, eq.Codigo, antes, nuevo);
+                await db.SaveChangesAsync();
+                await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
+            }
+            return Results.Ok(new { ok = true, estado = eq.Estado });
         });
 
-        g.MapPost("/ordenes/{id:int}/verificar", async (int id, VerificarOrdenEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
+        // pruebas después de intervenir: condición para pedir la liberación
+        g.MapPost("/ordenes/{id:int}/pruebas", async (int id, PruebaEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
         {
             var s = u.S();
-            if (!s.Tiene("ordenes.aprobar")) return Ayudas.Error("Verificar el cierre y liberar el equipo es de la supervisión o la jefatura de mantenimiento.", 403);
+            if (e.Uid is { Length: > 0 } && await db.PruebasOrden.AsNoTracking().FirstOrDefaultAsync(p => p.Uid == e.Uid) is { } previa) return Results.Ok(new { previa.Id, repetida = true });
             var o = await db.Ordenes.FindAsync(id);
             if (o is null) return Ayudas.Error("No existe esa orden.", 404);
-            if (o.Estado != "por_verificar") return Ayudas.Error("La orden no está esperando verificación.", 409);
-            if (o.AsignadoAId == s.Id) return Ayudas.Error("No puede verificar su propia intervención: lo hace otra persona con esa facultad.", 403);
-            var eq = await db.Equipos.Include(x => x.Sensores).Include(x => x.Plc).FirstAsync(x => x.Id == o.EquipoId);
-            if (!e.Aprobar)
-            {
-                if (string.IsNullOrWhiteSpace(e.Nota)) return Ayudas.Error("Indique qué falta para aprobar el cierre.");
-                o.Estado = "en_curso"; o.CierreSolicitado = null;
-                o.Descripcion = (o.Descripcion + "\nVerificación rechazada: " + e.Nota.Trim()).Trim();
-                db.Auditar(s, "rechazó la verificación de una orden", "orden", o.Codigo, e.Nota.Trim());
-                await db.SaveChangesAsync();
-                await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
-                await Avisos.AUsuarioAsync(hub, o.AsignadoAId, $"{o.Codigo}: la verificación fue rechazada. {e.Nota.Trim()} Vuelva a bloquear antes de intervenir.", "alarma", $"/mantenimiento?orden={o.Id}");
-                return Results.Ok(new { ok = true, estado = o.Estado });
-            }
-            o.Estado = "cerrada"; o.Cerrada = DateTime.UtcNow; o.VerificadaPorId = s.Id; o.VerificadaEn = DateTime.UtcNow;
-            if (!string.IsNullOrWhiteSpace(e.Nota)) o.Descripcion = (o.Descripcion + "\nVerificación: " + e.Nota.Trim()).Trim();
-            // si otra intervención sigue abierta en el mismo equipo, el equipo no se libera: sigue en mantención
-            var pendiente = await db.Ordenes.Where(x => x.EquipoId == eq.Id && x.Id != o.Id && (x.Estado == "en_curso" || x.Estado == "por_verificar")).Select(x => x.Id).FirstOrDefaultAsync();
-            var liberado = pendiente == 0;
-            if (liberado)
-            {
-                // liberado a operación: queda detenido (disponible). El estado físico lo vuelve a informar el PLC
-                EstadosEquipo.Cambiar(db, eq, "detenido", "desktop", false, $"{o.Codigo} verificada por {s.Nombre}: equipo liberado a operación");
-                foreach (var sen in eq.Sensores) sen.Deriva = 0;
-                if (eq.PlcId is { } plcId) db.PlcComandos.Add(new PlcComando { PlcId = plcId, Tag = CodigoNum(eq.Codigo) + "_REPARAR", Valor = 1, SolicitadoPor = s.Nombre });
-            }
-            db.Auditar(s, liberado ? "verificó una orden y liberó el equipo" : "verificó una orden (el equipo sigue en mantención por otra OT)", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}");
+            if (!(s.Tiene("ordenes.ejecutar") && o.AsignadoAId == s.Id)) return Ayudas.Error("Las pruebas las registra el técnico que ejecuta la orden.", 403);
+            if (o.Estado != "en_curso") return Ayudas.Error("La orden debe estar en curso.", 409);
+            if (string.IsNullOrWhiteSpace(e.Descripcion)) return Ayudas.Error("Describa qué se probó.");
+            if (e.Resultado is not ("conforme" or "no_conforme")) return Ayudas.Error("El resultado debe ser conforme o no conforme.");
+            var pr = new PruebaOrden { OrdenId = o.Id, Uid = e.Uid, Descripcion = e.Descripcion.Trim(), Resultado = e.Resultado, Valores = e.Valores?.Trim() ?? "", RegistradaPorId = s.Id, RegistradaPor = s.Nombre };
+            db.PruebasOrden.Add(pr);
+            var eq = await db.Equipos.FirstAsync(x => x.Id == o.EquipoId);
+            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Pruebas, "desktop", false, $"{o.Codigo}: pruebas de {s.Nombre}");
+            db.Auditar(s, "registró una prueba", "orden", o.Codigo, $"{pr.Descripcion} · {pr.Resultado}", null, pr.Valores);
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
-            await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
-            await Avisos.AUsuarioAsync(hub, o.AsignadoAId, $"{o.Codigo} verificada por {s.Nombre}. Gracias.", "ok", $"/mantenimiento?orden={o.Id}");
-            if (liberado) await Avisos.ACargosAsync(hub, Avisos.Produccion, $"{eq.Codigo} liberado por mantenimiento ({o.Codigo}). Puede reanudar la operación.", "ok", $"/explorador?equipo={eq.Codigo}");
-            return Results.Ok(new { ok = true, estado = o.Estado, equipoLiberado = liberado, otraOrden = liberado ? null : $"OT-{pendiente:0000}" });
+            return Results.Created($"/api/ordenes/{o.Id}", new { pr.Id });
         });
 
+        // El técnico termina: retira el bloqueo y pide la liberación. El equipo queda «pendiente de liberación» hasta que
+        // firmen quienes corresponde (técnica, seguridad, calidad, producción). Un cierre administrativo no lo pone en marcha.
+        g.MapPost("/ordenes/{id:int}/cerrar", async (int id, CerrarOrdenEntradaV2 e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
+        {
+            var s = u.S();
+            var o = await db.Ordenes.FindAsync(id);
+            if (o is null) return Ayudas.Error("No existe esa orden.", 404);
+            if (!(s.Tiene("ordenes.ejecutar") && o.AsignadoAId == s.Id)) return Ayudas.Error("Solo el técnico que ejecutó la orden pide su liberación.", 403);
+            if (o.Estado != "en_curso") return Ayudas.Error("La orden debe estar en curso para terminarla.", 409);
+            if (!e.LotoRetirado) return Ayudas.Error("Para terminar debe retirar el bloqueo y etiquetado.");
+            var error = await Ordenes.PedirLiberacionAsync(db, hub, s, o, e.Nota, e.AfectaSeguridad, e.AfectaCalidad);
+            return error ?? Results.Ok(new { ok = true, estado = o.Estado, pendientes = Liberaciones.Requeridas(o) });
+        });
+
+        // firma de una etapa de la liberación: tecnica | seguridad | calidad | produccion
+        g.MapPost("/ordenes/{id:int}/validar", async (int id, ValidarOrdenEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub)
+            => await Ordenes.ValidarAsync(db, hub, u.S(), id, e.Tipo, e.Aprobar, e.Nota));
+        // compatibilidad con clientes anteriores: «verificar» es la liberación técnica
+        g.MapPost("/ordenes/{id:int}/verificar", async (int id, VerificarOrdenEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub)
+            => await Ordenes.ValidarAsync(db, hub, u.S(), id, "tecnica", e.Aprobar, e.Nota));
+
         // Operación pone en marcha un equipo liberado. Si su PLC está conectado, la marcha la ordena el PLC (y él informa
-        // el estado real); un PLC físico sin conexión no se puede marcar como operando desde aquí.
+        // el estado real); un PLC físico sin conexión no se puede marcar como operativo desde aquí.
         g.MapPost("/equipos/{codigo}/reanudar", async (string codigo, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
         {
             var s = u.S();
-            if (!(s.Tiene("produccion.registrar") || s.Tiene("produccion.editar") || s.Tiene("plc_comandos.editar"))) return Ayudas.Sin();
+            if (!(s.Tiene("produccion.registrar") || s.Tiene("produccion.editar") || s.Tiene("plc_comandos.editar") || s.Tiene("equipos.confirmar_produccion"))) return Ayudas.Sin();
             var eq = await db.Equipos.Include(x => x.Plc).FirstOrDefaultAsync(x => x.Codigo == codigo);
             if (eq is null) return Ayudas.Error("No existe ese equipo.", 404);
             if (await db.Ordenes.AnyAsync(o => o.EquipoId == eq.Id && (o.Estado == "en_curso" || o.Estado == "por_verificar")))
-                return Ayudas.Error("El equipo tiene una orden de trabajo sin verificar: mantenimiento debe liberarlo primero.", 409);
-            if (eq.Estado != "detenido") return Ayudas.Error($"El equipo está {EstadosEquipo.Texto(eq.Estado)}: solo se pone en marcha un equipo detenido.", 409);
+                return Ayudas.Error("El equipo tiene una orden de trabajo sin liberar: primero deben firmar su liberación.", 409);
+            if (eq.Estado != EstadosEquipo.Liberado) return Ayudas.Error($"El equipo está {EstadosEquipo.Texto(eq.Estado)}: solo se pone en marcha un equipo liberado para producción.", 409);
             var conectado = eq.Plc?.UltimoContacto is { } t && t > DateTime.UtcNow.AddSeconds(-10);
             if (eq.Plc is not null && conectado)
             {
@@ -234,11 +242,74 @@ public static class EndpointsPlanta
                 return Results.Ok(new { ok = true, via = "plc" });
             }
             if (eq.Plc?.Origen == "real") return Ayudas.Error($"El PLC {eq.Plc.Codigo} no responde: la marcha se da en la máquina y el estado lo informará el PLC al reconectar.", 409);
-            EstadosEquipo.Cambiar(db, eq, "operando", "desktop", true, $"puesta en marcha por {s.Nombre} (planta simulada)");
-            db.Auditar(s, "puso en marcha un equipo de la planta simulada", "equipo", eq.Codigo, "");
+            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Operativo, "desktop", true, $"puesta en marcha por {s.Nombre} (planta simulada)");
+            db.Auditar(s, "puso en marcha un equipo de la planta simulada", "equipo", eq.Codigo, "", EstadosEquipo.Liberado, EstadosEquipo.Operativo);
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
             return Results.Ok(new { ok = true, via = "simulacion" });
+        });
+
+        // bloqueo por condición insegura: solo prevención (o la gerencia de planta) lo levanta
+        g.MapPost("/equipos/{codigo}/bloquear", async (string codigo, MotivoEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
+        {
+            var s = u.S();
+            if (!s.Tiene("equipos.bloquear")) return Ayudas.Error("Bloquear un equipo por seguridad es de prevención de riesgos, la supervisión o las jefaturas.", 403);
+            if (string.IsNullOrWhiteSpace(e.Motivo)) return Ayudas.Error("Indique la condición insegura que motiva el bloqueo.");
+            var eq = await db.Equipos.FirstOrDefaultAsync(x => x.Codigo == codigo);
+            if (eq is null) return Ayudas.Error("No existe ese equipo.", 404);
+            if (eq.Estado == EstadosEquipo.Bloqueado) return Ayudas.Error("El equipo ya está bloqueado por seguridad.", 409);
+            var antes = eq.Estado;
+            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Bloqueado, "desktop", false, $"bloqueado por {s.Nombre}: {e.Motivo.Trim()}");
+            db.Auditar(s, "bloqueó un equipo por seguridad", "equipo", eq.Codigo, "", antes, eq.Estado, e.Motivo);
+            await db.SaveChangesAsync();
+            await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
+            await Avisos.ACargosAsync(db, hub, Avisos.Seguridad.Concat(Avisos.Produccion).Concat(Avisos.Verificadores), $"{eq.Codigo} bloqueado por seguridad ({s.Nombre}): {e.Motivo.Trim()}", "critica", $"/explorador?equipo={eq.Codigo}", "seguridad", eq.Codigo, excepto: s.Id);
+            return Results.Ok(new { ok = true, estado = eq.Estado });
+        });
+
+        g.MapPost("/equipos/{codigo}/desbloquear", async (string codigo, MotivoEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
+        {
+            var s = u.S();
+            if (!s.Tiene("equipos.desbloquear")) return Ayudas.Error("Un bloqueo de seguridad lo levanta prevención de riesgos.", 403);
+            if (string.IsNullOrWhiteSpace(e.Motivo)) return Ayudas.Error("Indique cómo se controló la condición insegura.");
+            var eq = await db.Equipos.FirstOrDefaultAsync(x => x.Codigo == codigo);
+            if (eq is null) return Ayudas.Error("No existe ese equipo.", 404);
+            if (eq.Estado != EstadosEquipo.Bloqueado) return Ayudas.Error("El equipo no está bloqueado por seguridad.", 409);
+            var enCurso = await db.Ordenes.AnyAsync(o => o.EquipoId == eq.Id && (o.Estado == "en_curso" || o.Estado == "por_verificar"));
+            var nuevo = enCurso ? EstadosEquipo.Mantenimiento : EstadosEquipo.Liberado;
+            EstadosEquipo.Cambiar(db, eq, nuevo, "desktop", false, $"bloqueo levantado por {s.Nombre}: {e.Motivo.Trim()}");
+            db.Auditar(s, "levantó un bloqueo de seguridad", "equipo", eq.Codigo, "", EstadosEquipo.Bloqueado, nuevo, e.Motivo);
+            await db.SaveChangesAsync();
+            await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
+            await Avisos.ACargosAsync(db, hub, Avisos.Produccion.Concat(Avisos.Verificadores), $"{eq.Codigo}: prevención levantó el bloqueo de seguridad", "info", $"/explorador?equipo={eq.Codigo}", "seguridad", eq.Codigo, excepto: s.Id);
+            return Results.Ok(new { ok = true, estado = eq.Estado });
+        });
+
+        // sacar de servicio y devolver al servicio (jefatura, planificación o gerencia de planta)
+        g.MapPost("/equipos/{codigo}/servicio/{accion}", async (string codigo, string accion, MotivoEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
+        {
+            var s = u.S();
+            if (!s.Tiene("equipos.servicio")) return Ayudas.Error("Sacar o devolver un equipo al servicio es de la jefatura o la planificación de mantenimiento.", 403);
+            if (accion is not ("sacar" or "devolver")) return Ayudas.Error("Acción no válida.", 404);
+            if (string.IsNullOrWhiteSpace(e.Motivo)) return Ayudas.Error("Indique el motivo.");
+            var eq = await db.Equipos.FirstOrDefaultAsync(x => x.Codigo == codigo);
+            if (eq is null) return Ayudas.Error("No existe ese equipo.", 404);
+            var antes = eq.Estado;
+            if (accion == "sacar")
+            {
+                if (EstadosEquipo.DeMantenimiento.Contains(eq.Estado) || eq.Estado == EstadosEquipo.Bloqueado) return Ayudas.Error($"El equipo está {EstadosEquipo.Texto(eq.Estado)}: termine ese proceso primero.", 409);
+                EstadosEquipo.Cambiar(db, eq, EstadosEquipo.FueraServicio, "web", false, $"fuera de servicio ({s.Nombre}): {e.Motivo.Trim()}");
+            }
+            else
+            {
+                if (eq.Estado != EstadosEquipo.FueraServicio) return Ayudas.Error("El equipo no está fuera de servicio.", 409);
+                EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Liberado, "web", false, $"devuelto al servicio ({s.Nombre}): {e.Motivo.Trim()}");
+            }
+            db.Auditar(s, accion == "sacar" ? "sacó un equipo de servicio" : "devolvió un equipo al servicio", "equipo", eq.Codigo, "", antes, eq.Estado, e.Motivo);
+            await db.SaveChangesAsync();
+            await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
+            await Avisos.ACargosAsync(db, hub, Avisos.Produccion, $"{eq.Codigo} {EstadosEquipo.Texto(eq.Estado)}: {e.Motivo.Trim()}", "advertencia", $"/explorador?equipo={eq.Codigo}", "mantenimiento", eq.Codigo, excepto: s.Id);
+            return Results.Ok(new { ok = true, estado = eq.Estado });
         });
 
         // ------------------------------------------------------------------------------------ PLC
@@ -319,7 +390,7 @@ public static class EndpointsPlanta
                 plc = new { p.Codigo, p.Nombre, p.Fabricante, p.Modelo, p.Direccion, zona = p.Area?.Nombre, p.CicloMs, p.Origen },
                 modulos = p.Modulos.OrderBy(m => m.Slot).Select(m => new { m.Slot, m.Tipo, m.Modelo, m.Canales, id = m.Id }),
                 puntos = p.Puntos.OrderBy(x => x.ModuloId).ThenBy(x => x.Canal).Select(x => new { x.Direccion, x.Tag, x.Tipo, x.Descripcion, x.Canal, moduloId = x.ModuloId, equipo = p.Equipos.FirstOrDefault(e => e.Id == x.EquipoId)?.Codigo, variable = p.Equipos.SelectMany(e => e.Sensores).FirstOrDefault(s => s.Id == x.SensorId)?.Variable, x.Unidad, x.Minimo, x.Maximo }),
-                equipos = p.Equipos.OrderBy(e => e.Codigo).Select(e => new { e.Codigo, e.Nombre, e.Tipo, e.Criticidad, e.ModeloSimulacion, estadoAdministrativo = e.Estado == "en_mantencion" ? "en_mantencion" : "disponible", sensores = e.Sensores.OrderBy(s => s.Id).Select(s => new { s.Variable, s.Nombre, s.Unidad, min = s.EscalaMin, max = s.EscalaMax, s.Nominal, s.Aviso, s.Alarma }) }),
+                equipos = p.Equipos.OrderBy(e => e.Codigo).Select(e => new { e.Codigo, e.Nombre, e.Tipo, e.Criticidad, e.ModeloSimulacion, estadoAdministrativo = EstadosEquipo.Protegido(e.Estado) ? "en_mantencion" : "disponible", estado = e.Estado, sensores = e.Sensores.OrderBy(s => s.Id).Select(s => new { s.Variable, s.Nombre, s.Unidad, min = s.EscalaMin, max = s.EscalaMax, s.Nominal, s.Aviso, s.Alarma }) }),
                 programa = JsonSerializer.Deserialize<JsonElement>(p.Programa), version = p.VersionPrograma,
             });
         });
@@ -359,7 +430,7 @@ public static class EndpointsPlanta
             var pendientes = await db.PlcComandos.Where(c => c.PlcId == p.Id && c.Aplicado == null).OrderBy(c => c.Id).Take(20).ToListAsync();
             foreach (var c in pendientes) c.Aplicado = DateTime.UtcNow;
             if (pendientes.Count > 0) await db.SaveChangesAsync();
-            var mantencion = await db.Equipos.AsNoTracking().Where(x => x.PlcId == p.Id && x.Estado == "en_mantencion").Select(x => x.Codigo).ToListAsync();
+            var mantencion = await db.Equipos.AsNoTracking().Where(x => x.PlcId == p.Id && EstadosEquipo.Protegidos.Contains(x.Estado)).Select(x => x.Codigo).ToListAsync();
             return Results.Ok(new { ok, repetido, version = p.VersionPrograma, mantencion, comandos = pendientes.Select(c => new { c.Id, c.Tag, c.Valor }) });
         });
 

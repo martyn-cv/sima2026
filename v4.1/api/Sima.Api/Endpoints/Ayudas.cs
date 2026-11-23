@@ -12,8 +12,13 @@ public static class Ayudas
     public static IResult Sin() => Results.Json(new { error = "No tiene permiso para esta acción." }, statusCode: 403);
     public static IResult Error(string mensaje, int codigo = 400) => Results.Json(new { error = mensaje }, statusCode: codigo);
 
-    public static void Auditar(this SimaDb db, Sesion s, string accion, string entidad, string id, string detalle = "")
-        => db.Auditorias.Add(new Auditoria { UsuarioId = s.Id, UsuarioNombre = s.Nombre, Accion = accion, Entidad = entidad, EntidadId = id, Detalle = detalle });
+    /// <summary>Registra quién (con su cargo y plataforma) hizo qué, sobre qué registro, con el valor anterior, el nuevo y el motivo.</summary>
+    public static void Auditar(this SimaDb db, Sesion s, string accion, string entidad, string id, string detalle = "", string? antes = null, string? despues = null, string? motivo = null)
+        => db.Auditorias.Add(new Auditoria
+        {
+            UsuarioId = s.Id, UsuarioNombre = s.Nombre, Cargo = s.Cargo, Plataforma = s.Canal, Accion = accion, Entidad = entidad, EntidadId = id, Detalle = detalle,
+            ValorAnterior = antes, ValorNuevo = despues, Motivo = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim(),
+        });
 
     /// <summary>Personas bajo la jefatura de alguien (directas e indirectas).</summary>
     public static async Task<HashSet<string>> EquipoDeAsync(SimaDb db, string jefeId)

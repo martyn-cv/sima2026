@@ -495,6 +495,19 @@ public static class EndpointsV4
                 items.AddRange((await db.IncidentesSst.AsNoTracking().Where(i => i.Estado == "reportado").ToListAsync())
                     .Select(i => new { tipo = "sst", id = i.Id, titulo = $"Evento por investigar {i.Codigo}", detalle = $"{i.Tipo.Replace("_", " ")} · {an.GetValueOrDefault(i.AreaId)}", fecha = i.Fecha, enlace = "/seguridad" }));
             }
+            // liberaciones de equipos que esta persona puede firmar ahora (técnica, seguridad, calidad o producción)
+            var porLiberar = await db.Ordenes.Where(o => o.Estado == "por_verificar").ToListAsync();
+            if (porLiberar.Count > 0)
+            {
+                var eqs = await db.Equipos.AsNoTracking().ToDictionaryAsync(e => e.Id, e => e.Codigo);
+                foreach (var o in porLiberar)
+                {
+                    var firmas = await Liberaciones.FirmasAsync(db, o);
+                    foreach (var tipo in Liberaciones.Pendientes(o, firmas))
+                        if (await Liberaciones.NoPuedeAsync(db, s, o, tipo, firmas) is null)
+                            items.Add(new { tipo = "liberacion", id = o.Id, titulo = $"{Liberaciones.Titulo(tipo)} · {eqs.GetValueOrDefault(o.EquipoId)}", detalle = $"{o.Codigo} · {o.Titulo}", fecha = o.CierreSolicitado ?? o.Creada, enlace = $"/mantenimiento?orden={o.Id}", etapa = tipo });
+                }
+            }
             return Results.Ok(items);
         });
     }

@@ -46,8 +46,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         {
             var u = ctx.Principal!;
             var s = u.ComoSesion();
+            var pver = int.TryParse(u.FindFirst("pver")?.Value, out var pv) ? pv : 1;
             var ok = s is not null && int.TryParse(u.FindFirst("ver")?.Value, out var ver)
-                     && await ctx.HttpContext.RequestServices.GetRequiredService<GuardiaDeCuenta>().EsValidaAsync(ctx.HttpContext.RequestServices.GetRequiredService<SimaDb>(), s.Id, ver, s.Canal);
+                     && await ctx.HttpContext.RequestServices.GetRequiredService<GuardiaDeCuenta>().EsValidaAsync(ctx.HttpContext.RequestServices.GetRequiredService<SimaDb>(), s.Id, ver, s.Canal, pver);
             if (!ok) ctx.Fail("Cuenta cerrada, suspendida o sesión revocada.");
         },
     };
@@ -116,6 +117,7 @@ app.MapPlanta(cfg);
 app.MapOperacion();
 app.MapV4();
 app.MapV41();
+app.MapFase2();
 app.MapHub<PlantaHub>("/hubs/planta");
 
 // ---- arranque automático: crea el esquema, importa el Excel y carga la planta con sus PLC
@@ -139,7 +141,7 @@ await using (var scope = app.Services.CreateAsyncScope())
         if (excel is null || !File.Exists(excel)) log.LogWarning("No se encontró SIMA_base_de_datos.xlsx: la base queda vacía. Defina Seed:Excel.");
         else log.LogInformation("Excel importado ({Ruta}): {Resumen}", excel, await ImportadorExcel.ImportarAsync(db, excel, claveInicial, reemplazar: true, forzarCambioClave: cfg.GetValue("Seed:ForzarCambioClave", false)));
     }
-    if (cfg.GetValue("Seed:Planta", true)) { await SemillaPlanta.CargarAsync(db); await SemillaOperacion.CargarAsync(db); await SemillaV4.CargarAsync(db); await SemillaV41.CargarAsync(db); await SemillaV41.PlanificacionAsync(db); }
+    if (cfg.GetValue("Seed:Planta", true)) { await SemillaPlanta.CargarAsync(db); await SemillaOperacion.CargarAsync(db); await SemillaV4.CargarAsync(db); await SemillaV41.CargarAsync(db); await SemillaV41.PlanificacionAsync(db); await SemillaFase2.CargarAsync(db); }
     await Permisos.PrepararAsync(db);
     if (cli is not null) return;   // «dotnet run -- importar ruta.xlsx» importa y termina
 }

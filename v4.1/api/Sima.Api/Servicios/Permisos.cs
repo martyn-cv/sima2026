@@ -13,7 +13,18 @@ namespace Sima.Api.Servicios;
 public static class Permisos
 {
     public const string Ver = "ver", Editar = "editar";
-    public const int VersionMatriz = 7;
+    public const int VersionMatriz = 8;
+
+    /// <summary>
+    /// Roles por plataforma: aunque el cargo tenga la capacidad, en SIMA Desktop no se usan las de datos de personas, pagos,
+    /// cuentas, permisos y auditoría (hojas «solo web» del Excel), y en SIMA Web no se ejecuta trabajo de terreno (intervenir
+    /// con bloqueo LOTO, registrar producción, reconocer alarmas). Así, autorizar una segunda plataforma no amplía lo que se
+    /// puede hacer en cada una.
+    /// </summary>
+    static readonly string[] SoloWeb = { "personal.", "contratos.", "terminos.", "cuentas.", "remuneraciones.", "conceptos.", "parametros.", "permisos.", "auditoria." };
+    static readonly string[] SoloDesktop = { "ordenes.ejecutar", "produccion.registrar", "planta.registrar" };
+    public static bool EnPlataforma(string capacidad, string canal)
+        => canal == "app" ? !SoloWeb.Any(capacidad.StartsWith) : !SoloDesktop.Contains(capacidad);
 
     public static readonly string[] PerfilesWeb = { "gerencia", "finanzas_adm", "produccion_ing", "calidad_gestion", "logistica", "rrhh", "comercial" };
 
@@ -101,12 +112,16 @@ public static class Permisos
         => De(cargoId, perfil).TryGetValue(capacidad, out var a) ? a : Tiene(cargoId, perfil, capacidad) ? "empresa" : null;
 
     /// <summary>Lo que recibe el cliente para mostrar u ocultar pantallas (el servidor vuelve a validar todo).</summary>
-    public static object ParaCargo(int cargoId, string perfil)
+    public static object ParaCargo(int cargoId, string perfil, string? canal = null)
     {
+        var caps = Capacidades(cargoId, perfil, canal);
         var mapa = new Dictionary<string, string>();
-        foreach (var (k, _, _) in Recursos) mapa[k] = Puede(cargoId, perfil, k, Editar) ? "editar" : Puede(cargoId, perfil, k, Ver) ? "ver" : "no";
+        foreach (var (k, _, _) in Recursos)
+            mapa[k] = !Controlado(k) ? "ver" : caps.ContainsKey($"{k}.editar") ? "editar"
+                : caps.Keys.Any(c => c.StartsWith(k + ".") && c != "sst.reportar" && c != "remuneraciones.agregado" && c != "repuestos.retirar") ? "ver" : "no";
         return mapa;
     }
 
-    public static Dictionary<string, string> Capacidades(int cargoId, string perfil) => new(De(cargoId, perfil));
+    public static Dictionary<string, string> Capacidades(int cargoId, string perfil, string? canal = null)
+        => canal is null ? new(De(cargoId, perfil)) : De(cargoId, perfil).Where(c => EnPlataforma(c.Key, canal)).ToDictionary(c => c.Key, c => c.Value);
 }

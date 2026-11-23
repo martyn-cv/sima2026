@@ -385,8 +385,19 @@ A_CAPACIDAD: dict[str, dict[str, list[str]]] = {
 # El servidor solo distingue estos alcances; «línea» se trata como «equipo» (lo más restrictivo para datos de personas).
 A_ALCANCE = {"pr": "propio", "eq": "equipo", "ln": "equipo", "ar": "area", "pl": "planta", "em": "empresa", "ag": "agregado"}
 ORDEN_ALC = ["propio", "equipo", "area", "agregado", "planta", "empresa"]
-# Capacidades que no salen de una ficha porque protegen un tipo de dato y no una tarea (hoja Permisos del Excel).
-EXPLICITAS = {"personal.sensibles": [44, 46, 49, 55, 58]}
+# Capacidades que no salen de una ficha: protegen un tipo de dato (hoja Permisos del Excel) o vienen de las definiciones
+# funcionales del proyecto (liberación jerárquica de equipos y accesos por plataforma; ver PROCESOS.md, flujo A).
+EXPLICITAS = {
+    "personal.sensibles": [44, 46, 49, 55, 58],
+    "equipos.liberar_tecnica": [25, 23],          # supervisión y jefatura de mantenimiento (o un responsable de turno habilitado)
+    "equipos.liberar_seguridad": [50],            # prevención de riesgos, cuando la intervención afecta la seguridad
+    "equipos.liberar_calidad": [31, 32],          # jefatura e ingeniería de calidad, cuando afecta el producto
+    "equipos.confirmar_produccion": [7, 6],       # supervisión de turno y jefatura de producción
+    "equipos.bloquear": [50, 3, 6, 7, 23, 25],    # bloqueo por condición insegura
+    "equipos.desbloquear": [50, 3],               # solo prevención (o la gerencia de planta) levanta un bloqueo de seguridad
+    "equipos.servicio": [23, 24, 3],              # sacar de servicio y devolver al servicio
+    "cuentas.plataformas": [44],                  # autorizar una segunda plataforma (Personas)
+}
 
 
 def compilar(fichas: dict[int, dict]) -> dict[int, dict[str, str]]:

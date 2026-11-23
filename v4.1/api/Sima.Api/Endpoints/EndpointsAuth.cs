@@ -13,8 +13,8 @@ public record CambioClaveEntrada(string Actual, string Nueva);
 public static class EndpointsAuth
 {
     /// <summary>Qué le falta a la persona antes de usar el sistema: un segundo factor exigido o elegir su propia clave.</summary>
-    public static string? Restriccion(Trabajador t, Cargo c, IConfiguration cfg)
-        => t.DebeCambiarClave ? "clave" : cfg.GetValue("Seguridad:Exigir2fa", false) && c.Canal == "web" && !t.TotpActivo ? "2fa" : null;
+    public static string? Restriccion(Trabajador t, Cargo c, IConfiguration cfg, string? canal = null)
+        => t.DebeCambiarClave ? "clave" : cfg.GetValue("Seguridad:Exigir2fa", false) && (canal ?? c.Canal) == "web" && !t.TotpActivo ? "2fa" : null;
 
     static async Task<object> PerfilUsuario(SimaDb db, Trabajador t, EstadoTrabajador e, string canal, string? restringido = null)
     {
@@ -23,7 +23,8 @@ public static class EndpointsAuth
         return new
         {
             id = t.Id, nombre = t.NombreCompleto, correo = t.CorreoCorporativo, cargoId = c!.Id, cargo = c.Nombre, familia = c.Familia, perfil = c.PerfilSima, canal, turno = t.Turno,
-            jefe, estadoCuenta = e.EstadoCuenta, permisos = Permisos.ParaCargo(c.Id, c.PerfilSima), capacidades = Permisos.Capacidades(c.Id, c.PerfilSima), totpActivo = t.TotpActivo, restringido,
+            jefe, estadoCuenta = e.EstadoCuenta, permisos = Permisos.ParaCargo(c.Id, c.PerfilSima, canal), capacidades = Permisos.Capacidades(c.Id, c.PerfilSima, canal), totpActivo = t.TotpActivo, restringido,
+            plataformas = new { web = (await Plataformas.EstadoAsync(db, t, "web")).permitida, desktop = (await Plataformas.EstadoAsync(db, t, "app")).permitida },
         };
     }
 
@@ -31,24 +32,38 @@ public static class EndpointsAuth
     {
         var g = app.MapGroup("/api/auth");
 
-        g.MapPost("/login", async (LoginEntrada e, SimaDb db, ServicioToken tokens, CifradoSecretos cifrado) =>
+        g.MapPost("/login", async (LoginEntrada e, SimaDb db, ServicioToken tokens, CifradoSecretos cifrado, HttpContext http) =>
         {
             var login = (e.Correo ?? "").Trim().ToLowerInvariant();
             var canal = e.Canal is "web" or "app" ? e.Canal : "app";
             var t = await db.Trabajadores.Include(x => x.Cargo).FirstOrDefaultAsync(x => x.CorreoCorporativo == login || x.LoginAlias == login);
-            if (t is null) return Ayudas.Error("Correo o clave incorrectos.", 401);
-            if (t.BloqueadoHasta is { } b && b > DateTime.UtcNow) return Ayudas.Error($"Demasiados intentos. Vuelva a intentar en {Math.Ceiling((b - DateTime.UtcNow).TotalMinutes)} min.", 429);
+            // cada intento queda registrado con su plataforma y su resultado (sin guardar la clave)
+            async Task Registrar(string resultado)
+            {
+                db.RegistrosAcceso.Add(new RegistroAcceso { TrabajadorId = t?.Id, Login = login.Length > 120 ? login[..120] : login, Plataforma = canal, Resultado = resultado,
+                    Ip = http.Connection.RemoteIpAddress?.ToString() ?? "", Agente = http.Request.Headers.UserAgent.ToString() is { Length: > 200 } ua ? ua[..200] : http.Request.Headers.UserAgent.ToString() });
+                await db.SaveChangesAsync();
+            }
+            if (t is null) { await Registrar("desconocido"); return Ayudas.Error("Correo o clave incorrectos.", 401); }
+            if (t.BloqueadoHasta is { } b && b > DateTime.UtcNow) { await Registrar("bloqueada"); return Ayudas.Error($"Demasiados intentos. Vuelva a intentar en {Math.Ceiling((b - DateTime.UtcNow).TotalMinutes)} min.", 429); }
             if (!Claves.Verificar(t.PasswordHash, e.Clave ?? ""))
             {
                 t.IntentosFallidos++;
                 if (t.IntentosFallidos >= 5) { t.BloqueadoHasta = DateTime.UtcNow.AddMinutes(10); t.IntentosFallidos = 0; }
-                await db.SaveChangesAsync();
+                await Registrar("clave_incorrecta");
                 return Ayudas.Error("Correo o clave incorrectos.", 401);
             }
             var est = await Reglas.CalcularUnoAsync(db, t.Id);
-            if (est.EstadoCuenta == "CERRADA") return Ayudas.Error("Su cuenta está cerrada porque ya no pertenece a la empresa. Consulte con Personas.", 403);
-            if (est.EstadoCuenta != "ACTIVA") return Ayudas.Error("Su cuenta está suspendida: no tiene un contrato vigente. Consulte con Personas.", 403);
-            if (t.Cargo!.Canal != canal) return Ayudas.Error(t.Cargo.Canal == "web" ? "Este perfil ingresa por la web de administración." : "Este perfil ingresa por la aplicación de terreno.", 403);
+            if (est.EstadoCuenta == "CERRADA") { await Registrar("cerrada"); return Ayudas.Error("Su cuenta está cerrada porque ya no pertenece a la empresa. Consulte con Personas.", 403); }
+            if (est.EstadoCuenta != "ACTIVA") { await Registrar("suspendida"); return Ayudas.Error("Su cuenta está suspendida: no tiene un contrato vigente. Consulte con Personas.", 403); }
+            var (permitida, pver) = await Plataformas.EstadoAsync(db, t, canal);
+            if (!permitida)
+            {
+                await Registrar("sin_acceso");
+                return Ayudas.Error(canal == "web"
+                    ? "Su cuenta no tiene acceso a SIMA Web. Su trabajo se hace en SIMA Desktop; si necesita la web, Personas debe autorizarlo."
+                    : "Su cuenta no tiene acceso a SIMA Desktop. Su trabajo se hace en SIMA Web; si necesita Desktop, Personas debe autorizarlo.", 403);
+            }
             if (t.TotpActivo)
             {
                 if (string.IsNullOrWhiteSpace(e.Codigo)) return Results.Json(new { error = "Ingrese el código de su aplicación de autenticación.", requiere2fa = true }, statusCode: 401);
@@ -57,15 +72,15 @@ public static class EndpointsAuth
                 {
                     t.IntentosFallidos++;
                     if (t.IntentosFallidos >= 5) { t.BloqueadoHasta = DateTime.UtcNow.AddMinutes(10); t.IntentosFallidos = 0; }
-                    await db.SaveChangesAsync();
+                    await Registrar("codigo_2fa");
                     return Results.Json(new { error = "El código no es correcto o ya se usó. Espere al siguiente.", requiere2fa = true }, statusCode: 401);
                 }
                 t.TotpUltimoPaso = paso.Value;
             }
             t.IntentosFallidos = 0; t.BloqueadoHasta = null; t.UltimoAcceso = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-            var restringido = Restriccion(t, t.Cargo, cfg);
-            var (token, vence) = tokens.Crear(t, t.Cargo, canal, restringido);
+            await Registrar("ok");
+            var restringido = Restriccion(t, t.Cargo!, cfg, canal);
+            var (token, vence) = tokens.Crear(t, t.Cargo!, canal, restringido, pver);
             return Results.Ok(new { token, vence, usuario = await PerfilUsuario(db, t, est, canal, restringido) });
         });
 
@@ -73,14 +88,14 @@ public static class EndpointsAuth
         {
             var s = u.S();
             var t = await db.Trabajadores.Include(x => x.Cargo).FirstAsync(x => x.Id == s.Id);
-            return Results.Ok(await PerfilUsuario(db, t, await Reglas.CalcularUnoAsync(db, t.Id), s.Canal, Restriccion(t, t.Cargo!, cfg)));
+            return Results.Ok(await PerfilUsuario(db, t, await Reglas.CalcularUnoAsync(db, t.Id), s.Canal, Restriccion(t, t.Cargo!, cfg, s.Canal)));
         }).RequireAuthorization();
 
         g.MapPost("/refrescar", async (System.Security.Claims.ClaimsPrincipal u, SimaDb db, ServicioToken tokens) =>
         {
             var s = u.S();
             var t = await db.Trabajadores.Include(x => x.Cargo).FirstAsync(x => x.Id == s.Id);
-            var (token, vence) = tokens.Crear(t, t.Cargo!, s.Canal, Restriccion(t, t.Cargo!, cfg));
+            var (token, vence) = tokens.Crear(t, t.Cargo!, s.Canal, Restriccion(t, t.Cargo!, cfg, s.Canal), (await Plataformas.EstadoAsync(db, t, s.Canal)).version);
             return Results.Ok(new { token, vence });
         }).RequireAuthorization();
 
@@ -94,7 +109,7 @@ public static class EndpointsAuth
             db.Auditar(u.S(), "cambió su clave", "cuenta", t.Id);
             await db.SaveChangesAsync();
             var cargo = await db.Cargos.FindAsync(t.CargoId);
-            var (token, vence) = tokens.Crear(t, cargo!, u.S().Canal, Restriccion(t, cargo!, cfg));
+            var (token, vence) = tokens.Crear(t, cargo!, u.S().Canal, Restriccion(t, cargo!, cfg, u.S().Canal), int.TryParse(u.FindFirst("pver")?.Value, out var pv) ? pv : 1);
             return Results.Ok(new { ok = true, token, vence });
         }).RequireAuthorization();
 
@@ -119,14 +134,14 @@ public static class EndpointsAuth
             db.Auditar(u.S(), "activó el segundo factor", "cuenta", t.Id);
             await db.SaveChangesAsync();
             var cargo = await db.Cargos.FindAsync(t.CargoId);
-            var (token, vence) = tokens.Crear(t, cargo!, u.S().Canal, Restriccion(t, cargo!, cfg));
+            var (token, vence) = tokens.Crear(t, cargo!, u.S().Canal, Restriccion(t, cargo!, cfg, u.S().Canal), int.TryParse(u.FindFirst("pver")?.Value, out var pv) ? pv : 1);
             return Results.Ok(new { ok = true, token, vence });
         }).RequireAuthorization();
 
         g.MapPost("/2fa/desactivar", async (DesactivarEntrada e, System.Security.Claims.ClaimsPrincipal u, SimaDb db, CifradoSecretos cifrado) =>
         {
             var t = await db.Trabajadores.Include(x => x.Cargo).FirstAsync(x => x.Id == u.S().Id);
-            if (cfg.GetValue("Seguridad:Exigir2fa", false) && t.Cargo!.Canal == "web") return Ayudas.Error("Su perfil exige el segundo factor.", 403);
+            if (cfg.GetValue("Seguridad:Exigir2fa", false) && u.S().Canal == "web") return Ayudas.Error("Su perfil exige el segundo factor.", 403);
             if (!t.TotpActivo) return Ayudas.Error("El segundo factor no está activo.", 409);
             if (!Claves.Verificar(t.PasswordHash, e.Clave ?? "") || Totp.Verificar(cifrado.Descifrar(t.TotpSecreto!), e.Codigo, t.TotpUltimoPaso) is null) return Ayudas.Error("La clave o el código no son correctos.");
             t.TotpActivo = false; t.TotpSecreto = null;

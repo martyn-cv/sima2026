@@ -27,8 +27,8 @@ public class PruebasV41(Fabrica f)
         var eventos = await f.Leer(tec, "/api/eventos?plc=PLC-03");
         Assert.Contains(eventos.EnumerateArray(), e => e.GetProperty("tipo").GetString() == "estado_plc" && e.GetProperty("simulado").GetBoolean());
         var ev01 = await f.Leer(tec, "/api/equipos/EV-01");
-        Assert.Equal("alarma", ev01.GetProperty("equipo").GetProperty("estado").GetString());
-        Assert.Contains(ev01.GetProperty("historial").EnumerateArray(), h => h.GetProperty("hasta").GetString() == "alarma" && h.GetProperty("origen").GetString() == "simulador");
+        Assert.Equal("falla", ev01.GetProperty("equipo").GetProperty("estado").GetString());
+        Assert.Contains(ev01.GetProperty("historial").EnumerateArray(), h => h.GetProperty("hasta").GetString() == "falla" && h.GetProperty("origen").GetString() == "simulador");
         var ordenes = (await f.Leer(tec, "/api/ordenes")).EnumerateArray().Count(o => o.GetProperty("titulo").GetString() == "Falla del controlador PLC-03");
         Assert.Equal(1, ordenes);
 
@@ -40,7 +40,7 @@ public class PruebasV41(Fabrica f)
 
         var web = await f.Leer(await f.Entrar("gerencia", "Gerencia2026", "web"), "/api/estructura");             // plataforma web
         var eq = web[0].GetProperty("areas").EnumerateArray().SelectMany(a => a.GetProperty("lineas").EnumerateArray()).SelectMany(l => l.GetProperty("equipos").EnumerateArray()).First(e => e.GetProperty("codigo").GetString() == "EV-01");
-        Assert.Equal("alarma", eq.GetProperty("estado").GetString());
+        Assert.Equal("falla", eq.GetProperty("estado").GetString());
     }
 
     [Fact]
@@ -78,25 +78,26 @@ public class PruebasV41(Fabrica f)
         var ot = (await crear.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
         Assert.Equal(HttpStatusCode.OK, (await tec.PostAsJsonAsync($"/api/ordenes/{ot}/tomar", new { lotoConfirmado = true })).StatusCode);
         var ficha = await f.Leer(tec, "/api/equipos/BC-01");
-        Assert.Equal("en_mantencion", ficha.GetProperty("equipo").GetProperty("estado").GetString());
+        Assert.Equal("en_diagnostico", ficha.GetProperty("equipo").GetProperty("estado").GetString());
         var rp = ficha.GetProperty("repuestos").EnumerateArray().First(r => r.GetProperty("stock").GetInt32() > 0);
         var stock = rp.GetProperty("stock").GetInt32();
         var herramienta = (await f.Leer(tec, "/api/herramientas")).EnumerateArray().First().GetProperty("id").GetInt32();
 
         // mientras está en mantención, lo que diga el simulador no cambia el estado administrativo
         await Simulador().PostAsJsonAsync("/api/ingesta/plc/PLC-04/eventos", new[] { new { uid = Uid(), tipo = "arranque", equipo = "BC-01", nivel = "ok", mensaje = "arranque simulado" } });
-        Assert.Equal("en_mantencion", (await f.Leer(tec, "/api/equipos/BC-01")).GetProperty("equipo").GetProperty("estado").GetString());
+        Assert.Equal("en_diagnostico", (await f.Leer(tec, "/api/equipos/BC-01")).GetProperty("equipo").GetProperty("estado").GetString());
 
         var uid = Uid();
         var cuerpo = new
         {
             uid, causa = "mecanica", diagnostico = "Rodamiento lado acople con juego", accion = "Cambio de rodamiento y alineación láser", resultado = "resuelto",
             repuestos = new[] { new { repuestoId = rp.GetProperty("id").GetInt32(), cantidad = 1 } }, herramientas = new[] { herramienta }, cerrar = true, lotoRetirado = true,
+            pruebas = new[] { new { descripcion = "Marcha de 10 min con medición de vibración", resultado = "conforme", valores = "1,8 mm/s" } },
         };
         var r = await tec.PostAsJsonAsync($"/api/ordenes/{ot}/intervenciones", cuerpo);
         Assert.Equal(HttpStatusCode.Created, r.StatusCode);
         var despues = await f.Leer(tec, "/api/equipos/BC-01");
-        Assert.Equal("en_mantencion", despues.GetProperty("equipo").GetProperty("estado").GetString());   // espera la verificación
+        Assert.Equal("pendiente_liberacion", despues.GetProperty("equipo").GetProperty("estado").GetString());   // espera las firmas
         Assert.Equal(stock - 1, despues.GetProperty("repuestos").EnumerateArray().First(x => x.GetProperty("id").GetInt32() == rp.GetProperty("id").GetInt32()).GetProperty("stock").GetInt32());
         var inter = despues.GetProperty("intervenciones")[0];
         Assert.Equal("Cambio de rodamiento y alineación láser", inter.GetProperty("accion").GetString());
@@ -159,12 +160,12 @@ public class PruebasV41(Fabrica f)
         var r = await sim.PostAsJsonAsync("/api/ingesta/plc/PLC-01/eventos", new[] { new { uid = Uid(), tipo = "estado_plc", nivel = "alarma", mensaje = "CPU", datos = new { estado = "error" } } });
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         var tec = await f.Entrar("tecnico", "Tecnico2026", "app");
-        Assert.Equal("alarma", (await f.Leer(tec, "/api/equipos/TC-02")).GetProperty("equipo").GetProperty("estado").GetString());
+        Assert.Equal("falla", (await f.Leer(tec, "/api/equipos/TC-02")).GetProperty("equipo").GetProperty("estado").GetString());
         Assert.Equal(1, (await f.Leer(tec, "/api/ordenes")).EnumerateArray().Count(o => o.GetProperty("titulo").GetString() == "Falla del controlador PLC-01" && o.GetProperty("estado").GetString() != "cerrada"));
         // una lectura normal informada como «alarma» por el PLC no vuelve el equipo a «operando»
         await sim.PostAsJsonAsync("/api/ingesta/plc/PLC-01/telemetria", new { uid = Uid(), estado = "error", lecturas = new[] { new { equipo = "TC-02", variable = "vibracion", valor = 2.0 } }, equipos = new[] { new { equipo = "TC-02", estado = "alarma" } } });
-        Assert.Equal("alarma", (await f.Leer(tec, "/api/equipos/TC-02")).GetProperty("equipo").GetProperty("estado").GetString());
+        Assert.Equal("falla", (await f.Leer(tec, "/api/equipos/TC-02")).GetProperty("equipo").GetProperty("estado").GetString());
         await sim.PostAsJsonAsync("/api/ingesta/plc/PLC-01/telemetria", new { uid = Uid(), estado = "run", lecturas = new[] { new { equipo = "TC-02", variable = "vibracion", valor = 2.0 } }, equipos = new[] { new { equipo = "TC-02", estado = "operando" } } });
-        Assert.Equal("operando", (await f.Leer(tec, "/api/equipos/TC-02")).GetProperty("equipo").GetProperty("estado").GetString());
+        Assert.Equal("operativo", (await f.Leer(tec, "/api/equipos/TC-02")).GetProperty("equipo").GetProperty("estado").GetString());
     }
 }
