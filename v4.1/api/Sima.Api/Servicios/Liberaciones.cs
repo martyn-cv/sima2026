@@ -21,6 +21,16 @@ public static class Liberaciones
 {
     public static readonly string[] Tipos = { "tecnica", "seguridad", "calidad", "produccion" };
 
+    /// <summary>Capacidad que habilita a firmar cada etapa (la técnica también la puede firmar un responsable de turno habilitado).</summary>
+    public static string Capacidad(string tipo) => tipo switch { "tecnica" => "equipos.liberar_tecnica", "seguridad" => "equipos.liberar_seguridad", "calidad" => "equipos.liberar_calidad", _ => "equipos.confirmar_produccion" };
+
+    /// <summary>
+    /// Quien no ve órdenes de trabajo por su cargo (p. ej. calidad) igual necesita leer la que espera su firma: solo esa,
+    /// mientras está por liberar o ya cerrada, y solo si una de sus etapas es requerida.
+    /// </summary>
+    public static bool LeePorFirma(Sesion s, OrdenTrabajo o)
+        => o.Estado is "por_verificar" or "cerrada" && Requeridas(o).Any(t => s.Tiene(Capacidad(t)));
+
     public static string Titulo(string tipo) => tipo switch
     {
         "tecnica" => "Liberación técnica", "seguridad" => "Validación de seguridad", "calidad" => "Validación de calidad", "produccion" => "Confirmación de producción", _ => tipo,
@@ -104,7 +114,7 @@ public static class Ordenes
         if (afectaSeguridad == true) o.AfectaSeguridad = true;
         if (afectaCalidad == true) o.AfectaCalidad = true;
         if (!string.IsNullOrWhiteSpace(nota)) o.Descripcion = (o.Descripcion + "\nCierre técnico: " + nota.Trim()).Trim();
-        EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Pendiente, "desktop", false, $"{o.Codigo}: {s.Nombre} terminó y pidió la liberación");
+        EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Pendiente, "desktop", false, $"{o.Codigo}: {s.Nombre} terminó y pidió la liberación", por: s);
         db.Auditar(s, "terminó una orden y pidió la liberación del equipo", "orden", o.Codigo, $"{eq.Codigo} · requiere: {string.Join(", ", Liberaciones.Requeridas(o))}", antes, eq.Estado, nota);
         if (guardar) await db.SaveChangesAsync();
         await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
@@ -135,7 +145,7 @@ public static class Ordenes
         {
             o.Estado = "en_curso"; o.CierreSolicitado = null;
             o.Descripcion = (o.Descripcion + $"\n{Liberaciones.Titulo(tipo)} rechazada: " + nota!.Trim()).Trim();
-            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Mantenimiento, "desktop", false, $"{o.Codigo}: {Liberaciones.Titulo(tipo).ToLower()} rechazada por {s.Nombre}");
+            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Mantenimiento, "desktop", false, $"{o.Codigo}: {Liberaciones.Titulo(tipo).ToLower()} rechazada por {s.Nombre}", por: s);
             db.Auditar(s, $"rechazó la {Liberaciones.Titulo(tipo).ToLower()}", "orden", o.Codigo, eq.Codigo, antes, eq.Estado, nota);
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
@@ -161,11 +171,11 @@ public static class Ordenes
         var liberado = otra == 0;
         if (liberado)
         {
-            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Liberado, "desktop", false, $"{o.Codigo}: liberado para producción (confirmó {s.Nombre})");
+            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Liberado, "desktop", false, $"{o.Codigo}: liberado para producción (confirmó {s.Nombre})", por: s);
             foreach (var sen in eq.Sensores) sen.Deriva = 0;
             if (eq.PlcId is { } plcId) db.PlcComandos.Add(new PlcComando { PlcId = plcId, Tag = eq.Codigo.Replace("-", "") + "_REPARAR", Valor = 1, SolicitadoPor = s.Nombre });
         }
-        else EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Mantenimiento, "desktop", false, $"{o.Codigo} cerrada; sigue abierta OT-{otra:0000}");
+        else EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Mantenimiento, "desktop", false, $"{o.Codigo} cerrada; sigue abierta OT-{otra:0000}", por: s);
         db.Auditar(s, liberado ? "confirmó el retorno a producción y cerró la orden" : "cerró la orden (el equipo sigue en mantenimiento por otra OT)", "orden", o.Codigo, eq.Codigo, antes, eq.Estado, nota);
         await db.SaveChangesAsync();
         await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });

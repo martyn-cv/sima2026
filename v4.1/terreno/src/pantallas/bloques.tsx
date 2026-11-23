@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertTriangle, ArrowRight, BadgeCheck, CalendarDays, CheckCircle2, Cpu, Gauge, HardHat, Minus, Package, Plus, ShieldAlert, Users, Wrench } from "lucide-react";
 import type { Equipo, PlcResumen } from "@sima/cliente";
-import { BarrasH, Chip, Dona, Esqueleto, Maquina, Medidor, cx, mensajeDe, useAviso } from "@sima/ui";
+import { BarrasH, Boton, Chip, Dona, Esqueleto, EstadoEquipo, Maquina, Medidor, TIEMPO, cx, defEstado, mensajeDe, useAviso } from "@sima/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { enviar } from "../lib/offline";
@@ -23,28 +23,32 @@ export const PRIO: Record<string, { c: string; tono: "peligro" | "aviso" | "info
 export const ESP: Record<string, string> = { mecanica: "Mecánica", electrica: "Eléctrica", electromecanica: "Electromecánica", instrumentacion: "Instrumentación", automatizacion: "Automatización", general: "General" };
 export const TIPO_SST: Record<string, string> = { condicion_insegura: "Condición insegura", casi_accidente: "Casi accidente", incidente: "Incidente", accidente: "Accidente" };
 export const hace = (iso: string) => { const m = Math.round((Date.now() - +new Date(iso)) / 60000); return m < 1 ? "recién" : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
-const ESTADO_EQ: Record<string, { t: string; c: string }> = { operando: { t: "Operando", c: "var(--s-verde)" }, alarma: { t: "Con alarma", c: "var(--s-rojo)" }, en_mantencion: { t: "En mantención", c: "var(--s-ambar)" }, detenido: { t: "Detenido", c: "var(--s-tenue)" } };
+/** Orden de atención de los estados de equipo: primero lo que detiene la producción o compromete la seguridad. */
+export const ORDEN_ESTADOS = ["falla", "bloqueado_seguridad", "en_diagnostico", "en_mantenimiento", "en_pruebas", "pendiente_liberacion", "fuera_servicio", "liberado", "operativo_obs", "operativo"];
+export const rangoEstado = (e: string) => { const i = ORDEN_ESTADOS.indexOf(e); return i < 0 ? 99 : i; };
+/** Estado legible de una OT (incluye la liberación por etapas). */
+export const ESTADO_OT: Record<string, { t: string; tono: "peligro" | "aviso" | "info" | "neutro" | "ok" | "mant" | "diag" }> = { abierta: { t: "Abierta", tono: "info" }, en_curso: { t: "En ejecución", tono: "mant" }, por_verificar: { t: "Por liberar", tono: "aviso" }, cerrada: { t: "Cerrada", tono: "ok" } };
 
 /** Contenedor de bloque con título, icono y enlace. */
 export function Bloque({ titulo, icono, enlace, children, className, accion }: { titulo: string; icono?: ReactNode; enlace?: { t: string; r: string }; children: ReactNode; className?: string; accion?: ReactNode }) {
   return (
-    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className={cx("tarjeta flex min-w-0 flex-col p-5", className)}>
-      <header className="mb-3 flex items-center gap-2">
-        {icono && <span className="grid size-8 place-items-center rounded-lg bg-acento-claro text-acento">{icono}</span>}
-        <p className="font-semibold">{titulo}</p>
+    <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: TIEMPO.componente }} className={cx("tarjeta flex min-w-0 flex-col p-4", className)}>
+      <header className="mb-3 flex min-h-6 items-center gap-2">
+        {icono && <span className="text-gris [&>svg]:size-4">{icono}</span>}
+        <p className="t-seccion">{titulo}</p>
         <span className="ml-auto flex items-center gap-2">{accion}{enlace && <button onClick={() => ir(enlace.r)} className="inline-flex cursor-pointer items-center gap-1 text-[12.5px] font-medium text-acento">{enlace.t}<ArrowRight className="size-3.5" /></button>}</span>
       </header>
       {children}
     </motion.section>
   );
 }
-function Vacio({ texto }: { texto: string }) { return <p className="my-auto rounded-xl border border-dashed border-linea p-6 text-center text-[13px] text-gris">{texto}</p>; }
+function Vacio({ texto }: { texto: string }) { return <p className="my-auto rounded-md border border-dashed border-linea p-5 text-center text-[12.5px] text-gris">{texto}</p>; }
 export function Cifra({ valor, texto, tono, icono }: { valor: ReactNode; texto: string; tono?: "rojo" | "ambar" | "verde" | "acento"; icono?: ReactNode }) {
   const c = tono ? `var(--s-${tono === "acento" ? "acento" : tono})` : "var(--s-texto)";
   return (
-    <div className="tarjeta flex items-center gap-3 p-4" style={tono ? { background: `radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, ${c} 14%, transparent), transparent 60%), var(--s-superficie)` } : undefined}>
-      {icono && <span className="grid size-10 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${c} 16%, transparent)`, color: c }}>{icono}</span>}
-      <div><p className="display text-[26px] font-bold leading-none" style={{ color: tono ? c : undefined }}>{valor}</p><p className="mt-0.5 text-[12.5px] text-gris">{texto}</p></div>
+    <div className="tarjeta flex items-center gap-3 p-4">
+      {icono && <span className="grid size-9 place-items-center rounded-md border border-linea-suave bg-papel-2 [&>svg]:size-4" style={{ color: c }}>{icono}</span>}
+      <div><p className="t-kpi" style={{ color: tono ? c : undefined }}>{valor}</p><p className="mt-0.5 text-[12px] text-gris">{texto}</p></div>
     </div>
   );
 }
@@ -79,9 +83,9 @@ export function RegistroProduccion({ op, compacto }: { op: Op; compacto?: boolea
       <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-[13px] text-gris">Rechazadas</span><Paso v={malas} set={setMalas} color="var(--s-rojo)" /></div>
       <AnimatePresence>{malas > 0 && <motion.select initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 36 }} exit={{ opacity: 0, height: 0 }} value={motivo} onChange={(e) => setMotivo(e.target.value)} className="h-9 rounded-xl border border-linea bg-papel px-3 text-[13.5px] outline-none">
         <option value="">Motivo del rechazo…</option>{["Rebaba", "Medida fuera de tolerancia", "Rechupe", "Mancha o color", "Golpe en manipulación", "Etiqueta incorrecta", "Componente incorrecto"].map((x) => <option key={x}>{x}</option>)}</motion.select>}</AnimatePresence>
-      <button disabled={m.isPending || (malas > 0 && !motivo) || buenas + malas === 0 || op.estado !== "en_curso"} onClick={() => m.mutate()} className="h-11 cursor-pointer rounded-xl bg-gradient-to-r from-acento to-cobre font-semibold text-sobre-negro disabled:cursor-not-allowed disabled:opacity-40">
-        {op.estado !== "en_curso" ? "La orden no está en curso" : m.isPending ? "Registrando…" : "Registrar producción"}
-      </button>
+      <Boton variante="acento" tam="l" cargando={m.isPending} disabled={(malas > 0 && !motivo) || buenas + malas === 0 || op.estado !== "en_curso"} onClick={() => m.mutate()}>
+        {op.estado !== "en_curso" ? "La orden no está en curso" : "Registrar producción"}
+      </Boton>
     </div>
   );
 }
@@ -109,12 +113,12 @@ export function MiOrden() {
       <div className="grid gap-5 md:grid-cols-[auto_1fr_minmax(260px,1fr)]">
         <div className="relative grid size-32 place-items-center">
           <svg viewBox="0 0 128 128" className="absolute inset-0 -rotate-90"><circle cx="64" cy="64" r={r} fill="none" stroke="var(--s-borde-suave)" strokeWidth="11" />
-            <motion.circle cx="64" cy="64" r={r} fill="none" stroke="var(--s-acento)" strokeWidth="11" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - Math.min(1, op.avance)) }} transition={{ duration: 0.9 }} style={{ filter: "drop-shadow(0 0 6px var(--s-acento))" }} /></svg>
-          <div className="text-center"><p className="display text-[26px] font-bold leading-none">{Math.round(op.avance * 100)}%</p><p className="text-[11px] text-gris">avance</p></div>
+            <motion.circle cx="64" cy="64" r={r} fill="none" stroke="var(--s-acento)" strokeWidth="11" strokeLinecap="round" strokeDasharray={C} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - Math.min(1, op.avance)) }} transition={{ duration: 0.9 }} /></svg>
+          <div className="text-center"><p className="t-kpi">{Math.round(op.avance * 100)}%</p><p className="text-[11px] text-gris">avance</p></div>
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><p className="num text-[12.5px] text-gris">{op.codigo} · lote {op.lote}</p><Chip tono={op.estado === "en_curso" ? "ok" : "info"}>{op.estado === "en_curso" ? "En curso" : op.estado}</Chip></div>
-          <p className="display mt-1 text-[22px] font-bold leading-tight">{op.producto}</p>
+          <p className="mt-1 text-[18px] font-semibold leading-tight">{op.producto}</p>
           <p className="text-[13px] text-gris">{op.equipo} {op.equipoNombre} · {op.linea} · turno {op.turno}</p>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             {[["Meta", op.cantidad], ["Hechas", op.producidas], ["Rechazo", op.rechazo]].map(([t, v]) => <div key={t as string} className="rounded-xl bg-papel-2 py-2"><p className="num text-[18px] font-bold">{(v as number).toLocaleString("es-CL")}</p><p className="text-[11px] text-gris">{t}</p></div>)}
@@ -136,7 +140,7 @@ export function MiEquipo() {
     <Bloque titulo="Mi equipo autorizado" icono={<Wrench className="size-4" />} enlace={e ? { t: "Ficha", r: `/explorador?equipo=${e.codigo}` } : undefined}>
       {!e ? <Vacio texto="Sin equipo asignado por una orden en curso." /> : (
         <>
-          <div className="flex items-center gap-3"><Maquina tipo={e.tipo} estado={e.estado} className="h-16 w-24" /><div><p className="num font-bold">{e.codigo}</p><p className="text-[13px] text-gris">{e.nombre}</p><Chip tono={e.estado === "operando" ? "ok" : e.estado === "alarma" ? "peligro" : "aviso"}>{ESTADO_EQ[e.estado]?.t}</Chip></div></div>
+          <div className="flex items-center gap-3"><Maquina tipo={e.tipo} estado={e.estado} className="h-16 w-24" /><div><p className="num font-bold">{e.codigo}</p><p className="text-[13px] text-gris">{e.nombre}</p><EstadoEquipo estado={e.estado} /></div></div>
           <div className="mt-3 grid grid-cols-2 gap-2">{e.sensores.map((s) => <div key={s.variable} className="flex flex-col items-center rounded-xl border border-linea-suave p-2"><Medidor valor={s.ultimo} min={s.min} max={s.max} aviso={s.aviso} alarma={s.alarma} unidad={s.unidad} tam={118} /><p className="text-center text-[11.5px] text-gris">{s.nombre}</p></div>)}</div>
         </>
       )}
@@ -150,7 +154,7 @@ export function MisHabilitaciones() {
   return (
     <Bloque titulo="Mis habilitaciones" icono={<BadgeCheck className="size-4" />}>
       {!data ? <Esqueleto className="h-24" /> : data.length === 0 ? <Vacio texto="No tiene habilitaciones registradas." /> : (
-        <ul className="grid gap-1.5">{data.map((h) => <li key={h.id} className={cx("flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[13px]", h.estado === "VENCIDA" ? "border-rojo/40 bg-rojo-claro" : h.estado === "POR VENCER" ? "border-ambar/40 bg-ambar-claro" : "border-linea-suave")}>
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">{data.map((h) => <li key={h.id} className={cx("flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[13px]", h.estado === "VENCIDA" ? "border-rojo/40 bg-rojo-claro" : h.estado === "POR VENCER" ? "border-ambar/40 bg-ambar-claro" : "border-linea-suave")}>
           <span>{h.nombre}</span><span className={cx("num shrink-0 text-[12px] font-semibold", h.estado === "VENCIDA" ? "text-rojo" : h.estado === "POR VENCER" ? "text-ambar" : "text-verde")}>{h.estado === "VENCIDA" ? "vencida" : `${h.dias} d`}</span></li>)}</ul>
       )}
       {data?.some((h) => h.estado === "VENCIDA") && <p className="mt-3 flex gap-2 text-[12.5px] text-rojo"><AlertTriangle className="size-4 shrink-0" />Con una habilitación vencida no debe operar ese equipo o tarea. Avise a su jefatura.</p>}
@@ -166,7 +170,7 @@ export function ChecklistPendiente({ equipos: filtro, titulo = "Checklist pendie
   return (
     <Bloque titulo={titulo} icono={<CheckCircle2 className="size-4" />} enlace={{ t: "Rutinas", r: "/rutinas" }}>
       {!data ? <Esqueleto className="h-24" /> : pend.length === 0 ? <Vacio texto="Todo al día." /> : (
-        <ul className="grid gap-1.5">{pend.map((f) => <li key={`${f.rutinaId}${f.equipo}`} className="flex items-center gap-2 rounded-xl border border-linea-suave px-3 py-2 text-[13px]"><span className="size-2 rounded-full bg-ambar" /><span className="min-w-0 flex-1 truncate">{f.rutina} · <b className="num">{f.equipo}</b></span><span className="text-[11.5px] text-gris">{f.ultima ? hace(f.ultima.fecha) : "nunca"}</span></li>)}</ul>
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">{pend.map((f) => <li key={`${f.rutinaId}${f.equipo}`} className="flex items-center gap-2 rounded-xl border border-linea-suave px-3 py-2 text-[13px]"><span className="size-2 rounded-full bg-ambar" /><span className="min-w-0 flex-1 truncate">{f.rutina} · <b className="num">{f.equipo}</b></span><span className="text-[11.5px] text-gris">{f.ultima ? hace(f.ultima.fecha) : "nunca"}</span></li>)}</ul>
       )}
     </Bloque>
   );
@@ -183,16 +187,16 @@ export function MisOt() {
     <li><button onClick={() => ir(`/mantenimiento?orden=${o.id}`)} className="relative flex w-full cursor-pointer items-center gap-3 overflow-hidden rounded-xl border border-linea-suave bg-papel-2/40 px-3.5 py-2.5 text-left hover:border-acento/40">
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: PRIO[o.prioridad]?.c }} />
       <span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-medium">{o.titulo}</span><span className="text-[12px] text-gris">{o.codigo} · {o.equipo} · {ESP[o.especialidad]}{o.programada ? ` · ${new Date(o.programada + "T12:00").toLocaleDateString("es-CL", { weekday: "short", day: "numeric" })}` : ""}</span></span>
-      <Chip tono={o.estado === "en_curso" ? "aviso" : PRIO[o.prioridad]?.tono} punto={false}>{o.estado === "en_curso" ? "con LOTO" : o.prioridad}</Chip>
+      <Chip tono={o.estado === "abierta" ? PRIO[o.prioridad]?.tono : ESTADO_OT[o.estado]?.tono} punto={false}>{o.estado === "abierta" ? o.prioridad : ESTADO_OT[o.estado]?.t ?? o.estado}</Chip>
     </button></li>
   );
   return (
     <>
       <Bloque titulo={`Asignadas a usted · ${mias.length}`} icono={<Wrench className="size-4" />} enlace={{ t: "Centro de OT", r: "/mantenimiento" }}>
-        {!data ? <Esqueleto className="h-32" /> : mias.length === 0 ? <Vacio texto="No tiene órdenes asignadas. Puede tomar una disponible de su especialidad." /> : <ul className="grid gap-2">{mias.map((o) => <Fila key={o.id} o={o} />)}</ul>}
+        {!data ? <Esqueleto className="h-32" /> : mias.length === 0 ? <Vacio texto="No tiene órdenes asignadas. Puede tomar una disponible de su especialidad." /> : <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">{mias.map((o) => <Fila key={o.id} o={o} />)}</ul>}
       </Bloque>
       <Bloque titulo={`Disponibles de su especialidad · ${disponibles.length}`} icono={<Wrench className="size-4" />}>
-        {!data ? <Esqueleto className="h-32" /> : disponibles.length === 0 ? <Vacio texto="No hay órdenes disponibles de su especialidad." /> : <ul className="grid gap-2">{disponibles.slice(0, 6).map((o) => <Fila key={o.id} o={o} />)}</ul>}
+        {!data ? <Esqueleto className="h-32" /> : disponibles.length === 0 ? <Vacio texto="No hay órdenes disponibles de su especialidad." /> : <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">{disponibles.slice(0, 6).map((o) => <Fila key={o.id} o={o} />)}</ul>}
       </Bloque>
     </>
   );
@@ -208,14 +212,14 @@ export function CargaCuadrilla() {
   return (
     <Bloque titulo="Carga de la cuadrilla" icono={<Users className="size-4" />} enlace={{ t: "Asignar en el plan", r: "/plan" }} className="xl:col-span-2">
       {!data ? <Esqueleto className="h-32" /> : (
-        <ul className="grid gap-2">{filas.map(([tec, ots]) => (
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">{filas.map(([tec, ots]) => (
           <li key={tec} className="flex items-center gap-3 rounded-xl border border-linea-suave px-3 py-2">
             <span className={cx("w-44 shrink-0 truncate text-[13.5px] font-medium", tec === "Sin asignar" && "text-ambar")}>{tec}</span>
-            <span className="flex flex-1 flex-wrap gap-1">{ots.map((o) => <button key={o.id} onClick={() => ir(`/mantenimiento?orden=${o.id}`)} title={o.titulo} className="cursor-pointer rounded-md px-2 py-0.5 font-mono text-[11px] font-semibold text-sobre-negro" style={{ background: o.estado === "en_curso" ? "var(--s-cobre)" : o.estado === "por_verificar" ? "var(--s-acento)" : PRIO[o.prioridad]?.c }}>{o.codigo}</button>)}</span>
-            <span className="num text-[12px] text-gris">{ots.filter((o) => o.estado === "en_curso").length} en curso{ots.some((o) => o.estado === "por_verificar") ? ` · ${ots.filter((o) => o.estado === "por_verificar").length} por verificar` : ""}</span>
+            <span className="flex flex-1 flex-wrap gap-1">{ots.map((o) => <button key={o.id} onClick={() => ir(`/mantenimiento?orden=${o.id}`)} title={o.titulo} className="cursor-pointer rounded-md px-2 py-0.5 font-mono text-[11px] font-semibold text-sobre-negro" style={{ background: o.estado === "en_curso" ? "var(--s-azul)" : o.estado === "por_verificar" ? "var(--s-acento)" : PRIO[o.prioridad]?.c }}>{o.codigo}</button>)}</span>
+            <span className="num text-[12px] text-gris">{ots.filter((o) => o.estado === "en_curso").length} en curso{ots.some((o) => o.estado === "por_verificar") ? ` · ${ots.filter((o) => o.estado === "por_verificar").length} por liberar` : ""}</span>
           </li>))}</ul>
       )}
-      <p className="mt-3 flex flex-wrap gap-4 text-[11.5px] text-gris"><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-cobre" />en curso con LOTO</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-acento" />por verificar</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-rojo" />crítica</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-ambar" />alta</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-azul" />media</span></p>
+      <p className="mt-3 flex flex-wrap gap-4 text-[11.5px] text-gris"><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-azul" />en ejecución con LOTO</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-acento" />por liberar</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-rojo" />crítica</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-ambar" />alta</span><span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-azul" />media</span></p>
     </Bloque>
   );
 }
@@ -242,7 +246,7 @@ export function SemanaOt() {
 }
 
 // ------------------------------------------------------------------------------------------------ gestión de mantenimiento (jefatura)
-interface Resumen { disponibilidad: { codigo: string; nombre: string; disponibilidad: number; oee: number; fallas: number }[]; kpis: { clave: string; nombre: string; valor: number | null; meta: number; unidad: string; estado: string }[]; equipos: { total: number; operando: number; alarma: number; detenido: number; mantencion: number } }
+interface Resumen { disponibilidad: { codigo: string; nombre: string; disponibilidad: number; oee: number; fallas: number }[]; kpis: { clave: string; nombre: string; valor: number | null; meta: number; unidad: string; estado: string }[]; equipos: { total: number; operando: number; alarma: number; detenido: number; mantencion: number; bloqueado?: number; porEstado?: Record<string, number> } }
 export function GestionMantenimiento() {
   const { data } = useQuery({ queryKey: ["resumen"], queryFn: () => api.get<Resumen>("/api/operacion/resumen"), refetchInterval: 20_000 });
   const ots = useOts();
@@ -257,14 +261,14 @@ export function GestionMantenimiento() {
       <div className="grid grid-cols-2 gap-3 xl:col-span-3 xl:grid-cols-4">
         <Cifra valor={`${Math.round((data.disponibilidad.reduce((s, d) => s + d.disponibilidad, 0) / Math.max(1, data.disponibilidad.length)) * 100)}%`} texto="disponibilidad promedio (7 días)" tono="verde" icono={<Gauge className="size-5" />} />
         <Cifra valor={backlog.length} texto={`backlog · ${backlog.filter((o) => o.prioridad === "critica").length} críticas`} tono="ambar" icono={<Wrench className="size-5" />} />
-        <Cifra valor={data.equipos.alarma + data.equipos.mantencion} texto="equipos fuera de servicio" tono="rojo" icono={<AlertTriangle className="size-5" />} />
+        <Cifra valor={data.equipos.total - data.equipos.operando} texto={`equipos sin producir${Object.entries(data.equipos.porEstado ?? {}).filter(([k, n]) => n > 0 && !defEstado(k).marcha).map(([k, n]) => ` · ${n} ${defEstado(k).corta.toLowerCase()}`).join("")}`} tono={data.equipos.alarma + (data.equipos.bloqueado ?? 0) > 0 ? "rojo" : "ambar"} icono={<AlertTriangle className="size-5" />} />
         <Cifra valor={mttr?.valor != null ? `${mttr.valor} h` : "—"} texto={`MTTR · meta ${mttr?.meta ?? "—"} h`} tono="acento" icono={<Gauge className="size-5" />} />
       </div>
       <Bloque titulo="Disponibilidad más baja" icono={<Gauge className="size-4" />}>
         <BarrasH max={100} formato={(n) => `${n.toFixed(1)} %`} datos={[...data.disponibilidad].sort((a, b) => a.disponibilidad - b.disponibilidad).slice(0, 6).map((d) => ({ etiqueta: `${d.codigo} · ${d.nombre}`, valor: d.disponibilidad * 100, color: d.disponibilidad < 0.9 ? "var(--s-rojo)" : "var(--s-acento)" }))} />
       </Bloque>
       <Bloque titulo="Backlog por prioridad" icono={<Wrench className="size-4" />}>
-        <div className="flex items-center gap-4"><Dona tam={140} grosor={16} partes={["critica", "alta", "media", "baja"].map((p) => ({ etiqueta: p, valor: backlog.filter((o) => o.prioridad === p).length, color: PRIO[p].c }))} centro={<div><p className="display text-[24px] font-bold leading-none">{backlog.length}</p><p className="text-[10.5px] text-gris">abiertas</p></div>} />
+        <div className="flex items-center gap-4"><Dona tam={140} grosor={16} partes={["critica", "alta", "media", "baja"].map((p) => ({ etiqueta: p, valor: backlog.filter((o) => o.prioridad === p).length, color: PRIO[p].c }))} centro={<div><p className="t-kpi">{backlog.length}</p><p className="text-[10.5px] text-gris">abiertas</p></div>} />
           <ul className="grid gap-1 text-[13px]">{["critica", "alta", "media", "baja"].map((p) => <li key={p} className="flex items-center gap-2"><i className="size-2.5 rounded-full" style={{ background: PRIO[p].c }} />{p}<b className="num ml-auto">{backlog.filter((o) => o.prioridad === p).length}</b></li>)}</ul></div>
       </Bloque>
       <Bloque titulo="Fallas repetitivas y repuestos críticos" icono={<Package className="size-4" />}>
@@ -279,13 +283,13 @@ export function GestionMantenimiento() {
 }
 
 /** Bandeja de aprobaciones (cambios de PLC, eventos de seguridad, lotes) para quien tiene esa facultad. */
-interface Aprobacion { tipo: string; id: number; titulo: string; detalle: string; fecha: string }
+interface Aprobacion { tipo: string; id: number; titulo: string; detalle: string; fecha: string; enlace?: string; etapa?: string }
 export function Aprobaciones() {
   const { data = [] } = useQuery({ queryKey: ["aprobaciones"], queryFn: () => api.get<Aprobacion[]>("/api/aprobaciones"), refetchInterval: 30_000 });
   if (data.length === 0) return null;
   return (
-    <Bloque titulo={`Esperan su aprobación · ${data.length}`} icono={<ShieldAlert className="size-4" />} className="xl:col-span-3">
-      <ul className="grid gap-2 md:grid-cols-2">{data.slice(0, 6).map((a) => <li key={`${a.tipo}${a.id}`}><button onClick={() => ir(a.tipo === "plc" ? "/automatizacion" : a.tipo === "sst" ? "/seguridad" : "/")} className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-cobre/30 bg-cobre/10 px-3.5 py-2.5 text-left"><span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-medium">{a.titulo}</span><span className="block truncate text-[12px] text-gris">{a.detalle} · {hace(a.fecha)}</span></span><ArrowRight className="size-4 text-gris" /></button></li>)}</ul>
+    <Bloque titulo={`Esperan su firma o aprobación · ${data.length}`} icono={<ShieldAlert className="size-4" />} className="xl:col-span-3">
+      <ul className="grid gap-2 md:grid-cols-2">{data.slice(0, 6).map((a) => <li key={`${a.tipo}${a.id}`}><button onClick={() => ir(a.enlace ?? (a.tipo === "plc" ? "/automatizacion" : a.tipo === "sst" ? "/seguridad" : "/"))} className="flex w-full cursor-pointer items-center gap-3 rounded-md border border-linea-suave bg-papel-2 px-3.5 py-2.5 text-left transition-colors duration-[140ms] hover:border-acento/40"><span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-medium">{a.titulo}</span><span className="block truncate text-[12px] text-gris">{a.detalle} · {hace(a.fecha)}</span></span><ArrowRight className="size-4 text-gris" /></button></li>)}</ul>
     </Bloque>
   );
 }
@@ -297,7 +301,7 @@ export function RankingCondicion({ limite = 8 }: { limite?: number }) {
   return (
     <Bloque titulo="Equipos más cerca del límite" icono={<Gauge className="size-4" />} enlace={{ t: "Condición", r: "/condicion" }}>
       {filas.length === 0 ? <Vacio texto="Esperando lecturas de la planta…" /> : (
-        <ul className="grid gap-2">{filas.map(({ e, s, r }) => (
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">{filas.map(({ e, s, r }) => (
           <li key={e.codigo + s.variable} className="grid grid-cols-[110px_1fr_auto] items-center gap-3 text-[13px]">
             <span className="truncate"><b className="num">{e.codigo}</b> <span className="text-gris">{s.variable.startsWith("temp") ? "temp." : "vibr."}</span></span>
             <div className="relative h-2.5 overflow-hidden rounded-full bg-linea-suave"><motion.div className="absolute inset-y-0 left-0 rounded-full" initial={false} animate={{ width: `${Math.min(100, r * 100)}%` }} style={{ background: r > 1 ? "var(--s-rojo)" : r > 0.75 ? "var(--s-ambar)" : "var(--s-acento)" }} /></div>
@@ -316,9 +320,9 @@ export function EstadoPlcs() {
   const { data } = useQuery({ queryKey: ["plc"], queryFn: () => api.get<PlcResumen[]>("/api/plc"), refetchInterval: 8000 });
   return (
     <Bloque titulo="Controladores" icono={<Cpu className="size-4" />} enlace={{ t: "Automatización", r: "/automatizacion" }}>
-      <ul className="grid gap-2">{(data ?? []).map((p) => { const e = p.estado === "sin_conexion" ? "sin_conexion" : plcEstado[p.codigo] ?? p.estado; return (
+      <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">{(data ?? []).map((p) => { const e = p.estado === "sin_conexion" ? "sin_conexion" : plcEstado[p.codigo] ?? p.estado; return (
         <li key={p.codigo} className="flex items-center gap-3 rounded-xl border border-linea-suave px-3 py-2">
-          <span className={cx("size-2.5 rounded-full", e === "run" ? "bg-verde animate-latido" : e === "error" ? "bg-rojo animate-parpadeo" : e === "stop" ? "bg-ambar" : "bg-gris")} />
+          <span className={cx("size-2 rounded-full", e === "run" ? "bg-verde" : e === "error" ? "bg-rojo animate-parpadeo" : e === "stop" ? "bg-ambar" : "bg-gris")} />
           <span className="min-w-0 flex-1"><span className="num block text-[13.5px] font-semibold">{p.codigo}</span><span className="block truncate text-[11.5px] text-gris">{p.fabricante} {p.modelo}</span></span>
           <span className="text-[12px] text-gris">{e === "run" ? "en marcha" : e === "error" ? "falla" : e === "stop" ? "detenido" : "sin conexión"}</span>
         </li>); })}</ul>
@@ -333,11 +337,11 @@ export function CambiosPlc({ titulo = "Cambios de programa" }: { titulo?: string
   return (
     <Bloque titulo={titulo} icono={<Cpu className="size-4" />}>
       {!data ? <Esqueleto className="h-24" /> : data.length === 0 ? <Vacio texto="No hay cambios solicitados." /> : (
-        <ul className="grid gap-2">{data.slice(0, 8).map((c) => (
-          <li key={c.id} className={cx("rounded-xl border px-3 py-2.5", c.estado === "pendiente" ? "border-cobre/30 bg-cobre/10" : "border-linea-suave")}>
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">{data.slice(0, 8).map((c) => (
+          <li key={c.id} className={cx("rounded-md border px-3 py-2.5", c.estado === "pendiente" ? "border-ambar/30 bg-ambar-claro" : "border-linea-suave")}>
             <div className="flex items-center justify-between gap-2"><p className="text-[13.5px] font-medium">{c.plc} · {c.resumen}</p><Chip tono={c.estado === "aprobado" ? "ok" : c.estado === "rechazado" ? "peligro" : "aviso"} punto={false}>{c.estado}</Chip></div>
             <p className="text-[12px] text-gris">{c.solicitadoPorId === usuario?.id ? "solicitado por usted" : c.solicitadoPor} · {hace(c.fecha)}{c.revisadoPor ? ` · revisó ${c.revisadoPor}` : ""}</p>
-            {c.puedeAprobar && <div className="mt-2 flex gap-2"><button onClick={() => decidir.mutate({ id: c.id, d: "rechazar" })} className="h-8 cursor-pointer rounded-lg border border-rojo/40 px-3 text-[12.5px] text-rojo">Rechazar</button><button onClick={() => decidir.mutate({ id: c.id, d: "aprobar" })} className="h-8 cursor-pointer rounded-lg bg-acento px-3 text-[12.5px] font-semibold text-sobre-negro">Aprobar y publicar</button></div>}
+            {c.puedeAprobar && <div className="mt-2 flex gap-2"><Boton tam="s" variante="contorno" className="text-rojo" disabled={decidir.isPending} onClick={() => decidir.mutate({ id: c.id, d: "rechazar" })}>Rechazar</Boton><Boton tam="s" variante="acento" cargando={decidir.isPending} onClick={() => decidir.mutate({ id: c.id, d: "aprobar" })}>Aprobar y publicar</Boton></div>}
             {c.estado === "pendiente" && c.solicitadoPorId === usuario?.id && <p className="mt-1 text-[11.5px] text-ambar">Lo aprueba otra persona con esa facultad (jefatura de mantenimiento o gerencia de planta).</p>}
           </li>))}</ul>
       )}
@@ -360,7 +364,7 @@ export function Instrumentos({ completo }: { completo?: boolean }) {
           <li key={h.id} className={cx("flex items-center gap-3 rounded-xl border px-3 py-2.5", venc ? "border-rojo/40 bg-rojo-claro" : pronto ? "border-ambar/40 bg-ambar-claro" : "border-linea-suave")}>
             <span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-medium">{h.nombre}</span><span className="text-[12px] text-gris">{h.codigo} · {h.proxima ? `vence ${new Date(h.proxima + "T12:00").toLocaleDateString("es-CL")}` : "sin fecha"}</span></span>
             <span className={cx("num text-[12.5px] font-semibold", venc ? "text-rojo" : pronto ? "text-ambar" : "text-verde")}>{h.dias == null ? "—" : venc ? `vencida ${-h.dias} d` : `${h.dias} d`}</span>
-            {puede && (venc || pronto || completo) && <button disabled={cal.isPending} onClick={() => cal.mutate(h.id)} className="h-8 cursor-pointer rounded-lg bg-acento px-3 text-[12px] font-semibold text-sobre-negro">Calibrar</button>}
+            {puede && (venc || pronto || completo) && <Boton tam="s" variante="acento" disabled={cal.isPending} onClick={() => cal.mutate(h.id)}>Registrar calibración</Boton>}
           </li>); })}</ul>
       )}
     </Bloque>
@@ -374,7 +378,7 @@ export function StockCritico({ completo }: { completo?: boolean }) {
   return (
     <Bloque titulo={`Bajo el mínimo · ${bajos.length}`} icono={<Package className="size-4" />} enlace={completo ? undefined : { t: "Pañol", r: "/panol" }} className={completo ? "xl:col-span-2" : undefined}>
       {!data ? <Esqueleto className="h-32" /> : bajos.length === 0 ? <Vacio texto="Todo el stock sobre el mínimo." /> : (
-        <ul className="grid gap-1.5">{bajos.slice(0, completo ? 50 : 7).map((r) => (
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">{bajos.slice(0, completo ? 50 : 7).map((r) => (
           <li key={r.id} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-xl border border-linea-suave px-3 py-2">
             <span className="min-w-0"><span className="block truncate text-[13.5px]"><b className="num text-[12px]">{r.codigo}</b> {r.nombre}{r.critico && <span className="ml-1.5 rounded bg-rojo-claro px-1.5 text-[10.5px] font-bold text-rojo">CRÍTICO</span>}</span><span className="text-[11.5px] text-gris">{r.ubicacion} · mínimo {r.stockMinimo}</span></span>
             <span className={cx("num text-[16px] font-bold", r.stock === 0 ? "text-rojo" : "text-ambar")}>{r.stock}</span>
@@ -390,7 +394,7 @@ export function EventosSst({ titulo = "Eventos de seguridad" }: { titulo?: strin
   return (
     <Bloque titulo={titulo} icono={<HardHat className="size-4" />} enlace={{ t: "Seguridad", r: "/seguridad" }}>
       {!data ? <Esqueleto className="h-24" /> : data.length === 0 ? <Vacio texto="Sin eventos registrados." /> : (
-        <ul className="grid gap-1.5">{data.slice(0, 6).map((i) => <li key={i.id} className="flex items-center gap-3 rounded-xl border border-linea-suave px-3 py-2 text-[13px]"><span className="size-2 rounded-full" style={{ background: i.tipo === "accidente" ? "var(--s-rojo)" : i.estado === "cerrado" ? "var(--s-verde)" : "var(--s-ambar)" }} /><span className="min-w-0 flex-1 truncate">{TIPO_SST[i.tipo]} · {i.zona}</span><span className="text-[11.5px] text-gris">{i.estado} · {hace(i.fecha)}</span></li>)}</ul>
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">{data.slice(0, 6).map((i) => <li key={i.id} className="flex items-center gap-3 rounded-xl border border-linea-suave px-3 py-2 text-[13px]"><span className="size-2 rounded-full" style={{ background: i.tipo === "accidente" ? "var(--s-rojo)" : i.estado === "cerrado" ? "var(--s-verde)" : "var(--s-ambar)" }} /><span className="min-w-0 flex-1 truncate">{TIPO_SST[i.tipo]} · {i.zona}</span><span className="text-[11.5px] text-gris">{i.estado} · {hace(i.fecha)}</span></li>)}</ul>
       )}
     </Bloque>
   );
@@ -399,11 +403,19 @@ export function EventosSst({ titulo = "Eventos de seguridad" }: { titulo?: strin
 // ------------------------------------------------------------------------------------------------ estado de equipos (supervisión y sala de control)
 export function EstadoEquipos({ titulo = "Equipos" }: { titulo?: string }) {
   const { equipos } = usePlanta();
-  const orden = [...equipos].sort((a, b) => ["alarma", "en_mantencion", "detenido", "operando"].indexOf(a.estado) - ["alarma", "en_mantencion", "detenido", "operando"].indexOf(b.estado));
+  const orden = [...equipos].sort((a, b) => rangoEstado(defEstadoClave(a.estado)) - rangoEstado(defEstadoClave(b.estado)));
   return (
     <Bloque titulo={titulo} icono={<Gauge className="size-4" />} enlace={{ t: "Explorador", r: "/explorador" }}>
-      <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">{orden.map((e) => <li key={e.codigo}><button onClick={() => ir(`/explorador?equipo=${e.codigo}`)} className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-linea-suave px-2.5 py-2 text-left hover:border-acento/40" style={e.estado === "alarma" ? { borderColor: "var(--s-rojo)", boxShadow: "0 0 14px -6px var(--s-rojo)" } : undefined}>
-        <span className="size-2.5 shrink-0 rounded-full" style={{ background: ESTADO_EQ[e.estado]?.c }} /><span className="min-w-0"><span className="num block text-[12.5px] font-bold">{e.codigo}</span><span className="block truncate text-[11px] text-gris">{ESTADO_EQ[e.estado]?.t}</span></span></button></li>)}</ul>
+      <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">{orden.map((e) => <li key={e.codigo}><button onClick={() => ir(`/explorador?equipo=${e.codigo}`)} className={cx("flex w-full cursor-pointer items-center gap-2 rounded-md border px-2.5 py-2 text-left transition-colors duration-[140ms] hover:border-acento/40", defEstado(e.estado).critico ? "border-rojo/60 bg-rojo-claro" : "border-linea-suave")}>
+        <IconoEstado estado={e.estado} /><span className="min-w-0"><span className="t-dato block font-semibold">{e.codigo}</span><span className="block truncate text-[11px] text-gris">{defEstado(e.estado).corta}</span></span></button></li>)}</ul>
     </Bloque>
   );
+}
+
+/** Clave normalizada del estado (acepta el vocabulario anterior de dispositivos). */
+const defEstadoClave = (e: string) => Object.entries({ operando: "operativo", alarma: "falla", en_mantencion: "en_mantenimiento", detenido: "liberado" }).find(([k]) => k === e)?.[1] ?? e;
+/** Icono del estado con su color: el estado nunca se comunica solo con color. */
+export function IconoEstado({ estado }: { estado: string }) {
+  const d = defEstado(estado);
+  return <d.icono className="size-4 shrink-0" style={{ color: d.color }} aria-label={d.etiqueta} />;
 }

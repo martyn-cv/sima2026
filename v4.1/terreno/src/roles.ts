@@ -17,7 +17,7 @@ export const SECCIONES: Record<Seccion, DefSeccion> = {
   produccion: { titulo: "Producción", grupo: "Mi trabajo", requiere: ["produccion.registrar", "produccion.editar"] },
   turno: { titulo: "Mi equipo de turno", grupo: "Mi trabajo", requiere: ["asistencia.ver"] },
   plan: { titulo: "Plan de mantenimiento", grupo: "Mi trabajo", requiere: ["ordenes.asignar"] },
-  mantenimiento: { titulo: "Órdenes de trabajo", grupo: "Mi trabajo", requiere: ["ordenes.ejecutar", "ordenes.aprobar"] },
+  mantenimiento: { titulo: "Órdenes de trabajo", grupo: "Mi trabajo", requiere: ["ordenes.ejecutar", "ordenes.aprobar", "equipos.liberar_tecnica", "equipos.liberar_seguridad", "equipos.liberar_calidad", "equipos.confirmar_produccion"] },
   calidad: { titulo: "Inspección de calidad", grupo: "Mi trabajo", requiere: ["calidad.registrar"] },
   calibraciones: { titulo: "Instrumentos y calibración", grupo: "Mi trabajo", requiere: ["herramientas.ver"], perfiles: ["instrumentacion", "calidad_terreno"] },
   condicion: { titulo: "Condición de activos", grupo: "Mi trabajo", requiere: ["planta.ver"], perfiles: ["confiabilidad", "jefe_mant"] },
@@ -53,7 +53,7 @@ const PERFIL: Record<string, Experiencia> = {
   },
   supervisor_turno: {
     inicio: "Mi turno", enfoque: "Personas, órdenes de fabricación, equipos e incidentes de su turno.",
-    menu: ["inicio", "turno", "produccion", "explorador", "alertas", "traspaso", "seguridad", "reportar", "directorio"], acciones: ["produccion", "turno", "traspaso", "reportar"],
+    menu: ["inicio", "turno", "produccion", "mantenimiento", "explorador", "alertas", "traspaso", "seguridad", "reportar", "directorio"], acciones: ["produccion", "turno", "traspaso", "reportar"],
     alertas: ["Ausencias del equipo", "Equipos detenidos", "Habilitaciones vencidas", "Incidentes del turno"], alcance: "Solo su turno y el personal asignado a usted.",
   },
   tecnico: {
@@ -93,12 +93,12 @@ const PERFIL: Record<string, Experiencia> = {
   },
   calidad_terreno: {
     inicio: "Inspección de calidad", enfoque: "Lotes en producción, no conformidades abiertas e instrumentos de medición.",
-    menu: ["inicio", "calidad", "calibraciones", "explorador", "seguridad", "cargo"], acciones: ["calidad", "calibraciones"],
+    menu: ["inicio", "calidad", "mantenimiento", "calibraciones", "explorador", "seguridad", "cargo"], acciones: ["calidad", "calibraciones"],
     alertas: ["Muestra fuera de tolerancia", "Lote sin liberar", "Instrumento vencido"], alcance: "Lotes y estaciones asignados. La liberación final la hace la jefatura de calidad.",
   },
   prevencion: {
     inicio: "Prevención SST", enfoque: "Eventos por investigar, condiciones inseguras, habilitaciones y riesgos por zona.",
-    menu: ["inicio", "seguridad", "explorador", "alertas", "rutinas", "cargo"], acciones: ["seguridad", "explorador"],
+    menu: ["inicio", "seguridad", "mantenimiento", "explorador", "alertas", "rutinas", "cargo"], acciones: ["seguridad", "explorador"],
     alertas: ["Accidente o casi accidente", "Habilitación de seguridad vencida", "Evento sin investigar"], alcance: "Información preventiva. No se guardan datos médicos individuales.",
   },
 };

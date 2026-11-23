@@ -44,14 +44,14 @@ public static class EstadosEquipo
     public static string ParaDispositivo(string e) => Protegido(e) ? "en_mantencion" : Marcha(e) ? "operando" : e == Falla ? "alarma" : "detenido";
 
     /// <returns>true si el estado cambió (el llamador debe guardar y avisar).</returns>
-    public static bool Cambiar(SimaDb db, Equipo eq, string nuevo, string origen, bool simulado, string causa, DateTime? ts = null, List<(string, object)>? avisos = null)
+    public static bool Cambiar(SimaDb db, Equipo eq, string nuevo, string origen, bool simulado, string causa, DateTime? ts = null, List<(string, object)>? avisos = null, Sesion? por = null)
     {
         if (!Validos.Contains(nuevo) || eq.Estado == nuevo) return false;
         var cuando = ts ?? DateTime.UtcNow;
         var antes = eq.Estado;
         eq.Estado = nuevo;
         Paradas.Cambio(db, eq, antes, cuando);
-        db.CambiosEstado.Add(new CambioEstadoEquipo { EquipoId = eq.Id, Ts = cuando, Desde = antes, Hasta = nuevo, Origen = origen, Simulado = simulado, Causa = causa });
+        db.CambiosEstado.Add(new CambioEstadoEquipo { EquipoId = eq.Id, Ts = cuando, Desde = antes, Hasta = nuevo, Origen = por is null ? origen : Plataformas.Origen(por.Canal), Simulado = simulado, Causa = causa, PorId = por?.Id, PorNombre = por?.Nombre, PorCargo = por?.Cargo });
         Eventos.Agregar(db, "estado_equipo", nuevo is Falla or Bloqueado ? "alarma" : Marcha(nuevo) || nuevo == Liberado ? "ok" : "aviso", $"{eq.Codigo}: {Texto(antes)} → {Texto(nuevo)}{(string.IsNullOrEmpty(causa) ? "" : $" ({causa})")}",
             origen, simulado, equipoId: eq.Id, plcId: eq.PlcId, ts: cuando, datos: new { equipo = eq.Codigo, desde = antes, hasta = nuevo, causa });
         avisos?.Add(("equipo", new { codigo = eq.Codigo, estado = eq.Estado, origen, simulado }));

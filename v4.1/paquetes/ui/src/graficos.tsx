@@ -63,7 +63,7 @@ export function GraficoArea({ series, etiquetas, alto = 240, formato = (n: numbe
           return (
             <g key={s.nombre}>
               <motion.path d={`${linea} L${pts[pts.length - 1]?.[0] ?? 0},${H - P.b} L${pts[0]?.[0] ?? 0},${H - P.b} Z`} fill={`url(#g${id}${i})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.4 + i * 0.15 }} />
-              <motion.path d={linea} fill="none" stroke={s.color} strokeWidth="6" strokeLinecap="round" opacity=".45" filter={`url(#b${id})`} initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, delay: i * 0.15, ease: CURVA }} />
+              <motion.path d={linea} fill="none" stroke={s.color} strokeWidth="6" strokeLinecap="round" opacity="0" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, delay: i * 0.15, ease: CURVA }} />
               <motion.path d={linea} fill="none" stroke={s.color} strokeWidth="2.5" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, delay: i * 0.15, ease: CURVA }} />
             </g>
           );

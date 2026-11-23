@@ -1,46 +1,15 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fecha, hace, type Usuario } from "@sima/cliente";
-import { Boton, Cajon, Chip, Cuenta, Dato, Encabezado, Entrada, ErrorCarga, Esqueleto, Estado, PanelSeguridad, Seccion, Vacio, cx, mensajeDe, useAviso } from "@sima/ui";
+import { Boton, Cajon, Chip, Dato, Encabezado, EstadoEquipo, MarcaSimulado, defEstado, Entrada, ErrorCarga, Esqueleto, Estado, PanelSeguridad, Seccion, Vacio, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { usePlanta } from "../lib/planta";
 import { ir } from "../ruta";
 
-interface Alarma { id: number; equipo: string; equipoNombre: string; nivel: string; mensaje: string; inicio: string; fin?: string | null; reconocidaPor?: string | null }
+interface Alarma { id: number; equipo: string; equipoNombre: string; nivel: string; mensaje: string; inicio: string; fin?: string | null; reconocidaPor?: string | null; simulado?: boolean }
 interface Habil { id: number; nombre: string; fechaObtencion: string; vence: string; dias: number; estado: string }
 interface Orden { id: number; codigo: string; equipo: string; titulo: string; estado: string; asignadoAId?: string | null; prioridad: string }
-
-export function Inicio() {
-  const { usuario } = useAuth();
-  const { equipos } = usePlanta();
-  const ordenes = useQuery({ queryKey: ["ordenes"], queryFn: () => api.get<Orden[]>("/api/ordenes"), refetchInterval: 15_000 });
-  const habil = useQuery({ queryKey: ["habilitaciones"], queryFn: () => api.get<Habil[]>("/api/yo/habilitaciones") });
-  const alarmas = useQuery({ queryKey: ["alarmas"], queryFn: () => api.get<Alarma[]>("/api/alarmas?abiertas=true"), refetchInterval: 10_000 });
-  const mias = (ordenes.data ?? []).filter((o) => o.asignadoAId === usuario?.id && o.estado === "en_curso");
-  const abiertas = (ordenes.data ?? []).filter((o) => o.estado !== "cerrada").length;
-  const conAlarma = equipos.filter((e) => e.estado === "alarma").length;
-  const porVencer = (habil.data ?? []).filter((h) => h.estado !== "VIGENTE").length;
-  return (
-    <>
-      <Encabezado titulo={`Buen turno, ${usuario?.nombre.split(" ")[0]}`} descripcion={`${usuario?.cargo}. ${usuario?.turno === "D" ? "Turno diurno" : usuario?.turno === "N" ? "Turno de noche" : `Turno ${usuario?.turno}`}.`}
-        acciones={<Boton variante="rojo" onClick={() => ir("/reportar")}>Reportar una falla</Boton>} />
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        {[["Equipos con alarma", conAlarma, conAlarma > 0 ? "text-rojo" : "", "/equipos"], ["Órdenes abiertas", abiertas, "", "/ordenes"], ["Habilitaciones por vencer o vencidas", porVencer, porVencer > 0 ? "text-ambar" : "", "/cargo"]].map(([t, n, c, r]) => (
-          <button key={t as string} onClick={() => ir(r as string)} className="cursor-pointer tarjeta p-5 text-left transition-colors hover:bg-chapa/40"><p className={cx("display text-[56px] font-bold leading-none", c as string)}><Cuenta valor={n as number} /></p><p className="text-[15px] text-gris">{t as string}</p></button>
-        ))}
-      </div>
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Seccion titulo="Alarmas abiertas">{(alarmas.data ?? []).length === 0 ? <p className="p-5 text-gris">No hay alarmas abiertas. La planta está en rango.</p> : (
-          <ul className="divide-y divide-linea-suave px-5 pb-2 pt-1">{alarmas.data!.slice(0, 6).map((a) => <li key={a.id}><button onClick={() => ir(`/equipos/${a.equipo}`)} className="flex w-full cursor-pointer items-center gap-3 py-3 text-left hover:bg-chapa/50"><Chip tono={a.nivel === "alarma" ? "peligro" : "aviso"}>{a.nivel === "alarma" ? "Alarma" : "Aviso"}</Chip><span className="min-w-0 flex-1 truncate">{a.mensaje}</span><span className="shrink-0 text-[13px] text-gris">{hace(a.inicio)}</span></button></li>)}</ul>
-        )}</Seccion>
-        <Seccion titulo="Mis órdenes en curso">{mias.length === 0 ? <p className="p-5 text-gris">No tiene órdenes en curso.</p> : (
-          <ul className="divide-y divide-linea-suave px-5 pb-2 pt-1">{mias.map((o) => <li key={o.id}><button onClick={() => ir("/ordenes")} className="flex w-full cursor-pointer items-center justify-between gap-3 py-3 text-left hover:bg-chapa/50"><span><span className="num font-semibold">{o.codigo}</span> {o.titulo}</span><Chip tono="aviso">En curso</Chip></button></li>)}</ul>
-        )}</Seccion>
-      </div>
-    </>
-  );
-}
 
 export function Alarmas() {
   const qc = useQueryClient(); const aviso = useAviso();
@@ -48,13 +17,14 @@ export function Alarmas() {
   const reconocer = useMutation({ mutationFn: (id: number) => api.post(`/api/alarmas/${id}/reconocer`), onSuccess: () => { void qc.invalidateQueries({ queryKey: ["alarmas"] }); aviso("Alarma reconocida."); }, onError: (e) => aviso(mensajeDe(e), "error") });
   return (
     <>
-      <Encabezado titulo="Alarmas" descripcion="Reconocer una alarma avisa a su equipo que ya la vio. La alarma se cierra sola cuando la variable vuelve a rango." />
+      <Encabezado titulo="Alertas" descripcion="Equipos que requieren atención y alarmas de proceso. Reconocer una alarma avisa a su equipo que ya la vio; se cierra sola cuando la variable vuelve a rango." />
+      <EquiposAtencion />
       {error ? <ErrorCarga error={error} reintentar={() => void refetch()} /> : isLoading ? <Esqueleto className="h-40" /> : (
-        <Seccion>{(data ?? []).length === 0 ? <Vacio titulo="Sin alarmas" texto="No hay alarmas registradas todavía." /> : (
+        <Seccion titulo="Alarmas de proceso">{(data ?? []).length === 0 ? <Vacio titulo="Sin alarmas" texto="No hay alarmas registradas todavía." /> : (
           <ul className="divide-y divide-linea-suave">{data!.map((a) => (
             <li key={a.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
               <Chip tono={a.fin ? "ok" : a.nivel === "alarma" ? "peligro" : "aviso"}>{a.fin ? "Resuelta" : a.nivel === "alarma" ? "Alarma" : "Aviso"}</Chip>
-              <div className="min-w-0 flex-1"><p className="font-medium">{a.equipo} · {a.equipoNombre}</p><p className="text-[14px] text-gris">{a.mensaje} · {hace(a.inicio)}</p></div>
+              <button onClick={() => ir(`/explorador?equipo=${a.equipo}`)} className="min-w-0 flex-1 cursor-pointer text-left"><p className="font-medium hover:text-acento">{a.equipo} · {a.equipoNombre}</p><p className="text-[13px] text-gris">{a.mensaje} · {hace(a.inicio)}{a.simulado && <MarcaSimulado className="ml-2" />}</p></button>
               {!a.fin && (a.reconocidaPor ? <span className="text-[14px] text-gris">Reconocida por {a.reconocidaPor}</span> : <Boton tam="s" variante="contorno" onClick={() => reconocer.mutate(a.id)}>Reconocer</Boton>)}
             </li>))}</ul>
         )}</Seccion>
@@ -100,5 +70,22 @@ export function Directorio() {
         {isLoading ? <div className="p-5"><Esqueleto className="h-40" /></div> : <ul className="divide-y divide-linea-suave">{lista.map((p) => <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"><div className="min-w-0"><p className="font-medium">{p.nombre}</p><p className="truncate text-[14px] text-gris">{p.cargo}</p></div><div className="text-right text-[14px] text-gris"><p>{p.turno === "D" ? "Diurno" : p.turno === "N" ? "Noche" : `Turno ${p.turno}`}</p><p>{p.correo}</p></div></li>)}</ul>}
       </Seccion>
     </>
+  );
+}
+
+/** Equipos que no están produciendo y por qué, ordenados por urgencia (falla y bloqueo primero). */
+function EquiposAtencion() {
+  const { equipos } = usePlanta();
+  const orden = ["falla", "bloqueado_seguridad", "pendiente_liberacion", "en_diagnostico", "en_mantenimiento", "en_pruebas", "fuera_servicio", "operativo_obs"];
+  const lista = equipos.filter((e) => orden.includes(e.estado)).sort((a, b) => orden.indexOf(a.estado) - orden.indexOf(b.estado));
+  if (lista.length === 0) return null;
+  return (
+    <Seccion titulo={`Equipos que requieren atención (${lista.length})`} className="mb-5">
+      <ul className="divide-y divide-linea-suave">{lista.map((e) => (
+        <li key={e.codigo}><button onClick={() => ir(`/explorador?equipo=${e.codigo}`)} className={cx("flex w-full cursor-pointer items-center gap-3 px-5 py-2.5 text-left transition-colors duration-[140ms] hover:bg-papel-2", defEstado(e.estado).critico && "bg-rojo-claro")}>
+          <span className="t-dato w-20 shrink-0 font-semibold">{e.codigo}</span><span className="min-w-0 flex-1 truncate text-[13px]">{e.nombre} <span className="text-gris">· {e.linea}</span></span>
+          {e.simulado && <MarcaSimulado />}<EstadoEquipo estado={e.estado} />
+        </button></li>))}</ul>
+    </Seccion>
   );
 }

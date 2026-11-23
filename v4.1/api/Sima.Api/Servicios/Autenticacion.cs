@@ -80,6 +80,9 @@ public class GuardiaDeCuenta(IMemoryCache cache)
 /// </summary>
 public static class Plataformas
 {
+    /// <summary>Origen legible de un cambio hecho por una persona: «desktop» (canal app) o «web».</summary>
+    public static string Origen(string canal) => canal == "app" ? "desktop" : "web";
+
     public static readonly string[] Todas = { "web", "app" };
     public static string Nombre(string p) => p == "web" ? "SIMA Web" : "SIMA Desktop";
 

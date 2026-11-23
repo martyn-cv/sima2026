@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fecha, hace, clp } from "@sima/cliente";
-import { AreaTexto, Boton, Campo, Chip, Dialogo, Encabezado, Entrada, ErrorCarga, Esqueleto, Pestanas, Seccion, Vacio, cx, mensajeDe, useAviso } from "@sima/ui";
+import { AreaTexto, Boton, Campo, Chip, Dialogo, Encabezado, Entrada, ErrorCarga, Esqueleto, EstadoEquipo, Pestanas, Seccion, Vacio, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { enviar } from "../lib/offline";
@@ -57,7 +57,7 @@ export function Rutinas() {
           <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {filas.map((f) => (
               <li key={f.equipo}><Seccion sinBorde className={cx("border-l-[4px]", f.vencida ? "border-ambar" : "border-verde")}><div className="flex items-center justify-between gap-3 p-4">
-                <div className="min-w-0"><p className="display text-[26px] font-bold leading-none">{f.equipo}</p><p className="truncate text-[14px] text-gris">{f.equipoNombre}</p>
+                <div className="min-w-0"><p className="font-mono text-[20px] font-bold leading-none">{f.equipo}</p><p className="truncate text-[14px] text-gris">{f.equipoNombre}</p>
                   <p className="mt-1 text-[13px]">{f.ultima ? <>Última: {hace(f.ultima.fecha)}, {f.ultima.por}{f.ultima.conHallazgos && <span className="text-rojo"> · con hallazgos</span>}</> : <span className="text-gris">Nunca registrada</span>}</p></div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5"><Chip tono={f.vencida ? "aviso" : "ok"}>{f.vencida ? "Vencida" : "Al día"}</Chip>
                   <Boton tam="s" variante={f.vencida ? "negro" : "contorno"} onClick={() => setHacer({ p: data!.plantillas.find((x) => x.id === f.rutinaId)!, equipo: f.equipo, nombre: f.equipoNombre })}>Hacer rutina</Boton></div>
@@ -155,7 +155,7 @@ export function Traspaso() {
       <Encabezado titulo="Traspaso de turno" descripcion="El estado de la planta ya viene armado. Revise las seis cosas y entregue el turno." />
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="grid content-start gap-5">
-          <Bloque titulo="Equipos fuera de servicio" n={d.equiposFuera.length}>{d.equiposFuera.map((e) => <li key={e.codigo} className="flex justify-between py-2"><span><b className="num">{e.codigo}</b> {e.nombre}</span><Chip tono={e.estado === "alarma" ? "peligro" : "aviso"}>{e.estado.replace("_", " ")}</Chip></li>)}</Bloque>
+          <Bloque titulo="Equipos fuera de servicio" n={d.equiposFuera.length}>{d.equiposFuera.map((e) => <li key={e.codigo} className="flex justify-between py-2"><span><b className="num">{e.codigo}</b> {e.nombre}</span><EstadoEquipo estado={e.estado} corto tam="s" /></li>)}</Bloque>
           <Bloque titulo="Alarmas abiertas" n={d.alarmasAbiertas.length}>{d.alarmasAbiertas.map((a, i) => <li key={i} className="py-2"><b className="num">{a.equipo}</b> {a.mensaje}</li>)}</Bloque>
           <Bloque titulo="Órdenes abiertas" n={d.ordenesAbiertas.length}>{d.ordenesAbiertas.map((o) => <li key={o.codigo} className="py-2"><b className="num">{o.codigo}</b> {o.equipo}: {o.titulo}</li>)}</Bloque>
           <Bloque titulo="Órdenes en curso" n={d.ordenesEnCurso.length}>{d.ordenesEnCurso.map((o) => <li key={o.codigo} className="py-2"><b className="num">{o.codigo}</b> {o.equipo}: {o.titulo}{o.asignado ? ` · ${o.asignado}` : ""}</li>)}</Bloque>

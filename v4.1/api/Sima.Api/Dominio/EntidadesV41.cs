@@ -68,6 +68,10 @@ public class CambioEstadoEquipo
     public string Origen { get; set; } = "sistema";
     public bool Simulado { get; set; }
     public string Causa { get; set; } = "";
+    /// <summary>Quién hizo el cambio (vacío cuando lo informa el PLC o el sistema) y desde qué plataforma.</summary>
+    public string? PorId { get; set; }
+    public string? PorNombre { get; set; }
+    public string? PorCargo { get; set; }
 }
 
 // ================================================================================================ mantenimiento

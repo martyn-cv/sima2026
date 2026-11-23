@@ -64,6 +64,13 @@ public class PruebasFase2(Fabrica f)
         Assert.Contains((await f.Leer(prev, "/api/aprobaciones")).EnumerateArray(), a => a.GetProperty("tipo").GetString() == "liberacion" && a.GetProperty("id").GetInt32() == ot);
         Assert.Equal(HttpStatusCode.OK, (await prev.PostAsJsonAsync($"/api/ordenes/{ot}/validar", new { tipo = "seguridad", aprobar = true, nota = "Resguardos y paro de emergencia verificados" })).StatusCode);
         var cal = await f.Entrar("jefe.calidad", "Jefecalidad2026", "web");
+        // calidad no ve órdenes de trabajo por su cargo, pero sí la que espera su firma (y nada más)
+        Assert.Equal("por_verificar", (await f.Leer(cal, $"/api/ordenes/{ot}")).GetProperty("estado").GetString());
+        var visibles = (await f.Leer(cal, "/api/ordenes")).EnumerateArray().Select(x => x.GetProperty("id").GetInt32()).ToList();
+        Assert.Contains(ot, visibles);
+        var otra = await OtLista(jm, tec, "CT-01", seguridad: false, calidad: false);
+        Assert.DoesNotContain(otra, (await f.Leer(cal, "/api/ordenes")).EnumerateArray().Select(x => x.GetProperty("id").GetInt32()));
+        Assert.Equal(HttpStatusCode.Forbidden, (await cal.GetAsync($"/api/ordenes/{otra}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await cal.PostAsJsonAsync($"/api/ordenes/{ot}/validar", new { tipo = "calidad", aprobar = true, nota = "Primeras piezas dentro de especificación" })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await sup.PostAsJsonAsync($"/api/ordenes/{ot}/validar", new { tipo = "produccion", aprobar = true })).StatusCode);
 

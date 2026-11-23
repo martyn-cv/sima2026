@@ -101,13 +101,16 @@ public static class EndpointsPlanta
         g.MapGet("/ordenes", async (string? estado, ClaimsPrincipal u, SimaDb db) =>
         {
             var s = u.S();
-            if (!s.Tiene("ordenes.ver")) return Ayudas.Sin();
+            var veTodas = s.Tiene("ordenes.ver");
+            if (!veTodas && !Liberaciones.Tipos.Any(t => s.Tiene(Liberaciones.Capacidad(t)))) return Ayudas.Sin();
             var q = db.Ordenes.AsNoTracking().AsQueryable();
-            if (s.Alcance("ordenes.ver") == "propio") q = q.Where(o => o.CreadaPorId == s.Id || o.AsignadoAId == s.Id);   // quien opera ve sus avisos
+            if (veTodas && s.Alcance("ordenes.ver") == "propio") q = q.Where(o => o.CreadaPorId == s.Id || o.AsignadoAId == s.Id);   // quien opera ve sus avisos
+            if (!veTodas) q = q.Where(o => o.Estado == "por_verificar" || o.Estado == "cerrada");                                     // solo lo que espera (o esperó) su firma
             if (!string.IsNullOrEmpty(estado)) q = q.Where(o => o.Estado == estado);
             var eq = await db.Equipos.AsNoTracking().ToDictionaryAsync(e => e.Id);
             var nombres = await db.Trabajadores.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Nombres + " " + t.ApellidoPaterno);
-            return Results.Ok((await q.OrderByDescending(o => o.Id).Take(200).ToListAsync()).Select(o => new
+            var lista = (await q.OrderByDescending(o => o.Id).Take(200).ToListAsync()).Where(o => veTodas || Liberaciones.LeePorFirma(s, o));
+            return Results.Ok(lista.Select(o => new
             { o.Id, o.Codigo, equipo = eq[o.EquipoId].Codigo, equipoNombre = eq[o.EquipoId].Nombre, equipoTipo = eq[o.EquipoId].Tipo, criticidad = eq[o.EquipoId].Criticidad, o.Titulo, o.Descripcion, o.Prioridad, o.Estado, o.Automatica, o.LotoConfirmado, o.Creada, o.Cerrada,
                 o.Tipo, o.Especialidad, o.Programada, o.Version, o.CreadaPorId, o.Simulada, o.CierreSolicitado, o.VerificadaEn,
                 verificadaPor = o.VerificadaPorId is null ? null : nombres.GetValueOrDefault(o.VerificadaPorId),
@@ -150,7 +153,7 @@ public static class EndpointsPlanta
             if (eq.Estado == EstadosEquipo.Bloqueado) o.AfectaSeguridad = true;
             o.Estado = "en_curso"; o.AsignadoAId = s.Id; o.LotoConfirmado = true;
             if (!(eq.Estado is EstadosEquipo.Mantenimiento or EstadosEquipo.Pruebas))
-                EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Diagnostico, "desktop", false, $"{o.Codigo} iniciada por {s.Nombre} con bloqueo LOTO");
+                EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Diagnostico, "desktop", false, $"{o.Codigo} iniciada por {s.Nombre} con bloqueo LOTO", por: s);
             db.Auditar(s, "inició una orden con bloqueo confirmado", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}", antes, eq.Estado);
             await db.SaveChangesAsync();      // si otro técnico la tomó al mismo tiempo, la versión (xmin) no coincide y responde 409
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
@@ -171,7 +174,7 @@ public static class EndpointsPlanta
             if (nuevo is null) return Ayudas.Error("Etapa no válida.");
             var eq = await db.Equipos.FirstAsync(x => x.Id == o.EquipoId);
             var antes = eq.Estado;
-            if (EstadosEquipo.Cambiar(db, eq, nuevo, "desktop", false, $"{o.Codigo}: {EstadosEquipo.Texto(nuevo)} ({s.Nombre})"))
+            if (EstadosEquipo.Cambiar(db, eq, nuevo, "desktop", false, $"{o.Codigo}: {EstadosEquipo.Texto(nuevo)} ({s.Nombre})", por: s))
             {
                 db.Auditar(s, "informó el avance de una orden", "orden", o.Codigo, eq.Codigo, antes, nuevo);
                 await db.SaveChangesAsync();
@@ -194,7 +197,7 @@ public static class EndpointsPlanta
             var pr = new PruebaOrden { OrdenId = o.Id, Uid = e.Uid, Descripcion = e.Descripcion.Trim(), Resultado = e.Resultado, Valores = e.Valores?.Trim() ?? "", RegistradaPorId = s.Id, RegistradaPor = s.Nombre };
             db.PruebasOrden.Add(pr);
             var eq = await db.Equipos.FirstAsync(x => x.Id == o.EquipoId);
-            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Pruebas, "desktop", false, $"{o.Codigo}: pruebas de {s.Nombre}");
+            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Pruebas, "desktop", false, $"{o.Codigo}: pruebas de {s.Nombre}", por: s);
             db.Auditar(s, "registró una prueba", "orden", o.Codigo, $"{pr.Descripcion} · {pr.Resultado}", null, pr.Valores);
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
@@ -242,7 +245,7 @@ public static class EndpointsPlanta
                 return Results.Ok(new { ok = true, via = "plc" });
             }
             if (eq.Plc?.Origen == "real") return Ayudas.Error($"El PLC {eq.Plc.Codigo} no responde: la marcha se da en la máquina y el estado lo informará el PLC al reconectar.", 409);
-            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Operativo, "desktop", true, $"puesta en marcha por {s.Nombre} (planta simulada)");
+            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Operativo, "desktop", true, $"puesta en marcha por {s.Nombre} (planta simulada)", por: s);
             db.Auditar(s, "puso en marcha un equipo de la planta simulada", "equipo", eq.Codigo, "", EstadosEquipo.Liberado, EstadosEquipo.Operativo);
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
@@ -259,7 +262,7 @@ public static class EndpointsPlanta
             if (eq is null) return Ayudas.Error("No existe ese equipo.", 404);
             if (eq.Estado == EstadosEquipo.Bloqueado) return Ayudas.Error("El equipo ya está bloqueado por seguridad.", 409);
             var antes = eq.Estado;
-            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Bloqueado, "desktop", false, $"bloqueado por {s.Nombre}: {e.Motivo.Trim()}");
+            EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Bloqueado, "desktop", false, $"bloqueado por {s.Nombre}: {e.Motivo.Trim()}", por: s);
             db.Auditar(s, "bloqueó un equipo por seguridad", "equipo", eq.Codigo, "", antes, eq.Estado, e.Motivo);
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
@@ -277,7 +280,7 @@ public static class EndpointsPlanta
             if (eq.Estado != EstadosEquipo.Bloqueado) return Ayudas.Error("El equipo no está bloqueado por seguridad.", 409);
             var enCurso = await db.Ordenes.AnyAsync(o => o.EquipoId == eq.Id && (o.Estado == "en_curso" || o.Estado == "por_verificar"));
             var nuevo = enCurso ? EstadosEquipo.Mantenimiento : EstadosEquipo.Liberado;
-            EstadosEquipo.Cambiar(db, eq, nuevo, "desktop", false, $"bloqueo levantado por {s.Nombre}: {e.Motivo.Trim()}");
+            EstadosEquipo.Cambiar(db, eq, nuevo, "desktop", false, $"bloqueo levantado por {s.Nombre}: {e.Motivo.Trim()}", por: s);
             db.Auditar(s, "levantó un bloqueo de seguridad", "equipo", eq.Codigo, "", EstadosEquipo.Bloqueado, nuevo, e.Motivo);
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
@@ -298,12 +301,12 @@ public static class EndpointsPlanta
             if (accion == "sacar")
             {
                 if (EstadosEquipo.DeMantenimiento.Contains(eq.Estado) || eq.Estado == EstadosEquipo.Bloqueado) return Ayudas.Error($"El equipo está {EstadosEquipo.Texto(eq.Estado)}: termine ese proceso primero.", 409);
-                EstadosEquipo.Cambiar(db, eq, EstadosEquipo.FueraServicio, "web", false, $"fuera de servicio ({s.Nombre}): {e.Motivo.Trim()}");
+                EstadosEquipo.Cambiar(db, eq, EstadosEquipo.FueraServicio, "web", false, $"fuera de servicio ({s.Nombre}): {e.Motivo.Trim()}", por: s);
             }
             else
             {
                 if (eq.Estado != EstadosEquipo.FueraServicio) return Ayudas.Error("El equipo no está fuera de servicio.", 409);
-                EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Liberado, "web", false, $"devuelto al servicio ({s.Nombre}): {e.Motivo.Trim()}");
+                EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Liberado, "web", false, $"devuelto al servicio ({s.Nombre}): {e.Motivo.Trim()}", por: s);
             }
             db.Auditar(s, accion == "sacar" ? "sacó un equipo de servicio" : "devolvió un equipo al servicio", "equipo", eq.Codigo, "", antes, eq.Estado, e.Motivo);
             await db.SaveChangesAsync();

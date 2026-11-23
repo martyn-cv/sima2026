@@ -286,6 +286,15 @@ namespace Sima.Api.Datos.Migraciones
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("PorCargo")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PorId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PorNombre")
+                        .HasColumnType("text");
+
                     b.Property<bool>("Simulado")
                         .HasColumnType("boolean");
 

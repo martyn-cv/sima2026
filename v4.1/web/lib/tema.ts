@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 
-/** Tema noche (oscuro, por defecto) o día (claro). Se guarda en el navegador. */
+/** Tema claro (por defecto en SIMA Web) u oscuro. Se guarda en el navegador de cada persona. */
 export function useTema() {
-  const [tema, setTema] = useState<"noche" | "claro">("noche");
+  const [tema, setTema] = useState<"noche" | "claro">("claro");
   useEffect(() => { setTema(document.documentElement.dataset.tema === "claro" ? "claro" : "noche"); }, []);
   const alternar = useCallback(() => {
     setTema((t) => {
@@ -16,4 +16,5 @@ export function useTema() {
   return { tema, alternar };
 }
 
-export const SCRIPT_TEMA = "try{if(localStorage.getItem('sima.tema')==='claro')document.documentElement.dataset.tema='claro'}catch(e){}";
+// SIMA Web arranca en el tema claro profesional; el oscuro queda como preferencia de cada persona
+export const SCRIPT_TEMA = "try{if(localStorage.getItem('sima.tema')==='noche')delete document.documentElement.dataset.tema;else document.documentElement.dataset.tema='claro'}catch(e){}";

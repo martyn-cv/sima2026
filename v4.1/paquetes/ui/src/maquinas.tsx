@@ -3,19 +3,23 @@ import { motion } from "motion/react";
 import type { CSSProperties } from "react";
 
 /**
- * Ilustraciones animadas de los equipos de la planta. Se mueven cuando el equipo opera, se quedan quietas cuando está
- * detenido o en mantención, y tiemblan en rojo cuando tiene una alarma. Siguen los colores del tema.
+ * Ilustraciones de los equipos de la planta. Se mueven cuando el equipo opera; cuando no, quedan quietas con el color
+ * de su estado y una insignia (falla, bloqueo, mantenimiento). Siguen los tokens de estado del sistema de diseño.
  */
-export type EstadoMaquina = "operando" | "alarma" | "detenido" | "en_mantencion" | string;
+export type EstadoMaquina = "operativo" | "operativo_obs" | "falla" | "fuera_servicio" | "bloqueado_seguridad" | "en_diagnostico" | "en_mantenimiento" | "en_pruebas" | "pendiente_liberacion" | "liberado" | string;
 
 const giro = (dur: number, on: boolean) => (on ? { animate: { rotate: 360 }, transition: { repeat: Infinity, ease: "linear" as const, duration: dur } } : { animate: { rotate: 0 } });
 const vaiven = (prop: "x" | "y" | "rotate", a: number, b: number, dur: number, on: boolean) =>
   on ? { animate: { [prop]: [a, b, a] }, transition: { repeat: Infinity, ease: "easeInOut" as const, duration: dur } } : { animate: { [prop]: a } };
 const caja: CSSProperties = { transformBox: "fill-box", transformOrigin: "center" };
 
+// el color de la ilustración es el color del estado (los mismos tokens que la etiqueta de estado)
+const COLOR_ESTADO: Record<string, string> = {
+  operativo: "var(--s-verde)", operando: "var(--s-verde)", operativo_obs: "var(--s-ambar)", falla: "var(--s-rojo)", alarma: "var(--s-rojo)", bloqueado_seguridad: "var(--s-rojo)",
+  en_diagnostico: "var(--s-diagnostico)", en_mantenimiento: "var(--s-azul)", en_mantencion: "var(--s-azul)", en_pruebas: "var(--s-azul)", pendiente_liberacion: "var(--s-ambar)",
+};
 function colores(estado: EstadoMaquina) {
-  const acento = estado === "alarma" ? "var(--s-rojo)" : estado === "en_mantencion" ? "var(--s-ambar)" : estado === "operando" ? "var(--s-acento)" : "var(--s-tenue)";
-  return { acento, cuerpo: "var(--s-superficie-2)", borde: "var(--s-borde)", oscuro: "var(--s-borde-suave)" };
+  return { acento: COLOR_ESTADO[estado] ?? "var(--s-detenido)", cuerpo: "var(--s-superficie-2)", borde: "var(--s-borde)", oscuro: "var(--s-borde-suave)" };
 }
 
 function Mecanizado({ on, c }: { on: boolean; c: ReturnType<typeof colores> }) {
@@ -175,13 +179,21 @@ const DIBUJO: [RegExp, typeof Mecanizado][] = [
 export function Maquina({ tipo, estado, className }: { tipo: string; estado: EstadoMaquina; className?: string }) {
   const D = DIBUJO.find(([r]) => r.test(tipo))?.[1] ?? Mecanizado;
   const c = colores(estado);
-  const on = estado === "operando" || estado === "alarma";
+  // se mueve solo cuando el equipo está en marcha (o en pruebas); una falla no «tiembla»: se marca con su insignia
+  const on = ["operativo", "operativo_obs", "operando", "en_pruebas"].includes(estado);
+  const insignia = ["falla", "alarma"].includes(estado) ? "falla" : estado === "bloqueado_seguridad" ? "bloqueo" : ["en_diagnostico", "en_mantenimiento", "en_mantencion", "en_pruebas", "pendiente_liberacion"].includes(estado) ? "mant" : null;
   return (
-    <motion.svg viewBox="0 0 120 76" className={className} role="img" aria-label={`${tipo}: ${estado}`}
-      animate={estado === "alarma" ? { x: [0, -1.5, 1.5, -1, 0] } : { x: 0 }} transition={estado === "alarma" ? { repeat: Infinity, duration: 0.5, repeatDelay: 0.6 } : {}}>
+    <svg viewBox="0 0 120 76" className={className} role="img" aria-label={`${tipo}: ${estado}`}>
       <ellipse cx="60" cy="71" rx="50" ry="4" fill="var(--s-fondo)" opacity=".6" />
       <D on={on} c={c} />
-      {estado === "en_mantencion" && <g><rect x="92" y="2" width="24" height="16" rx="4" fill="var(--s-ambar)" /><path d="M98 14 l5 -8 l5 8 z" fill="var(--s-sobre-texto)" /></g>}
-    </motion.svg>
+      {insignia && (
+        <g transform="translate(96 2)">
+          <rect width="20" height="16" rx="3" fill={c.acento} />
+          {insignia === "falla" && <path d="M6 4 l8 8 M14 4 l-8 8" stroke="var(--s-sobre-texto)" strokeWidth="2.2" strokeLinecap="round" />}
+          {insignia === "bloqueo" && <><rect x="6" y="7" width="8" height="6" rx="1" fill="var(--s-sobre-texto)" /><path d="M7.5 7 v-2 a2.5 2.5 0 0 1 5 0 v2" fill="none" stroke="var(--s-sobre-texto)" strokeWidth="1.6" /></>}
+          {insignia === "mant" && <path d="M5 12 l6 -6 m0 0 a2.5 2.5 0 1 1 3 3" fill="none" stroke="var(--s-sobre-texto)" strokeWidth="2" strokeLinecap="round" />}
+        </g>
+      )}
+    </svg>
   );
 }

@@ -1,34 +1,59 @@
-/* SIMA 4.1 · «Índigo industrial» (violeta y cian sobre índigo profundo). Tokens del tema: los nombres se mantienen (papel, chapa, negro…) pero ahora apuntan a
-   variables que cambian entre el tema noche (por defecto) y el tema día (data-tema="claro" en <html>). */
+/* =====================================================================================================================
+   SIMA · Sistema de diseño (tokens). Identidad industrial: grafito, acero y azul petróleo; ámbar como marca y acción.
+   Un solo lugar para colores, tipografías, radios, sombras y movimiento. Las tres aplicaciones importan este archivo y
+   solo ajustan lo propio (densidad o tema por defecto). Los nombres heredados (papel, chapa, negro…) se conservan para no
+   romper componentes: apuntan a los tokens nuevos.
+   ===================================================================================================================== */
 @theme inline {
-  --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-display: "Sora Variable", "Sora", "Plus Jakarta Sans Variable", sans-serif;
-  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "IBM Plex Sans", "Inter Variable", system-ui, sans-serif;      /* información industrial: KPI, equipos, datos */
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
 
+  /* radios contenidos: el sistema no abusa de esquinas redondeadas (redefine la escala de Tailwind) */
+  --radius-sm: 3px;
+  --radius: 4px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+  --radius-3xl: 10px;
+
+  /* superficies */
   --color-chapa: var(--s-fondo);
+  --color-fondo-2: var(--s-fondo-2);
   --color-papel: var(--s-superficie);
   --color-papel-2: var(--s-superficie-2);
   --color-linea: var(--s-borde);
   --color-linea-suave: var(--s-borde-suave);
-  --color-gris: var(--s-tenue);
+  /* texto */
   --color-negro: var(--s-texto);
   --color-carbon: var(--s-texto-2);
+  --color-gris: var(--s-tenue);
+  --color-apagado: var(--s-deshabilitado);
   --color-sobre-negro: var(--s-sobre-texto);
+  /* marca */
   --color-acento: var(--s-acento);
+  --color-acento-hover: var(--s-acento-hover);
   --color-acento-claro: var(--s-acento-claro);
-  --color-cobre: var(--s-cobre);
-  --color-cian: var(--s-cobre);
-  --color-violeta: var(--s-acento);
+  --color-cobre: var(--s-info);
+  --color-cian: var(--s-info);
+  --color-violeta: var(--s-diagnostico);
+  /* semánticos (estado) */
+  --color-verde: var(--s-verde);
+  --color-verde-claro: var(--s-verde-claro);
   --color-rojo: var(--s-rojo);
   --color-rojo-hondo: var(--s-rojo-hondo);
   --color-rojo-claro: var(--s-rojo-claro);
   --color-ambar: var(--s-ambar);
   --color-ambar-hondo: var(--s-ambar-hondo);
   --color-ambar-claro: var(--s-ambar-claro);
-  --color-verde: var(--s-verde);
-  --color-verde-claro: var(--s-verde-claro);
   --color-azul: var(--s-azul);
   --color-azul-claro: var(--s-azul-claro);
+  --color-info: var(--s-info);
+  --color-info-claro: var(--s-info-claro);
+  --color-diagnostico: var(--s-diagnostico);
+  --color-diagnostico-claro: var(--s-diagnostico-claro);
+  --color-detenido: var(--s-detenido);
 
   --animate-latido: latido 1.6s ease-in-out infinite;
   --animate-parpadeo: parpadeo 0.9s steps(2, jump-none) infinite;
@@ -37,105 +62,115 @@
   --animate-brillo: brillo 2.2s ease-in-out infinite;
 }
 
-@keyframes latido { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.8); } }
-@keyframes parpadeo { 0% { opacity: 1; } 100% { opacity: .25; } }
+@keyframes latido { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes parpadeo { 0% { opacity: 1; } 100% { opacity: .3; } }
 @keyframes giro { to { transform: rotate(360deg); } }
 @keyframes flujo { to { stroke-dashoffset: -24; } }
-@keyframes brillo { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
-@keyframes deriva-a { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(8%, 6%) scale(1.12); } }
-@keyframes deriva-b { 0%, 100% { transform: translate(0, 0) scale(1.05); } 50% { transform: translate(-7%, -5%) scale(.95); } }
+@keyframes brillo { 0%, 100% { opacity: .6; } 50% { opacity: 1; } }
 @keyframes destello { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+@keyframes pulso-estado { 0% { box-shadow: 0 0 0 0 var(--pulso, transparent); } 100% { box-shadow: 0 0 0 6px transparent; } }
 
+/* ---------------------------------------------------------------------------------------- tema oscuro industrial */
 :root {
   color-scheme: dark;
-  --s-fondo: #080a17;
-  --s-superficie: #0f1229;
-  --s-superficie-2: #151936;
-  --s-borde: #262b52;
-  --s-borde-suave: #1b1f40;
-  --s-tenue: #8a8fb8;
-  --s-texto: #eef0ff;
-  --s-texto-2: #c6cbec;
-  --s-sobre-texto: #080a17;
-  --s-acento: #8b5cf6;               /* violeta: acción principal */
-  --s-acento-claro: rgb(139 92 246 / .16);
-  --s-cobre: #22d3ee;                /* cian: segundo acento y datos en vivo */
-  --s-rojo: #fb7185;
-  --s-rojo-hondo: #fda4af;
-  --s-rojo-claro: rgb(251 113 133 / .14);
-  --s-ambar: #fbbf24;
-  --s-ambar-hondo: #fcd581;
-  --s-ambar-claro: rgb(251 191 36 / .14);
-  --s-verde: #34d399;
-  --s-verde-claro: rgb(52 211 153 / .14);
-  --s-azul: #60a5fa;
-  --s-azul-claro: rgb(96 165 250 / .14);
-  --s-vidrio: rgb(15 18 41 / .72);
-  --s-sombra: 0 24px 60px -28px rgb(0 0 0 / .8);
-  --s-aurora-a: rgb(139 92 246 / .22);
-  --s-aurora-b: rgb(34 211 238 / .14);
-  --s-curvas: rgb(148 163 255 / .05);
-  --s-brillo-violeta: 0 0 24px -4px rgb(139 92 246 / .55);
-  --s-brillo-cian: 0 0 24px -4px rgb(34 211 238 / .55);
+  --s-fondo: #0d1117;                 /* fondo principal */
+  --s-fondo-2: #151b23;               /* barras de navegación */
+  --s-superficie: #1c2632;            /* paneles */
+  --s-superficie-2: #253342;          /* superficies elevadas, filas activas */
+  --s-borde: #303d4b;
+  --s-borde-suave: #232e3a;
+  --s-texto: #f1f5f9;
+  --s-texto-2: #cbd5e1;
+  --s-tenue: #94a3b8;
+  --s-deshabilitado: #64748b;
+  --s-sobre-texto: #0d1117;           /* texto sobre ámbar */
+  --s-acento: #f59e0b;                /* marca y acción principal */
+  --s-acento-hover: #fbbf24;
+  --s-acento-claro: rgb(245 158 11 / .12);
+  /* semánticos: siempre acompañados de icono y etiqueta */
+  --s-verde: #22c55e;   --s-verde-claro: rgb(34 197 94 / .12);
+  --s-rojo: #ef4444;    --s-rojo-claro: rgb(239 68 68 / .12);    --s-rojo-hondo: #fca5a5;
+  --s-ambar: #eab308;   --s-ambar-claro: rgb(234 179 8 / .12);   --s-ambar-hondo: #fde68a;     /* advertencia */
+  --s-azul: #3b82f6;    --s-azul-claro: rgb(59 130 246 / .14);                                 /* mantenimiento */
+  --s-diagnostico: #a78bfa; --s-diagnostico-claro: rgb(167 139 250 / .14);
+  --s-detenido: #64748b;
+  --s-info: #38bdf8;    --s-info-claro: rgb(56 189 248 / .12);
+  /* elevación: sombras mínimas */
+  --s-sombra: 0 1px 2px rgb(0 0 0 / .35);
+  --s-sombra-flotante: 0 12px 32px -12px rgb(0 0 0 / .7), 0 0 0 1px var(--s-borde);
+  --s-vidrio: rgb(21 27 35 / .92);
+  /* compatibilidad con componentes anteriores (ya sin auroras ni brillos de neón) */
+  --s-aurora-a: transparent; --s-aurora-b: transparent; --s-curvas: rgb(148 163 184 / .05);
+  --s-brillo-violeta: none; --s-brillo-cian: none;
+  /* movimiento */
+  --t-micro: 140ms; --t-componente: 200ms; --t-pantalla: 280ms; --t-panel: 340ms;
+  --curva: cubic-bezier(.2, .7, .2, 1);
+  /* densidad */
+  --alto-control: 36px; --alto-fila: 40px;
 }
 
+/* ---------------------------------------------------------------------------------------- tema claro profesional */
 :root[data-tema="claro"] {
   color-scheme: light;
-  --s-fondo: #f3f4fb;
+  --s-fondo: #f3f5f8;
+  --s-fondo-2: #ffffff;
   --s-superficie: #ffffff;
-  --s-superficie-2: #f7f7fd;
-  --s-borde: #d9dbee;
-  --s-borde-suave: #e8e9f5;
-  --s-tenue: #5d6185;
-  --s-texto: #0d0f24;
-  --s-texto-2: #22264a;
+  --s-superficie-2: #f6f8fa;
+  --s-borde: #d5dce4;
+  --s-borde-suave: #e6eaef;
+  --s-texto: #0f172a;
+  --s-texto-2: #334155;
+  --s-tenue: #526075;
+  --s-deshabilitado: #94a3b8;
   --s-sobre-texto: #ffffff;
-  --s-acento: #7c3aed;
-  --s-acento-claro: #ede6ff;
-  --s-cobre: #0891b2;
-  --s-rojo: #e11d48;
-  --s-rojo-hondo: #9f1239;
-  --s-rojo-claro: #ffe4ea;
-  --s-ambar: #b45309;
-  --s-ambar-hondo: #92400e;
-  --s-ambar-claro: #fef3c7;
-  --s-verde: #059669;
-  --s-verde-claro: #dcfce7;
-  --s-azul: #2563eb;
-  --s-azul-claro: #dbeafe;
-  --s-vidrio: rgb(255 255 255 / .8);
-  --s-sombra: 0 18px 50px -26px rgb(30 27 75 / .25);
-  --s-aurora-a: rgb(124 58 237 / .10);
-  --s-aurora-b: rgb(8 145 178 / .08);
-  --s-curvas: rgb(30 27 75 / .05);
-  --s-brillo-violeta: 0 0 0 0 transparent;
-  --s-brillo-cian: 0 0 0 0 transparent;
+  --s-acento: #b45309;                /* ámbar oscuro: legible sobre blanco */
+  --s-acento-hover: #92400e;
+  --s-acento-claro: #fef3e2;
+  --s-verde: #15803d;   --s-verde-claro: #e7f6ec;
+  --s-rojo: #dc2626;    --s-rojo-claro: #fdecec;    --s-rojo-hondo: #991b1b;
+  --s-ambar: #a16207;   --s-ambar-claro: #fdf6dc;   --s-ambar-hondo: #713f12;
+  --s-azul: #1d4ed8;    --s-azul-claro: #e8efff;
+  --s-diagnostico: #6d28d9; --s-diagnostico-claro: #f1ebff;
+  --s-detenido: #64748b;
+  --s-info: #0369a1;    --s-info-claro: #e6f4fb;
+  --s-sombra: 0 1px 2px rgb(15 23 42 / .06);
+  --s-sombra-flotante: 0 12px 32px -12px rgb(15 23 42 / .25), 0 0 0 1px var(--s-borde);
+  --s-vidrio: rgb(255 255 255 / .94);
+  --s-curvas: rgb(15 23 42 / .04);
 }
 
+/* ---------------------------------------------------------------------------------------- base */
 html { background: var(--s-fondo); color: var(--s-texto); }
-body { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; font-feature-settings: "ss01", "cv11"; }
+body { font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; font-feature-settings: "cv11", "ss01", "tnum" 0; }
 .num { font-variant-numeric: tabular-nums; }
-.display { font-family: var(--font-display); letter-spacing: -0.01em; }
-.mono { font-family: var(--font-mono); }
-:focus-visible { outline: 2px solid var(--s-acento); outline-offset: 2px; }
+.display { font-family: var(--font-display); letter-spacing: -0.005em; }
+.mono, code, kbd { font-family: var(--font-mono); }
+:focus-visible { outline: 2px solid var(--s-acento); outline-offset: 2px; border-radius: 2px; }
 ::selection { background: var(--s-acento); color: var(--s-sobre-texto); }
 * { scrollbar-width: thin; scrollbar-color: var(--s-borde) transparent; }
 
-/* paneles de vidrio */
-.vidrio { background: var(--s-vidrio); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); }
-.tarjeta { position: relative; border-radius: 16px; border: 1px solid var(--s-borde-suave); background: linear-gradient(160deg, color-mix(in srgb, var(--s-superficie-2) 85%, transparent), var(--s-superficie) 60%); box-shadow: var(--s-sombra), inset 0 1px 0 rgb(255 255 255 / .03); }
-/* tinte de color en una esquina, como en los indicadores de la referencia */
-.tinte-violeta { background: radial-gradient(120% 90% at 0% 0%, rgb(139 92 246 / .20), transparent 55%), linear-gradient(160deg, var(--s-superficie-2), var(--s-superficie) 60%); }
-.tinte-cian { background: radial-gradient(120% 90% at 0% 0%, rgb(34 211 238 / .16), transparent 55%), linear-gradient(160deg, var(--s-superficie-2), var(--s-superficie) 60%); }
-.brillo-violeta { box-shadow: var(--s-brillo-violeta); }
-.brillo-cian { box-shadow: var(--s-brillo-cian); }
-.tarjeta-brillo::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
-  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--s-acento) 12%, transparent), transparent 45%); }
-.tarjeta-brillo:hover::before { opacity: 1; }
-.texto-degradado { background: linear-gradient(100deg, var(--s-texto) 25%, color-mix(in srgb, var(--s-acento) 80%, white) 62%, var(--s-cobre)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.degradado-marca { background: linear-gradient(135deg, var(--s-acento), var(--s-cobre)); }
-.destello { background: linear-gradient(90deg, var(--s-borde-suave) 25%, color-mix(in srgb, var(--s-borde) 80%, transparent) 50%, var(--s-borde-suave) 75%); background-size: 200% 100%; animation: destello 1.4s linear infinite; }
+/* jerarquía tipográfica: título de pantalla, encabezado de sección, etiqueta, dato técnico */
+.t-pantalla { font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; }
+.t-seccion { font-size: 14px; line-height: 20px; font-weight: 600; }
+.t-etiqueta { font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--s-tenue); }
+.t-kpi { font-family: var(--font-display); font-size: 26px; line-height: 30px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.t-dato { font-family: var(--font-mono); font-size: 12.5px; }
+
+/* paneles: superficie plana con borde fino (sin gradientes decorativos) */
+.vidrio { background: var(--s-vidrio); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.tarjeta { position: relative; border-radius: 8px; border: 1px solid var(--s-borde-suave); background: var(--s-superficie); box-shadow: var(--s-sombra); }
+.panel { border-radius: 8px; border: 1px solid var(--s-borde-suave); background: var(--s-superficie); }
+.tinte-violeta, .tinte-cian { background: var(--s-superficie); }
+.brillo-violeta, .brillo-cian { box-shadow: none; }
+.tarjeta-brillo::before { content: none; }
+.texto-degradado { color: var(--s-acento); }
+.degradado-marca { background: var(--s-acento); }
+.destello { background: linear-gradient(90deg, var(--s-borde-suave) 25%, color-mix(in srgb, var(--s-borde) 70%, transparent) 50%, var(--s-borde-suave) 75%); background-size: 200% 100%; animation: destello 1.4s linear infinite; }
+/* rejilla técnica sutil para fondos de diagramas y de la pantalla de ingreso */
+.rejilla { background-image: linear-gradient(var(--s-curvas) 1px, transparent 1px), linear-gradient(90deg, var(--s-curvas) 1px, transparent 1px); background-size: 24px 24px; }
+/* distintivo de dato simulado: trama diagonal que no depende del color */
+.trama-sim { background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--s-info) 16%, transparent) 0 4px, transparent 4px 9px); }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
 }

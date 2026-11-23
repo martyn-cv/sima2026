@@ -126,7 +126,7 @@ public static class EndpointsV41
                     repuestos = consumos.Where(c => c.IntervencionId == i.Id).Select(c => new { repuestos[c.RepuestoId].Codigo, repuestos[c.RepuestoId].Nombre, cantidad = -c.Cantidad }),
                     herramientas = i.Herramientas.Select(h => herramientas.GetValueOrDefault(h.HerramientaId)),
                 }),
-                historial = await db.CambiosEstado.AsNoTracking().Where(c => c.EquipoId == e.Id).OrderByDescending(c => c.Id).Take(30).Select(c => new { c.Ts, c.Desde, c.Hasta, c.Origen, c.Simulado, c.Causa }).ToListAsync(),
+                historial = await db.CambiosEstado.AsNoTracking().Where(c => c.EquipoId == e.Id).OrderByDescending(c => c.Id).Take(30).Select(c => new { c.Ts, c.Desde, c.Hasta, c.Origen, c.Simulado, c.Causa, por = c.PorNombre, cargo = c.PorCargo }).ToListAsync(),
                 documentos = await db.Documentos.AsNoTracking().Where(d => d.EquipoId == e.Id || (d.EquipoId == null && d.TipoEquipo == e.Tipo)).OrderBy(d => d.Clase).Select(d => new { d.Id, d.Titulo, d.Clase, d.Version, d.Contenido }).ToListAsync(),
                 repuestos = lista.Select(x => repuestos[x.RepuestoId]).Select(r => new { r.Id, r.Codigo, r.Nombre, r.Stock, r.StockMinimo, r.Ubicacion, r.Critico, sugerida = lista.First(x => x.RepuestoId == r.Id).CantidadSugerida }),
             });
@@ -242,10 +242,13 @@ public static class EndpointsV41
         g.MapGet("/ordenes/{id:int}", async (int id, ClaimsPrincipal u, SimaDb db) =>
         {
             var s = u.S();
-            if (!s.Tiene("ordenes.ver")) return Ayudas.Sin();
             var o = await db.Ordenes.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
-            if (o is null) return Ayudas.Error("No existe esa orden.", 404);
-            if (s.Alcance("ordenes.ver") == "propio" && o.CreadaPorId != s.Id && o.AsignadoAId != s.Id) return Ayudas.Sin();
+            if (!s.Tiene("ordenes.ver"))
+            {
+                if (o is null || !Liberaciones.LeePorFirma(s, o)) return Ayudas.Sin();   // sin revelar si la orden existe
+            }
+            else if (o is null) return Ayudas.Error("No existe esa orden.", 404);
+            else if (s.Alcance("ordenes.ver") == "propio" && o.CreadaPorId != s.Id && o.AsignadoAId != s.Id) return Ayudas.Sin();
             var eq = await db.Equipos.AsNoTracking().Include(e => e.Linea).ThenInclude(l => l!.Area).FirstAsync(e => e.Id == o.EquipoId);
             var nombres = await db.Trabajadores.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Nombres + " " + t.ApellidoPaterno);
             var inter = await db.Intervenciones.AsNoTracking().Include(i => i.Herramientas).Where(i => i.OrdenId == id).OrderBy(i => i.Inicio).ToListAsync();
@@ -341,7 +344,7 @@ public static class EndpointsV41
             }
             var eq = await db.Equipos.Include(x => x.Sensores).Include(x => x.Plc).FirstAsync(x => x.Id == o.EquipoId);
             // registrar la intervención pasa el equipo de diagnóstico a mantenimiento
-            if (eq.Estado == EstadosEquipo.Diagnostico) EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Mantenimiento, "desktop", false, $"{o.Codigo}: intervención de {s.Nombre}", ahora);
+            if (eq.Estado == EstadosEquipo.Diagnostico) EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Mantenimiento, "desktop", false, $"{o.Codigo}: intervención de {s.Nombre}", ahora, por: s);
             foreach (var pr in e.Pruebas ?? new())
             {
                 if (string.IsNullOrWhiteSpace(pr.Descripcion) || pr.Resultado is not ("conforme" or "no_conforme")) return Ayudas.Error("Cada prueba necesita una descripción y un resultado (conforme o no conforme).");

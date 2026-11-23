@@ -8,6 +8,19 @@ export interface Usuario {
   id: string; nombre: string; correo: string; cargoId: number; cargo: string; familia: string; perfil: string; canal: Canal;
   turno: string; jefe?: string | null; estadoCuenta: string; permisos: Record<string, Permiso>; capacidades?: Record<string, string>;
   totpActivo?: boolean; restringido?: "clave" | "2fa" | null;
+  /** Plataformas autorizadas para la cuenta (la segunda la autoriza Personas). */
+  plataformas?: { web: boolean; desktop: boolean };
+}
+
+/** Notificación dirigida a la persona; queda guardada hasta que la lee. */
+export interface NotificacionSima { id: number; categoria: "critica" | "advertencia" | "tarea" | "solicitud" | "aprobacion" | "info"; origen: string; texto: string; destino?: string | null; referencia?: string | null; fecha: string; leida: boolean }
+
+/** Estado de la liberación de un equipo después de una OT (técnica, seguridad, calidad, producción). */
+export interface LiberacionOt {
+  ronda: number; afectaSeguridad: boolean; afectaCalidad: boolean; requeridas: string[]; pendientes: string[];
+  firmas: { tipo: string; titulo: string; porNombre: string; porCargo: string; plataforma: string; fecha: string; nota: string }[];
+  rechazos: { tipo: string; titulo: string; porNombre: string; porCargo: string; fecha: string; nota: string; ronda: number }[];
+  pruebas: { id: number; descripcion: string; resultado: string; valores: string; registradaPor: string; fecha: string }[];
 }
 export interface RespuestaLogin { token: string; vence: string; usuario: Usuario }
 export interface CuentaDemo { correo: string; clave: string; nombre: string; cargo: string; perfil: string; canal: Canal }
@@ -44,8 +57,10 @@ export interface FichaEquipo {
   alarmas: { id: number; nivel: string; mensaje: string; inicio: string; fin?: string | null; reconocidaPor?: string | null; simulado: boolean }[];
   ordenes: { id: number; codigo: string; titulo: string; tipo: string; prioridad: string; estado: string; automatica: boolean; creada: string; cerrada?: string | null; asignado?: string | null; intervenciones: number }[];
   intervenciones: { id: number; orden: string; tecnicoNombre: string; inicio: string; fin: string; horas: number; causa: string; diagnostico: string; accion: string; resultado: string; observaciones: string; repuestos: { codigo: string; nombre: string; cantidad: number }[]; herramientas: string[] }[];
-  historial: { ts: string; desde: string; hasta: string; origen: string; simulado: boolean; causa: string }[];
+  historial: { ts: string; desde: string; hasta: string; origen: string; simulado: boolean; causa: string; por?: string | null; cargo?: string | null }[];
   documentos: { id: number; titulo: string; clase: string; version: string; contenido: string }[];
+  ficha?: { numeroSerie: string; fabricante: string; fechaInstalacion?: string | null; horasFuncionamiento: number; especElectrica: string; especMecanica: string; demo: boolean; responsableMant?: string | null; responsableProd?: string | null; proximaPreventiva?: { id: number; codigo: string; programada: string } | null };
+  componentes?: { id: number; tipo: string; codigo: string; nombre: string; marca: string; modelo: string; especificacion: string; demo: boolean }[];
   repuestos: { id: number; codigo: string; nombre: string; stock: number; stockMinimo: number; ubicacion: string; critico: boolean; sugerida: number }[];
 }
 export interface PlcResumen { id: number; codigo: string; nombre: string; fabricante: string; modelo: string; direccion: string; zona: string; estado: string; ultimoContacto?: string | null; cicloMs: number; modulos: number; puntos: number; entradas: number; salidas: number; equipos: string[] }
@@ -118,7 +133,9 @@ export interface EventosPlanta {
   alarma?: (a: { equipo: string; nivel: string; mensaje: string; abierta: boolean }) => void;
   orden?: (o: { id: number; codigo: string; equipo: string; titulo: string; prioridad: string; estado?: string; simulada?: boolean; asignadoAId?: string | null }) => void;
   /** Notificación dirigida a la persona o a su cargo (el servidor decide a quién llega). */
-  notificacion?: (n: { texto: string; nivel: "alarma" | "aviso" | "info" | "ok"; destino?: string | null }) => void;
+  notificacion?: (n: { id?: number; texto: string; nivel: string; categoria?: string; destino?: string | null; origen?: string; referencia?: string | null }) => void;
+  /** Se revocó el acceso a una plataforma: la sesión de esa plataforma termina. */
+  sesionRevocada?: (s: { plataforma: string; motivo: string }) => void;
   plc?: (p: { codigo: string; estado: string }) => void;
   plcIO?: (p: { codigo: string; estado: string; io: Record<string, number>; ciclos?: number }) => void;
   cuentaCerrada?: (m: { motivo: string }) => void;
