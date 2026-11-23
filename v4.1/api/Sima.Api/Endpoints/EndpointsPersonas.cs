@@ -254,10 +254,13 @@ public static class EndpointsPersonas
         {
             if (!u.S().Puede("cuentas", "ver")) return Ayudas.Sin();
             var est = await Reglas.CalcularTodosAsync(db);
+            // acceso por plataforma: el de su cargo, salvo autorización o revocación explícita de Personas
+            var autorizaciones = (await db.AccesosPlataforma.AsNoTracking().ToListAsync()).ToDictionary(a => (a.TrabajadorId, a.Plataforma), a => a.Habilitado);
+            bool Acceso(Trabajador t, string p) => est[t.Id].Activa && (autorizaciones.TryGetValue((t.Id, p), out var h) ? h : t.Cargo!.Canal == p);
             var lista = (await db.Trabajadores.AsNoTracking().Include(t => t.Cargo).OrderBy(t => t.Id).ToListAsync()).Select(t => new
             {
                 t.Id, nombre = t.NombreCompleto, login = t.CorreoCorporativo, alias = t.LoginAlias, cargo = t.Cargo!.Nombre, perfil = t.Cargo.PerfilSima, canal = t.Cargo.Canal, t.Turno,
-                estadoLaboral = est[t.Id].EstadoLaboral, estadoContrato = est[t.Id].EstadoContrato, estadoCuenta = est[t.Id].EstadoCuenta, accesoWeb = est[t.Id].Activa && t.Cargo.Canal == "web", accesoApp = est[t.Id].Activa && t.Cargo.Canal == "app",
+                estadoLaboral = est[t.Id].EstadoLaboral, estadoContrato = est[t.Id].EstadoContrato, estadoCuenta = est[t.Id].EstadoCuenta, accesoWeb = Acceso(t, "web"), accesoApp = Acceso(t, "app"),
                 t.UltimoAcceso, bloqueada = t.BloqueadoHasta > DateTime.UtcNow, totpActivo = t.TotpActivo,
             });
             return Results.Ok(string.IsNullOrEmpty(estado) ? lista : lista.Where(x => x.estadoCuenta.StartsWith(estado.ToUpper())));

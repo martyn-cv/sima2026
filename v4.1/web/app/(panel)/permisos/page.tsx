@@ -41,7 +41,7 @@ export default function Permisos() {
             {cargos.map((c) => (
               <li key={c.id}>
                 <button onClick={() => setSel(c.id)} className={cx("relative w-full cursor-pointer rounded-xl px-3 py-2 text-left", cargo?.id === c.id ? "text-negro" : "text-carbon hover:bg-papel-2")}>
-                  {cargo?.id === c.id && <motion.span layoutId="cargo-sel" className="absolute inset-0 rounded-xl border border-acento/30 bg-acento-claro" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+                  {cargo?.id === c.id && <motion.span layoutId="cargo-sel" className="absolute inset-0 rounded-xl border border-acento/30 bg-acento-claro" transition={{ duration: 0.2 }} />}
                   <span className="relative block truncate text-[13.5px] font-medium">{c.nombre}</span>
                   <span className="relative block truncate text-[12px] text-gris">{c.familia} · {c.canal === "web" ? "web" : "Desktop"} · {c.personas} personas · {Object.keys(c.capacidades).length} capacidades</span>
                 </button>
@@ -52,8 +52,8 @@ export default function Permisos() {
         <AnimatePresence mode="wait">
           {cargo && (
             <motion.div key={cargo.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <Tarjeta className="tinte-violeta mb-4 flex flex-wrap items-center gap-4 p-5">
-                <span className="degradado-marca grid size-12 place-items-center rounded-2xl text-white"><ShieldCheck className="size-6" /></span>
+              <Tarjeta className="mb-4 flex flex-wrap items-center gap-4 p-5">
+                <span className="grid size-10 place-items-center rounded-md bg-acento-claro text-acento"><ShieldCheck className="size-6" /></span>
                 <div className="mr-auto"><p className="display text-[22px] font-bold leading-tight">{cargo.nombre}</p><p className="text-[13px] text-gris">perfil {cargo.perfil} · ingresa por {cargo.canal === "web" ? "la web" : "SIMA Desktop"} · {cargo.personas} personas</p></div>
               </Tarjeta>
               <div className="grid gap-4 xl:grid-cols-2">

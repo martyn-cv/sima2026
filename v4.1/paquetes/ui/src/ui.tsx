@@ -118,10 +118,12 @@ export function Campo({ etiqueta, ayuda, error, obligatorio, children, className
     </label>
   );
 }
-const CONTROL = "h-[var(--alto-control)] w-full rounded-md border border-linea bg-chapa px-3 text-[13.5px] text-negro outline-none transition-[border-color,box-shadow] duration-[140ms] placeholder:text-apagado hover:border-gris/50 focus:border-acento focus:shadow-[0_0_0_3px_var(--s-acento-claro)] disabled:opacity-60 aria-[invalid=true]:border-rojo";
-export const Entrada = ({ className, ...p }: InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={cx(CONTROL, className)} />;
-export const Seleccion = ({ className, children, ...p }: SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} className={cx(CONTROL, "pr-8", className)}>{children}</select>;
-export const AreaTexto = ({ className, ...p }: TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...p} className={cx(CONTROL, "h-auto min-h-20 py-2", className)} />;
+const CONTROL = "h-[var(--alto-control)] rounded-md border border-linea bg-chapa px-3 text-[13.5px] text-negro outline-none transition-[border-color,box-shadow] duration-[140ms] placeholder:text-apagado hover:border-gris/50 focus:border-acento focus:shadow-[0_0_0_3px_var(--s-acento-claro)] disabled:opacity-60 aria-[invalid=true]:border-rojo";
+/** Ancho completo salvo que quien lo usa fije un ancho propio (w-…); un máximo (max-w-…) se combina con el ancho completo. */
+const ancho = (c?: string) => (/(^|\s)w-/.test(c ?? "") ? "" : "w-full");
+export const Entrada = ({ className, ...p }: InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={cx(CONTROL, ancho(className), className)} />;
+export const Seleccion = ({ className, children, ...p }: SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} className={cx(CONTROL, ancho(className), "pr-8", className)}>{children}</select>;
+export const AreaTexto = ({ className, ...p }: TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...p} className={cx(CONTROL, ancho(className), "h-auto min-h-20 py-2", className)} />;
 
 /** Interruptor accesible (por ejemplo, acceso a una plataforma). */
 export function Interruptor({ activo, onCambio, etiqueta, deshabilitado }: { activo: boolean; onCambio: (v: boolean) => void; etiqueta: string; deshabilitado?: boolean }) {

@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  AlertTriangle, Bell, CheckCheck, ChevronDown, ChevronRight, CircleAlert, ClipboardList, Cpu, CornerDownLeft, Factory, HardHat, Inbox, Info, LogOut, Moon, PanelLeftClose, PanelLeftOpen,
+  Bell, ChevronDown, ChevronRight, CircleAlert, Cpu, CornerDownLeft, Factory, HardHat, LogOut, Moon, PanelLeftClose, PanelLeftOpen,
   PlugZap, RefreshCw, Search, Server, ShieldCheck, Sun, TriangleAlert, UserCheck, WifiOff, Wrench, X, XOctagon, type LucideIcon,
 } from "lucide-react";
 import type { NotificacionSima } from "@sima/cliente";
-import { Avatar, Boton, Insignia, TIEMPO, CURVA, cx, defEstado } from "@sima/ui";
+import { Avatar, Boton, Insignia, PanelNotificaciones, TIEMPO, CURVA, cx, defEstado } from "@sima/ui";
 import { api, baseUrl } from "./lib/api";
 import { useAuth } from "./lib/auth";
 import { usePlanta } from "./lib/planta";
@@ -30,12 +30,6 @@ export function Logo({ tam = 28 }: { tam?: number }) {
 export const TURNOS: Record<string, string> = { A: "Turno A · 06:00–14:00", B: "Turno B · 14:00–22:00", N: "Turno N · 22:00–06:00", D: "Diurno · 08:00–17:30" };
 
 // ------------------------------------------------------------------------------------------------ notificaciones
-export const CATEGORIAS: Record<string, { t: string; i: LucideIcon; c: string }> = {
-  critica: { t: "Críticas", i: XOctagon, c: "var(--s-rojo)" }, advertencia: { t: "Advertencias", i: AlertTriangle, c: "var(--s-ambar)" },
-  tarea: { t: "Tareas", i: ClipboardList, c: "var(--s-acento)" }, solicitud: { t: "Solicitudes", i: Inbox, c: "var(--s-info)" },
-  aprobacion: { t: "Aprobaciones", i: UserCheck, c: "var(--s-diagnostico)" }, info: { t: "Información", i: Info, c: "var(--s-tenue)" },
-};
-export const ORIGENES: Record<string, string> = { mantenimiento: "Mantenimiento", produccion: "Producción", calidad: "Calidad", seguridad: "Seguridad", automatizacion: "Automatización", personas: "Personas", sistema: "SIMA" };
 export const hace = (iso: string | number) => { const m = Math.round((Date.now() - +new Date(iso)) / 60000); return m < 1 ? "recién" : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
 
 export function useNotificaciones() {
@@ -46,73 +40,10 @@ function CentroNotificaciones({ abierto, onCerrar }: { abierto: boolean; onCerra
   const qc = useQueryClient();
   const { data } = useNotificaciones();
   const { alertas } = usePlanta();
-  const [vista, setVista] = useState<"mias" | "planta">("mias");
-  const [cat, setCat] = useState<string>("todas");
   const leer = useMutation({ mutationFn: (id: number) => api.post(`/api/notificaciones/${id}/leida`), onSuccess: () => qc.invalidateQueries({ queryKey: ["notificaciones"] }) });
   const todas = useMutation({ mutationFn: () => api.post("/api/notificaciones/leidas"), onSuccess: () => qc.invalidateQueries({ queryKey: ["notificaciones"] }) });
-  const items = (data?.items ?? []).filter((n) => cat === "todas" || n.categoria === cat);
-  useEffect(() => { if (!abierto) return; const f = (e: KeyboardEvent) => e.key === "Escape" && onCerrar(); window.addEventListener("keydown", f); return () => window.removeEventListener("keydown", f); }, [abierto, onCerrar]);
   return (
-    <AnimatePresence>
-      {abierto && (
-        <div className="fixed inset-0 z-40">
-          <motion.div className="absolute inset-0 bg-[#05080c]/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: TIEMPO.componente }} onClick={onCerrar} />
-          <motion.aside role="dialog" aria-label="Centro de notificaciones" initial={{ x: 24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 24, opacity: 0 }} transition={{ duration: TIEMPO.componente, ease: CURVA }}
-            className="absolute bottom-6 right-0 top-12 flex w-[420px] max-w-full flex-col border-l border-linea bg-fondo-2 shadow-[var(--s-sombra-flotante)]">
-            <div className="flex items-center gap-2 border-b border-linea-suave px-4 py-2.5">
-              <p className="t-seccion flex-1">Notificaciones</p>
-              {vista === "mias" && (data?.noLeidas ?? 0) > 0 && <Boton tam="s" variante="texto" onClick={() => todas.mutate()}><CheckCheck className="size-3.5" />Marcar todo como leído</Boton>}
-              <Boton tam="s" variante="texto" icono aria-label="Cerrar" onClick={onCerrar}><X className="size-4" /></Boton>
-            </div>
-            <div className="flex gap-1 border-b border-linea-suave px-3 pt-1.5">
-              {([["mias", "Para mí", data?.noLeidas ?? 0], ["planta", "Planta en vivo", alertas.length]] as const).map(([k, t, n]) => (
-                <button key={k} onClick={() => setVista(k)} className={cx("relative cursor-pointer px-2.5 pb-2 pt-1 text-[12.5px] font-semibold", vista === k ? "text-negro" : "text-gris hover:text-negro")}>
-                  {t} <span className="num text-gris">{n}</span>
-                  {vista === k && <motion.span layoutId="notif-tab" className="absolute inset-x-1 -bottom-px h-0.5 bg-acento" />}
-                </button>
-              ))}
-            </div>
-            {vista === "mias" && (
-              <div className="flex flex-wrap gap-1 border-b border-linea-suave px-3 py-2">
-                {["todas", ...Object.keys(CATEGORIAS)].map((k) => (
-                  <button key={k} onClick={() => setCat(k)} className={cx("h-6 cursor-pointer rounded px-2 text-[11.5px] font-semibold", cat === k ? "bg-acento-claro text-acento" : "text-gris hover:bg-papel-2 hover:text-negro")}>
-                    {k === "todas" ? "Todas" : CATEGORIAS[k].t}
-                  </button>
-                ))}
-              </div>
-            )}
-            <ul className="min-h-0 flex-1 overflow-y-auto">
-              {vista === "mias" && items.length === 0 && <li className="px-6 py-12 text-center text-[13px] text-gris">No hay notificaciones {cat !== "todas" ? "de esta categoría" : "para usted"}.</li>}
-              {vista === "mias" && items.map((n) => {
-                const d = CATEGORIAS[n.categoria] ?? CATEGORIAS.info;
-                return (
-                  <li key={n.id}>
-                    <button onClick={() => { if (!n.leida) leer.mutate(n.id); if (n.destino) { ir(n.destino); onCerrar(); } }}
-                      className={cx("flex w-full cursor-pointer gap-3 border-b border-linea-suave px-4 py-3 text-left transition-colors duration-[140ms] hover:bg-papel", !n.leida && "bg-papel/60")}>
-                      <d.i className="mt-0.5 size-4 shrink-0" style={{ color: d.c }} />
-                      <span className="min-w-0 flex-1">
-                        <span className={cx("block text-[13px] leading-snug", !n.leida ? "font-medium text-negro" : "text-carbon")}>{n.texto}</span>
-                        <span className="mt-1 block text-[11.5px] text-gris">{ORIGENES[n.origen] ?? n.origen}{n.referencia && <> · <span className="t-dato">{n.referencia}</span></>} · {hace(n.fecha)}</span>
-                      </span>
-                      {!n.leida && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-acento" aria-label="No leída" />}
-                    </button>
-                  </li>
-                );
-              })}
-              {vista === "planta" && alertas.length === 0 && <li className="px-6 py-12 text-center text-[13px] text-gris">Sin alertas de planta en esta sesión.</li>}
-              {vista === "planta" && alertas.map((a) => (
-                <li key={a.id}>
-                  <button onClick={() => { if (a.destino) { ir(a.destino); onCerrar(); } }} className="flex w-full cursor-pointer gap-3 border-b border-linea-suave px-4 py-3 text-left hover:bg-papel">
-                    {a.nivel === "alarma" ? <XOctagon className="mt-0.5 size-4 shrink-0 text-rojo" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-ambar" />}
-                    <span className="min-w-0 flex-1"><span className="block text-[13px]">{a.texto}</span><span className="text-[11.5px] text-gris">Planta · {new Date(a.ts).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}</span></span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </motion.aside>
-        </div>
-      )}
-    </AnimatePresence>
+    <PanelNotificaciones abierto={abierto} onCerrar={onCerrar} items={data?.items ?? []} noLeidas={data?.noLeidas ?? 0} vivo={alertas} alLeer={(id) => leer.mutate(id)} alLeerTodas={() => todas.mutate()} alIr={ir} />
   );
 }
 

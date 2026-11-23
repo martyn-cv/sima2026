@@ -56,8 +56,8 @@ function Estructura() {
         acciones={puede && <div className="flex flex-wrap gap-2"><Boton variante="contorno" onClick={() => abrir("area")}><Building2 className="size-4" />Área</Boton><Boton variante="contorno" onClick={() => abrir("linea")}><Rows3 className="size-4" />Línea</Boton><Boton variante="acento" onClick={() => abrir("equipo")}><Plus className="size-4" />Registrar máquina</Boton></div>} />
       {!planta ? <Esqueleto className="h-[50vh]" /> : (
         <>
-          <Tarjeta className="tinte-violeta mb-5 flex flex-wrap items-center gap-6 p-5">
-            <span className="degradado-marca grid size-14 place-items-center rounded-2xl text-white shadow-[var(--s-brillo-violeta)]"><Factory className="size-7" /></span>
+          <Tarjeta className="mb-5 flex flex-wrap items-center gap-6 p-5">
+            <span className="grid size-10 place-items-center rounded-md bg-acento-claro text-acento"><Factory className="size-7" /></span>
             <div className="mr-auto"><p className="display text-[24px] font-bold">{planta.nombre}</p><p className="text-[13px] text-gris">{planta.ciudad} · código {planta.codigo}</p></div>
             {[["Áreas", planta.areas.length], ["Líneas", planta.areas.reduce((n, a) => n + a.lineas.length, 0)], ["Equipos", total], ["PLC", planta.areas.reduce((n, a) => n + a.plcs.length, 0)]].map(([t, n]) => (
               <div key={t as string} className="text-center"><p className="display text-[28px] font-bold leading-none">{n}</p><p className="text-[12px] text-gris">{t}</p></div>
@@ -131,7 +131,7 @@ function Estructura() {
             <Campo etiqueta="Marca"><Entrada value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} /></Campo>
             <Campo etiqueta="Modelo"><Entrada value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} /></Campo>
             <label className="flex items-center gap-2.5 rounded-xl border border-linea-suave bg-papel-2 p-3 text-[13.5px] sm:col-span-2"><input type="checkbox" checked={form.simular} onChange={(e) => setForm({ ...form, simular: e.target.checked })} className="accent-[var(--s-acento)]" />Incorporar al simulador de PLC (modelo «{MODELO_DE[form.tipo] ?? "máquina"}»)</label>
-            <div className="flex items-center gap-4 rounded-xl bg-papel-2 p-3 sm:col-span-2"><Maquina tipo={form.tipo} estado="operando" className="h-14 w-20" /><p className="text-[13px] text-gris">Se crearán sus sensores típicos. Quedará «detenido» hasta que el PLC informe que arrancó.</p></div>
+            <div className="flex items-center gap-4 rounded-xl bg-papel-2 p-3 sm:col-span-2"><Maquina tipo={form.tipo} estado="operativo" className="h-14 w-20" /><p className="text-[13px] text-gris">Se crearán sus sensores típicos. Quedará «detenido» hasta que el PLC informe que arrancó.</p></div>
           </>}
         </form>
       </Dialogo>

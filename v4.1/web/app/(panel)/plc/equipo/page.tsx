@@ -68,7 +68,7 @@ function EspacioPlc() {
             const e = ESTADO_PLC[p.estado !== "sin_conexion" ? plcEstado[p.codigo] ?? p.estado : p.estado] ?? ESTADO_PLC.sin_conexion;
             return (
               <Link key={p.codigo} href={`/plc/equipo?codigo=${p.codigo}`} className={cx("relative inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium transition-colors", p.codigo === codigo ? "text-sobre-negro" : "bg-papel-2 hover:bg-linea-suave")}>
-                {p.codigo === codigo && <motion.span layoutId="plc-activo" className="absolute inset-0 rounded-full bg-acento" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+                {p.codigo === codigo && <motion.span layoutId="plc-activo" className="absolute inset-0 rounded-full bg-acento" transition={{ duration: 0.2 }} />}
                 <span className="relative size-2 rounded-full" style={{ background: e.color }} /><span className="relative">{p.codigo}</span>
               </Link>
             );
@@ -128,7 +128,7 @@ function EspacioPlc() {
           <div className="flex gap-1 border-b border-linea-suave p-2">
             {([["puntos", `Entradas y salidas · ${data.puntos.length}`], ["equipos", "Equipos"], ...(tiene("plc_comandos.editar") ? [["mandos", "Mandos"]] : []), ["cambios", "Cambios"]] as [Panel, string][]).map(([k, t]) => (
               <button key={k} onClick={() => setPanel(k)} className={cx("relative h-9 flex-1 cursor-pointer whitespace-nowrap rounded-xl px-2.5 text-[13px] font-medium transition-colors", panel === k ? "text-sobre-negro" : "text-gris hover:text-negro")}>
-                {panel === k && <motion.span layoutId="plc-panel" className="absolute inset-0 rounded-xl bg-negro" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}<span className="relative">{t}</span>
+                {panel === k && <motion.span layoutId="plc-panel" className="absolute inset-0 rounded-xl bg-negro" transition={{ duration: 0.2 }} />}<span className="relative">{t}</span>
               </button>
             ))}
           </div>
@@ -148,7 +148,7 @@ function EspacioPlc() {
                     <button onClick={() => setSel((s) => (s === p.tag ? null : p.tag))} className={cx("flex w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-papel-2", sel === p.tag && "bg-acento-claro")}>
                       <span className={cx("grid h-6 w-9 shrink-0 place-items-center rounded-md text-[10.5px] font-bold", p.tipo === "DI" ? "bg-verde-claro text-verde" : p.tipo === "DO" ? "bg-ambar-claro text-ambar" : "bg-azul-claro text-azul")}>{p.tipo}</span>
                       <span className="min-w-0 flex-1"><span className="flex items-baseline gap-2"><span className="truncate font-mono text-[12.5px] font-semibold">{p.tag}</span><span className="num shrink-0 text-[11.5px] text-gris">{p.direccion}</span></span><span className="block truncate text-[12.5px] text-gris">{p.descripcion}{p.equipo ? ` · ${p.equipo}` : ""}</span></span>
-                      {dig ? <span className={cx("size-3 shrink-0 rounded-full", on ? (p.tipo === "DI" ? "bg-verde shadow-[0_0_10px_var(--s-verde)]" : "bg-ambar shadow-[0_0_10px_var(--s-ambar)]") : "bg-linea")} />
+                      {dig ? <span className={cx("size-3 shrink-0 rounded-full", on ? (p.tipo === "DI" ? "bg-verde" : "bg-ambar") : "bg-linea")} />
                         : <span className="num shrink-0 text-[13px] font-semibold">{v == null ? "—" : num(v, 1)} <span className="font-normal text-gris">{p.unidad}</span></span>}
                     </button>
                   </li>

@@ -170,6 +170,7 @@ body { font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit
 .rejilla { background-image: linear-gradient(var(--s-curvas) 1px, transparent 1px), linear-gradient(90deg, var(--s-curvas) 1px, transparent 1px); background-size: 24px 24px; }
 /* distintivo de dato simulado: trama diagonal que no depende del color */
 .trama-sim { background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--s-info) 16%, transparent) 0 4px, transparent 4px 9px); }
+:root[data-tema="claro"] .trama-sim { background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--s-info) 8%, transparent) 0 4px, transparent 4px 9px); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }

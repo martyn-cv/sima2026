@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  ArrowLeft, ArrowRight, BadgeCheck, Check, CheckCircle2, ClipboardList, Clock, FlaskConical, HardHat, Lock, Minus, Plus, Search, ShieldCheck, Stethoscope, Trash2, Undo2, Unlock, UserCheck, Wrench, XCircle,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardList, Clock, FlaskConical, Lock, Minus, Plus, Search, Stethoscope, Trash2, Unlock, Wrench, XCircle,
 } from "lucide-react";
 import type { FichaEquipo, LiberacionOt } from "@sima/cliente";
-import { AreaTexto, Boton, Chip, CURVA, Entrada, Esqueleto, EstadoEquipo, EstadoVista, MarcaSimulado, Maquina, TIEMPO, cx, mensajeDe, useAviso } from "@sima/ui";
+import { AreaTexto, Boton, Chip, CURVA, ETAPAS_LIBERACION, Entrada, Esqueleto, EstadoEquipo, EstadoVista, LiberacionOrden, MarcaSimulado, Maquina, TIEMPO, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { enviar, uidNuevo } from "../lib/offline";
@@ -31,20 +31,12 @@ const CAUSAS = [["mecanica", "Mecánica"], ["electrica", "Eléctrica"], ["hidrau
 const LOTO = ["Avisé al operador y al supervisor del equipo", "Detuve el equipo con el procedimiento normal", "Abrí el seccionador y puse mi candado y tarjeta", "Liberé energías residuales y verifiqué que no arranca"];
 const PASOS = [{ t: "Revisar", i: ClipboardList }, { t: "Bloqueo LOTO", i: Lock }, { t: "Diagnóstico", i: Stethoscope }, { t: "Intervención", i: Wrench }, { t: "Pruebas y liberación", i: FlaskConical }];
 const PRUEBAS_SUGERIDAS = ["Prueba en vacío sin carga", "Prueba con carga nominal", "Verificación de protecciones y paradas de emergencia", "Medición de vibración y temperatura", "Primera pieza conforme"];
-const ETAPAS: Record<string, { t: string; quien: string; i: typeof Wrench }> = {
-  tecnica: { t: "Liberación técnica", quien: "Supervisión o jefatura de mantenimiento (o responsable de turno habilitado)", i: Wrench },
-  seguridad: { t: "Validación de seguridad", quien: "Prevención de riesgos", i: HardHat },
-  calidad: { t: "Validación de calidad", quien: "Jefatura o ingeniería de calidad", i: ShieldCheck },
-  produccion: { t: "Confirmación de producción", quien: "Supervisión de turno o jefatura de producción", i: UserCheck },
-};
-const CAP_ETAPA: Record<string, string> = { tecnica: "equipos.liberar_tecnica", seguridad: "equipos.liberar_seguridad", calidad: "equipos.liberar_calidad", produccion: "equipos.confirmar_produccion" };
 const hace = (iso: string) => { const m = Math.round((Date.now() - +new Date(iso)) / 60000); return m < 60 ? `hace ${Math.max(1, m)} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
-const fechaHora = (iso: string) => new Date(iso).toLocaleString("es-CL", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export function Mantenimiento() {
   const { usuario } = useAuth();
   const sel = useParametro("orden");
-  const firma = Object.values(CAP_ETAPA).some((c) => tiene(usuario, c)) || tiene(usuario, "ordenes.aprobar");
+  const firma = Object.values(ETAPAS_LIBERACION).some((e) => tiene(usuario, e.capacidad)) || tiene(usuario, "ordenes.aprobar");
   const esp = ESPECIALIDAD_CARGO[usuario?.cargoId ?? 0];
   const [filtro, setFiltro] = useState<Filtro>(firma ? "por_verificar" : "mias");
   const [buscar, setBuscar] = useState("");
@@ -348,89 +340,31 @@ function Confirmacion({ listo, ot, equipo }: { listo: { encolado: boolean; cerra
           <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><motion.path d="M5 12.5l4.5 4.5L19 7.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.1, duration: 0.3 }} /></svg>
         </span>
         <p className="text-[18px] font-semibold">{listo.encolado ? "Guardada en este equipo" : listo.cerrada ? "Intervención registrada · liberación pedida" : "Intervención registrada"}</p>
-        <p className="mx-auto mt-2 max-w-[52ch] text-[13px] text-gris">{listo.encolado ? `No hay conexión: se enviará sola cuando vuelva la red, sin duplicarse. ${ot} queda pendiente de sincronizar.` : listo.cerrada ? `${equipo} queda pendiente de liberación. Deben firmar, en orden: ${listo.etapas.map((e) => ETAPAS[e].t.toLowerCase()).join(", ")}. Cada persona recibe el aviso cuando le toca.` : `${ot} sigue en ejecución con su bloqueo.`}</p>
+        <p className="mx-auto mt-2 max-w-[52ch] text-[13px] text-gris">{listo.encolado ? `No hay conexión: se enviará sola cuando vuelva la red, sin duplicarse. ${ot} queda pendiente de sincronizar.` : listo.cerrada ? `${equipo} queda pendiente de liberación. Deben firmar: ${listo.etapas.map((e) => ETAPAS_LIBERACION[e].t.toLowerCase()).join(", ")}. Cada persona recibe el aviso cuando le toca.` : `${ot} sigue en ejecución con su bloqueo.`}</p>
         <div className="mt-6 flex justify-center gap-2"><Boton variante="contorno" onClick={() => ir(`/explorador?equipo=${equipo}`)}>Ver el equipo</Boton><Boton variante="acento" onClick={() => ir("/mantenimiento")}>Volver a las órdenes</Boton></div>
       </div>
     </motion.div>
   );
 }
 
-/**
- * Orden terminada: lo hecho, las pruebas y la liberación por etapas. Cada etapa la firma una persona distinta que no
- * participó en la intervención; el servidor lo exige (separación de funciones) y deja registro de quién, cuándo y desde dónde.
- */
+/** Orden terminada: la liberación por etapas (componente común de @sima/ui), lo hecho y lo informado. */
 function Liberacion({ ot }: { ot: DetalleOrden }) {
   const { usuario } = useAuth();
   const qc = useQueryClient(); const aviso = useAviso();
-  const [nota, setNota] = useState("");
-  const lib = ot.liberacion;
-  const requeridas = lib?.requeridas ?? ["tecnica", "produccion"];
-  const pendientes = lib?.pendientes ?? [];
-  const participo = ot.asignadoAId === usuario?.id;
-  // la etapa que esta persona podría firmar ahora (la producción va al final; las demás pueden firmarse en cualquier orden)
-  const mia = ot.estado === "por_verificar" && !participo ? pendientes.find((p) => (tiene(usuario, CAP_ETAPA[p]) || (p === "tecnica" && (tiene(usuario, "ordenes.aprobar") || tiene(usuario, "ordenes.ejecutar")))) && (p !== "produccion" || pendientes.length === 1)) : undefined;
-  const yaFirmo = lib?.firmas.some((f) => f.porNombre === usuario?.nombre);
-  const decidir = useMutation({
-    mutationFn: (aprobar: boolean) => api.post(`/api/ordenes/${ot.id}/validar`, { tipo: mia, aprobar, nota }),
-    onSuccess: (_, aprobar) => {
-      aviso(aprobar ? (mia === "produccion" ? `${ot.equipo.codigo} liberado para producción.` : `${ETAPAS[mia!].t} registrada.`) : `${ETAPAS[mia!].t} rechazada: la orden vuelve al técnico.`, "ok");
-      setNota(""); for (const k of ["ordenes", "orden", "equipos", "equipo", "resumen", "aprobaciones", "notificaciones"]) void qc.invalidateQueries({ queryKey: [k] });
+  const firmar = useMutation({
+    mutationFn: (v: { tipo: string; aprobar: boolean; nota: string }) => api.post(`/api/ordenes/${ot.id}/validar`, v),
+    onSuccess: (_, v) => {
+      aviso(v.aprobar ? (v.tipo === "produccion" ? `${ot.equipo.codigo} liberado para producción.` : `${ETAPAS_LIBERACION[v.tipo].t} registrada.`) : `${ETAPAS_LIBERACION[v.tipo].t} rechazada: la orden vuelve al técnico.`, "ok");
+      for (const k of ["ordenes", "orden", "equipos", "equipo", "resumen", "aprobaciones", "notificaciones"]) void qc.invalidateQueries({ queryKey: [k] });
     },
     onError: (e) => aviso(mensajeDe(e), "error"),
   });
+  // la técnica también la puede firmar un responsable de turno habilitado (el servidor verifica la habilitación)
+  const puedeFirmar = (t: string) => tiene(usuario, ETAPAS_LIBERACION[t].capacidad) || (t === "tecnica" && (tiene(usuario, "ordenes.aprobar") || tiene(usuario, "ordenes.ejecutar")));
   return (
     <div className="grid gap-4">
-      {ot.estado === "cerrada"
-        ? <p className="flex items-center gap-2 rounded-md border border-verde/30 bg-verde-claro px-3.5 py-3 text-[13px] text-verde"><BadgeCheck className="size-4" />Orden cerrada: {ot.equipo.codigo} quedó liberado para producción{ot.verificadaEn ? ` ${hace(ot.verificadaEn)}` : ""}.</p>
-        : <p className="rounded-md border border-ambar/30 bg-ambar-claro px-3.5 py-3 text-[13px] text-ambar-hondo"><b>Pendiente de liberación.</b> {ot.asignado} terminó{ot.cierreSolicitado ? ` ${hace(ot.cierreSolicitado)}` : ""} y retiró su bloqueo. {ot.equipo.codigo} no se pone en marcha hasta completar las firmas.</p>}
-
-      <section aria-label="Etapas de la liberación" className="rounded-md border border-linea-suave bg-papel">
-        <header className="flex items-center gap-2 border-b border-linea-suave px-3.5 py-2.5"><p className="t-seccion flex-1">Liberación del equipo</p>{lib && lib.ronda > 1 && <span className="text-[11.5px] text-gris">ronda {lib.ronda}</span>}</header>
-        <ol className="divide-y divide-linea-suave">
-          {requeridas.map((r) => {
-            const f = lib?.firmas.find((x) => x.tipo === r);
-            const E = ETAPAS[r];
-            const esMia = mia === r;
-            return (
-              <li key={r} className={cx("flex gap-3 px-3.5 py-3", esMia && "bg-acento-claro")}>
-                <span className={cx("mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border", f ? "border-verde bg-verde-claro text-verde" : esMia ? "border-acento text-acento" : "border-linea text-gris")}>{f ? <Check className="size-3.5" /> : <E.i className="size-3.5" />}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold">{E.t}</p>
-                  {f ? <p className="text-[12px] text-gris"><b className="font-medium text-carbon">{f.porNombre}</b> · {f.porCargo} · {f.plataforma === "app" ? "SIMA Desktop" : "SIMA Web"} · {fechaHora(f.fecha)}{f.nota && <span className="block text-carbon">«{f.nota}»</span>}</p>
-                    : <p className="text-[12px] text-gris">{esMia ? "Le corresponde firmar a usted." : `Pendiente · ${E.quien}`}</p>}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-
-      {mia && (
-        <section className="rounded-md border border-acento/40 bg-papel p-4">
-          <p className="t-seccion">{ETAPAS[mia].t}</p>
-          <p className="mb-3 mt-1 text-[12.5px] text-gris">{mia === "produccion" ? `Confirme que ${ot.equipo.codigo} puede volver a producir. Al aprobar queda «liberado para producción»; la marcha la da operación o el PLC, no este botón.` : mia === "seguridad" ? "Verifique protecciones, resguardos y paradas de emergencia, y que no queden energías peligrosas." : mia === "calidad" ? "Verifique que el proceso queda dentro de especificación (primera pieza o control de calidad)." : "Revise que el trabajo quedó bien, que las pruebas son conformes, que se retiraron los bloqueos y que el área está despejada."}</p>
-          <AreaTexto value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Observación (obligatoria si rechaza: qué falta)" className="min-h-20" />
-          <div className="mt-3 flex flex-wrap justify-end gap-2">
-            <Boton variante="contorno" disabled={decidir.isPending || nota.trim().length < 4} onClick={() => decidir.mutate(false)}><Undo2 className="size-4" />Rechazar y devolver al técnico</Boton>
-            <Boton variante="acento" cargando={decidir.isPending} onClick={() => decidir.mutate(true)}><BadgeCheck className="size-4" />{mia === "produccion" ? "Confirmar y liberar para producción" : `Firmar ${ETAPAS[mia].t.toLowerCase()}`}</Boton>
-          </div>
-        </section>
-      )}
-      {ot.estado === "por_verificar" && participo && <p className="text-[12.5px] text-gris">Usted ejecutó esta orden: la liberan otras personas. Recibirá un aviso con cada firma o rechazo.</p>}
-      {ot.estado === "por_verificar" && !participo && !mia && pendientes.length > 0 && <p className="text-[12.5px] text-gris">{yaFirmo ? "Usted ya firmó una etapa: cada etapa la firma una persona distinta." : "Su cargo no firma la etapa pendiente."} Falta: {pendientes.map((p) => ETAPAS[p].t.toLowerCase()).join(", ")}.</p>}
-
-      {(lib?.pruebas.length ?? 0) > 0 && (
-        <section className="rounded-md border border-linea-suave bg-papel">
-          <p className="t-etiqueta px-3.5 pb-1 pt-3">Pruebas registradas</p>
-          <ul className="divide-y divide-linea-suave">{lib!.pruebas.map((p) => <li key={p.id} className="flex items-center gap-3 px-3.5 py-2 text-[12.5px]">{p.resultado === "conforme" ? <CheckCircle2 className="size-4 shrink-0 text-verde" /> : <XCircle className="size-4 shrink-0 text-rojo" />}<span className="min-w-0 flex-1">{p.descripcion}{p.valores && <span className="t-dato ml-2 text-gris">{p.valores}</span>}</span><span className="text-gris">{p.registradaPor} · {fechaHora(p.fecha)}</span></li>)}</ul>
-        </section>
-      )}
-      {(lib?.rechazos.length ?? 0) > 0 && (
-        <section className="rounded-md border border-rojo/30 bg-papel">
-          <p className="t-etiqueta px-3.5 pb-1 pt-3">Rechazos anteriores</p>
-          <ul className="divide-y divide-linea-suave">{lib!.rechazos.map((r, i) => <li key={i} className="px-3.5 py-2 text-[12.5px]"><b>{r.titulo}</b> · {r.porNombre} ({r.porCargo}) · ronda {r.ronda} · {fechaHora(r.fecha)}<span className="block text-carbon">«{r.nota}»</span></li>)}</ul>
-        </section>
-      )}
+      <LiberacionOrden estado={ot.estado} equipo={ot.equipo.codigo} asignado={ot.asignado} cierreSolicitado={ot.cierreSolicitado} verificadaEn={ot.verificadaEn} lib={ot.liberacion}
+        participo={ot.asignadoAId === usuario?.id} puedeFirmar={puedeFirmar} nombreUsuario={usuario?.nombre} firmando={firmar.isPending} onFirmar={(tipo, aprobar, nota) => firmar.mutate({ tipo, aprobar, nota })} />
       {ot.intervenciones.map((i) => <div key={i.id} className="rounded-md border border-linea-suave bg-papel p-3.5"><p className="text-[13px] font-medium">{i.accion}</p>{i.diagnostico && <p className="text-[12.5px] text-gris">{i.diagnostico}</p>}<p className="text-[11.5px] text-gris">{i.tecnicoNombre} · {i.resultado.replace("_", " ")} · {hace(i.fin)}</p></div>)}
       {ot.descripcion && <p className="whitespace-pre-wrap rounded-md bg-papel-2 p-3.5 text-[12.5px] text-gris">{ot.descripcion}</p>}
     </div>

@@ -7,19 +7,18 @@ import { ChevronDown, ChevronRight, Cpu, FileText, History, Package, ShieldAlert
 import { fecha, hace, num, type FichaEquipo } from "@sima/cliente";
 import { api } from "@/lib/api";
 import { usePlanta } from "@/lib/planta";
-import { Chip, CURVA, Esqueleto, ErrorCarga, Maquina, Medidor, cx } from "@/components/ui";
+import { Chip, CURVA, Esqueleto, ErrorCarga, ESTADOS_EQUIPO, EstadoEquipo, MarcaSimulado, Maquina, Medidor, cx, defEstado } from "@/components/ui";
 
-export const ESTADO_EQ: Record<string, { texto: string; tono: "ok" | "peligro" | "aviso" | "neutro"; color: string }> = {
-  operando: { texto: "Operando", tono: "ok", color: "var(--s-verde)" },
-  alarma: { texto: "Con alarma", tono: "peligro", color: "var(--s-rojo)" },
-  en_mantencion: { texto: "En mantención", tono: "aviso", color: "var(--s-ambar)" },
-  detenido: { texto: "Detenido", tono: "neutro", color: "var(--s-tenue)" },
-};
+/** Los diez estados de equipo (y el vocabulario anterior de los dispositivos), desde la definición común de @sima/ui. */
+export const ESTADO_EQ = Object.fromEntries([...Object.keys(ESTADOS_EQUIPO), "operando", "alarma", "en_mantencion", "detenido"].map((k) => {
+  const d = defEstado(k);
+  return [k, { texto: d.etiqueta, tono: d.tono, color: d.color }];
+}));
 const CAUSA: Record<string, string> = { mecanica: "Mecánica", electrica: "Eléctrica", hidraulica: "Hidráulica", neumatica: "Neumática", electronica: "Electrónica", operacional: "Operacional", desgaste: "Desgaste" };
 const ORIGEN: Record<string, string> = { simulador: "simulador", gateway: "PLC real", web: "web", desktop: "SIMA Desktop", sistema: "sistema", interno: "simulación interna" };
 
 export function MarcaSim({ className }: { className?: string }) {
-  return <span title="Dato de un PLC simulado: no corresponde a maquinaria real" className={cx("inline-flex h-5 items-center rounded-md border border-cian/40 bg-cian/10 px-1.5 font-mono text-[10.5px] font-bold tracking-wider text-cian", className)}>SIM</span>;
+  return <MarcaSimulado className={className} />;
 }
 
 type Pestana = "historial" | "mantenimiento" | "documentos" | "repuestos" | "plc";
@@ -33,7 +32,7 @@ export function FichaEquipoVista({ codigo }: { codigo: string }) {
   if (!data) return <div className="grid gap-3"><Esqueleto className="h-40" /><Esqueleto className="h-28" /><Esqueleto className="h-60" /></div>;
   const vivo = equipos.find((e) => e.codigo === codigo);
   const estado = vivo?.estado ?? data.equipo.estado;
-  const est = ESTADO_EQ[estado] ?? ESTADO_EQ.detenido;
+  const est = ESTADO_EQ[estado] ?? ESTADO_EQ.liberado;
   const sensores = vivo?.sensores ?? data.sensores;
   const ind = data.indicadores;
   const pestanas: { k: Pestana; t: string; i: typeof History; n?: number }[] = [
@@ -47,12 +46,12 @@ export function FichaEquipoVista({ codigo }: { codigo: string }) {
   return (
     <div className="grid min-w-0 gap-5">
       {/* cabecera */}
-      <div className="relative overflow-hidden rounded-2xl border border-linea-suave p-5" style={{ background: `radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, ${est.color} 16%, transparent), transparent 60%), var(--s-superficie-2)` }}>
+      <div className="relative overflow-hidden rounded-md border border-linea-suave bg-papel-2 p-5" style={{ borderTop: `2px solid ${est.color}` }}>
         <p className="mb-3 flex flex-wrap items-center gap-1 text-[12.5px] text-gris">{data.jerarquia.planta}<ChevronRight className="size-3" />{data.jerarquia.area.nombre}<ChevronRight className="size-3" />{data.jerarquia.linea.nombre}</p>
         <div className="flex items-center gap-5">
           <Maquina tipo={data.equipo.tipo} estado={estado} className="h-24 w-36 shrink-0" />
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2"><h2 className="display text-[30px] font-bold leading-none">{data.equipo.codigo}</h2><Chip tono={est.tono}>{est.texto}</Chip>{data.equipo.simulado && <MarcaSim />}</div>
+            <div className="flex flex-wrap items-center gap-2"><h2 className="font-mono text-[24px] font-bold leading-none">{data.equipo.codigo}</h2><EstadoEquipo estado={estado} />{data.equipo.simulado && <MarcaSim />}</div>
             <p className="mt-1 text-[15px] font-medium">{data.equipo.nombre}</p>
             <p className="text-[13px] text-gris">{data.equipo.tipo} · {data.equipo.marca} {data.equipo.modelo} · criticidad {data.equipo.criticidad}</p>
           </div>
@@ -88,7 +87,7 @@ export function FichaEquipoVista({ codigo }: { codigo: string }) {
         <div className="flex gap-1 overflow-x-auto rounded-2xl bg-papel-2 p-1">
           {pestanas.map((p) => (
             <button key={p.k} onClick={() => setTab(p.k)} className={cx("relative inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium", tab === p.k ? "text-negro" : "text-gris hover:text-negro")}>
-              {tab === p.k && <motion.span layoutId={`ficha-${codigo}`} className="absolute inset-0 rounded-xl bg-papel shadow-sm" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+              {tab === p.k && <motion.span layoutId={`ficha-${codigo}`} className="absolute inset-0 rounded-xl bg-papel shadow-sm" transition={{ duration: 0.2, ease: CURVA }} />}
               <p.i className="relative size-4" /><span className="relative">{p.t}</span>{p.n != null && <span className="relative num text-[11px] text-gris">{p.n}</span>}
             </button>
           ))}
@@ -102,7 +101,7 @@ export function FichaEquipoVista({ codigo }: { codigo: string }) {
                   <li key={i} className="relative pb-4">
                     <span className="absolute -left-[27px] top-1 size-3 rounded-full ring-4 ring-papel" style={{ background: ESTADO_EQ[h.hasta]?.color ?? "var(--s-tenue)" }} />
                     <p className="text-[14px]"><b>{ESTADO_EQ[h.desde]?.texto ?? h.desde}</b> → <b>{ESTADO_EQ[h.hasta]?.texto ?? h.hasta}</b> {h.simulado && <MarcaSim className="ml-1 align-middle" />}</p>
-                    <p className="text-[12.5px] text-gris">{h.causa} · {ORIGEN[h.origen] ?? h.origen} · {hace(h.ts)}</p>
+                    <p className="text-[12.5px] text-gris">{h.por ? <><b className="font-medium text-carbon">{h.por}</b>{h.cargo ? ` (${h.cargo})` : ""} · </> : null}{h.causa} · {ORIGEN[h.origen] ?? h.origen} · <span title={new Date(h.ts).toLocaleString("es-CL")}>{hace(h.ts)}</span></p>
                   </li>
                 ))}
               </ol>

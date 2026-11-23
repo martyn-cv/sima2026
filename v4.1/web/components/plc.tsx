@@ -5,10 +5,10 @@ import { pasa, serie, type Condicion, type Peldano, type PlcModulo, type PlcPunt
 import { cx } from "./ui";
 
 export const ESTADO_PLC: Record<string, { texto: string; tono: "ok" | "aviso" | "peligro" | "neutro"; led: string; color: string }> = {
-  run: { texto: "En marcha", tono: "ok", led: "bg-[#2fe39a] animate-latido shadow-[0_0_10px_#2fe39a]", color: "#2fe39a" },
-  stop: { texto: "Detenido", tono: "aviso", led: "bg-ambar", color: "#fbbf24" },
-  error: { texto: "Con error", tono: "peligro", led: "bg-rojo animate-parpadeo shadow-[0_0_10px_#ff5470]", color: "#ff5470" },
-  sin_conexion: { texto: "Sin conexión", tono: "neutro", led: "bg-[#5b6577]", color: "#5b6577" },
+  run: { texto: "En marcha", tono: "ok", led: "bg-verde", color: "var(--s-verde)" },
+  stop: { texto: "Detenido", tono: "aviso", led: "bg-ambar", color: "var(--s-ambar)" },
+  error: { texto: "Con error", tono: "peligro", led: "bg-rojo animate-parpadeo", color: "var(--s-rojo)" },
+  sin_conexion: { texto: "Sin conexión", tono: "neutro", led: "bg-detenido", color: "var(--s-detenido)" },
 };
 
 // ------------------------------------------------------------------------------------------ barra de un sensor

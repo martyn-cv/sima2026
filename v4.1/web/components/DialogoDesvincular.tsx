@@ -76,7 +76,7 @@ export function DialogoDesvincular({ persona, abierto, onCerrar }: { persona: Pe
       {paso === "hecho" && (
         <div className="space-y-5 pt-2">
           <div className="flex items-center gap-4 bg-chapa p-4">
-            <motion.span initial={{ scale: 0.6, rotate: -25, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ delay: 0.9, type: "spring", stiffness: 420, damping: 18 }}
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.2 }}
               className="grid size-12 shrink-0 place-items-center bg-negro text-sobre-negro"><Lock className="size-6" /></motion.span>
             <div className="min-w-0 flex-1"><p className="display truncate text-[24px] font-bold leading-tight">{persona.nombre}</p><p className="truncate text-gris">{persona.cargo}</p></div>
             <Estado v={cuenta} />

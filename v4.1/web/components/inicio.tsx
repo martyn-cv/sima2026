@@ -11,7 +11,7 @@ import { clp, fecha, hace, num, periodoLegible } from "@sima/cliente";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { usePlanta } from "@/lib/planta";
-import { Avatar, BarrasH, Boton, Chip, Chispa, CURVA, Cuenta, Dona, Esqueleto, GraficoArea, Kpi, Tarjeta, cx, mensajeDe, useAviso } from "@/components/ui";
+import { Avatar, BarrasH, Boton, Chip, Chispa, CURVA, Cuenta, Dona, Esqueleto, GraficoArea, Kpi, Tarjeta, cx, defEstado, mensajeDe, useAviso } from "@/components/ui";
 
 // ------------------------------------------------------------------------------------------------ tipos de las respuestas
 export interface Panel {
@@ -39,7 +39,7 @@ export interface ResumenSst {
   porTipo: { tipo: string; n: number }[]; porMes: { mes: string; n: number; accidentes: number }[]; porZona: { zona: string; n: number }[];
 }
 export interface Kpis { dias: number; kpis: { clave: string; nombre: string; area: string; valor: number | null; meta: number; mejor: string; unidad: string; estado: string; nota: string }[] }
-export interface Aprobacion { tipo: "plc" | "remuneraciones" | "calidad" | "sst"; id: number; titulo: string; detalle: string; fecha: string; enlace: string }
+export interface Aprobacion { tipo: "plc" | "remuneraciones" | "calidad" | "sst" | "liberacion"; id: number; titulo: string; detalle: string; fecha: string; enlace: string; etapa?: string }
 interface Cierres {
   cierres: { id: number; periodo: string; estado: string; personas: number; totalHaberes: number; totalLiquido: number; preparadoPor: string; fechaPreparacion: string; aprobadoPor?: string | null; fechaAprobacion?: string | null; puedeAprobar: boolean }[];
   validaciones: { periodo: string; validadoPor: string; fecha: string; nota: string }[]; puedePreparar: boolean; puedeValidar: boolean;
@@ -54,11 +54,11 @@ const pct = (n: number, d = 1) => `${num(n * 100, d)} %`;
 /** Encabezado de un módulo del inicio: icono, título, subtítulo y enlace. */
 export function Bloque({ icono, titulo, sub, enlace, children, className, delay = 0 }: { icono: ReactNode; titulo: string; sub?: string; enlace?: { href: string; texto: string }; children: ReactNode; className?: string; delay?: number }) {
   return (
-    <motion.section initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ duration: 0.55, delay, ease: CURVA }} className={cx("min-w-0", className)}>
+    <motion.section initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, margin: "-40px" }} transition={{ duration: 0.3, delay, ease: CURVA }} className={cx("min-w-0", className)}>
       <header className="mb-3 flex items-end justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-2xl bg-acento-claro text-acento">{icono}</span>
-          <div><h2 className="display text-[22px] font-bold leading-none">{titulo}</h2>{sub && <p className="mt-1 text-[13px] text-gris">{sub}</p>}</div>
+          <span className="text-acento [&>svg]:size-5">{icono}</span>
+          <div><h2 className="text-[17px] font-semibold leading-tight">{titulo}</h2>{sub && <p className="mt-1 text-[13px] text-gris">{sub}</p>}</div>
         </div>
         {enlace && <Link href={enlace.href} className="group inline-flex shrink-0 items-center gap-1 text-[13.5px] font-medium text-acento">{enlace.texto}<ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></Link>}
       </header>
@@ -77,72 +77,53 @@ const cargaBloque = <div className="grid gap-4 md:grid-cols-4"><Esqueleto classN
 function saludo(h: number) { return h < 6 ? "Buenas noches" : h < 13 ? "Buenos días" : h < 20 ? "Buenas tardes" : "Buenas noches"; }
 
 export function Cabecera({ panel }: { panel?: Panel }) {
-  const { usuario } = useAuth();
+  const { usuario, tiene } = useAuth();
   const { equipos, conexion } = usePlanta();
   const [ahora, setAhora] = useState<Date | null>(null);
-  useEffect(() => { setAhora(new Date()); const t = setInterval(() => setAhora(new Date()), 1000); return () => clearInterval(t); }, []);
-  const operando = equipos.filter((e) => e.estado === "operando").length;
-  const conAlarma = equipos.filter((e) => e.estado === "alarma").length;
+  useEffect(() => { setAhora(new Date()); const t = setInterval(() => setAhora(new Date()), 30_000); return () => clearInterval(t); }, []);
+  const produciendo = equipos.filter((e) => defEstado(e.estado).marcha).length;
+  const criticos = equipos.filter((e) => defEstado(e.estado).critico).length;
   const nombre = usuario?.nombre.split(" ")[0] ?? "";
   return (
-    <motion.header initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="tarjeta relative mb-7 overflow-hidden p-6 sm:p-8">
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70" style={{ background: "radial-gradient(900px 320px at 0% 0%, var(--s-aurora-a), transparent 60%), radial-gradient(700px 300px at 100% 100%, var(--s-aurora-b), transparent 60%)" }} />
-      <svg aria-hidden viewBox="0 0 800 120" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 bottom-0 h-24 w-full opacity-40">
-        <motion.path d="M0 110 L80 80 L140 92 L220 40 L280 70 L350 18 L410 60 L470 44 L540 86 L610 36 L680 70 L740 52 L800 76" fill="none" stroke="var(--s-acento)" strokeWidth="1.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2.4, ease: CURVA }} />
-      </svg>
-      <div className="relative flex flex-wrap items-end justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <Avatar nombre={usuario?.nombre ?? "?"} tam={64} className="hidden sm:grid" />
-          <div>
-            <p className="text-[14px] text-gris" suppressHydrationWarning>{ahora ? `${saludo(ahora.getHours())} · ${ahora.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" })}` : " "}</p>
-            <h1 className="display texto-degradado text-[clamp(34px,4.2vw,56px)] font-extrabold leading-[1.02] tracking-tight">Hola, {nombre}</h1>
-            <p className="mt-1 text-[15px] text-carbon">{usuario?.cargo}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="vidrio rounded-2xl border border-linea-suave px-4 py-2.5">
-            <p className="text-[12px] text-gris">Hora de planta</p>
-            <p className="num display text-[28px] font-bold leading-none" suppressHydrationWarning>{ahora ? ahora.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--"}</p>
-          </div>
-          <div className="vidrio flex items-center gap-3 rounded-2xl border border-linea-suave px-4 py-2.5">
-            <Dona tam={52} grosor={7} partes={[{ etiqueta: "Operando", valor: operando, color: "var(--s-verde)" }, { etiqueta: "Con alarma", valor: conAlarma, color: "var(--s-rojo)" }, { etiqueta: "Otros", valor: Math.max(0, equipos.length - operando - conAlarma), color: "var(--s-ambar)" }]}
-              centro={<span className="num text-[13px] font-bold">{operando}</span>} />
-            <div><p className="text-[12px] text-gris">Equipos operando</p><p className="text-[15px] font-semibold">{operando} de {equipos.length}{conAlarma > 0 && <span className="ml-2 text-rojo">· {conAlarma} con alarma</span>}</p></div>
-          </div>
-          <div className="vidrio flex items-center gap-2.5 rounded-2xl border border-linea-suave px-4 py-2.5">
-            <span className={cx("size-2.5 rounded-full", conexion === "conectado" ? "bg-verde animate-latido" : conexion === "reconectando" ? "bg-ambar animate-parpadeo" : "bg-rojo")} />
-            <div><p className="text-[12px] text-gris">Datos en vivo</p><p className="text-[15px] font-semibold">{conexion === "conectado" ? "Conectado" : conexion === "reconectando" ? "Reconectando…" : "Sin conexión"}</p></div>
-          </div>
-          {panel?.planta && panel.planta.alarmasCriticas > 0 && (
-            <Link href="/planta" className="flex items-center gap-2 rounded-2xl border border-rojo/30 bg-rojo-claro px-4 py-2.5 text-rojo-hondo">
-              <AlertTriangle className="size-5 animate-parpadeo text-rojo" /><span><span className="block text-[12px]">Alarmas críticas</span><b className="display text-[22px] leading-none">{panel.planta.alarmasCriticas}</b></span>
-            </Link>
-          )}
-        </div>
+    <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p className="text-[12.5px] text-gris" suppressHydrationWarning>{ahora ? `${saludo(ahora.getHours())} · ${ahora.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" })}` : " "}</p>
+        <h1 className="t-pantalla mt-0.5">Hola, {nombre}</h1>
+        <p className="text-[13px] text-gris">{usuario?.cargo}</p>
       </div>
-    </motion.header>
+      {tiene("planta.ver") && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={cx("inline-flex h-8 items-center gap-2 rounded-md border px-3 text-[12.5px] font-medium", conexion === "conectado" ? "border-linea-suave bg-papel text-verde" : "border-ambar/40 bg-ambar-claro text-ambar")}>
+            <span className={cx("size-2 rounded-full", conexion === "conectado" ? "bg-verde" : conexion === "reconectando" ? "bg-ambar" : "bg-rojo")} />{conexion === "conectado" ? "Datos en vivo" : conexion === "reconectando" ? "Reconectando" : "Sin conexión en vivo"}
+          </span>
+          <Link href="/planta" className="inline-flex h-8 items-center gap-2 rounded-md border border-linea-suave bg-papel px-3 text-[12.5px] hover:border-linea"><Activity className="size-3.5 text-gris" /><b className="num">{produciendo}</b> de {equipos.length} equipos produciendo</Link>
+          {criticos > 0 && <Link href="/planta" className="inline-flex h-8 items-center gap-2 rounded-md border border-rojo/40 bg-rojo-claro px-3 text-[12.5px] font-semibold text-rojo"><AlertTriangle className="size-3.5" />{criticos} en falla o bloqueados</Link>}
+          {panel?.planta && panel.planta.alarmasCriticas > 0 && <Link href="/planta" className="inline-flex h-8 items-center gap-2 rounded-md border border-rojo/40 bg-rojo-claro px-3 text-[12.5px] font-semibold text-rojo"><AlertTriangle className="size-3.5" />{panel.planta.alarmasCriticas} alarmas críticas</Link>}
+        </div>
+      )}
+    </header>
   );
 }
 
 // ------------------------------------------------------------------------------------------------ aprobaciones pendientes
-const ICONO_APROB = { plc: Cpu, remuneraciones: Wallet, calidad: PackageCheck, sst: HardHat };
+const ICONO_APROB = { plc: Cpu, remuneraciones: Wallet, calidad: PackageCheck, sst: HardHat, liberacion: BadgeCheck };
 export function BandejaAprobaciones() {
   const { data = [] } = useQuery({ queryKey: ["aprobaciones"], queryFn: () => api.get<Aprobacion[]>("/api/aprobaciones"), refetchInterval: 30_000 });
   if (data.length === 0) return null;
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-7">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} className="mb-7">
       <Tarjeta className="overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-linea-suave px-5 py-3.5">
-          <span className="relative grid size-9 place-items-center rounded-xl bg-cobre/15 text-cobre"><Inbox className="size-5" /><span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-cobre text-[11px] font-bold text-sobre-negro">{data.length}</span></span>
-          <div><p className="font-semibold">Esperan su aprobación</p><p className="text-[13px] text-gris">Lo que otra persona preparó y su cargo debe autorizar. Nadie aprueba lo que él mismo solicitó.</p></div>
+        <div className="flex items-center gap-3 border-b border-linea-suave px-5 py-3">
+          <Inbox className="size-4 text-acento" />
+          <div className="flex-1"><p className="t-seccion">Requieren su firma o aprobación <span className="num ml-1 text-gris">{data.length}</span></p><p className="text-[12.5px] text-gris">Lo que otra persona preparó o ejecutó y su cargo debe autorizar. Nadie aprueba ni libera su propio trabajo.</p></div>
         </div>
         <ul className="grid divide-y divide-linea-suave md:grid-cols-2 md:divide-x md:divide-y-0">
-          {data.slice(0, 4).map((a, i) => {
+          {data.slice(0, 6).map((a, i) => {
             const I = ICONO_APROB[a.tipo];
             return (
-              <motion.li key={`${a.tipo}${a.id}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.06 }}>
+              <motion.li key={`${a.tipo}${a.id}${a.etapa ?? ""}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18, delay: i * 0.03 }}>
                 <Link href={a.enlace} className="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-papel-2">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-papel-2 text-acento"><I className="size-4.5" /></span>
+                  <span className="grid size-8 shrink-0 place-items-center rounded-md border border-linea-suave bg-papel-2 text-acento"><I className="size-4" /></span>
                   <span className="min-w-0 flex-1"><span className="block truncate font-medium">{a.titulo}</span><span className="block truncate text-[13px] text-gris">{a.detalle} · {hace(a.fecha)}</span></span>
                   <ArrowRight className="size-4 shrink-0 text-gris transition-transform group-hover:translate-x-0.5 group-hover:text-acento" />
                 </Link>
@@ -156,7 +137,6 @@ export function BandejaAprobaciones() {
 }
 
 // ------------------------------------------------------------------------------------------------ módulo: planta
-const ESTADO_COLOR: Record<string, string> = { operando: "var(--s-verde)", alarma: "var(--s-rojo)", en_mantencion: "var(--s-ambar)", detenido: "var(--s-tenue)" };
 const NIVEL_COLOR = { alarma: "var(--s-rojo)", aviso: "var(--s-ambar)", info: "var(--s-azul)", ok: "var(--s-verde)" };
 
 export function ModPlanta({ panel, delay }: { panel: Panel; delay?: number }) {
@@ -169,23 +149,20 @@ export function ModPlanta({ panel, delay }: { panel: Panel; delay?: number }) {
         <Kpi titulo="PLC conectados" valor={p.plcConectados} sufijo={`/ ${p.plcTotal}`} icono={<Cpu className="size-4.5" />} tono="azul" delay={0.05} />
         <Kpi titulo="Alarmas abiertas" valor={p.alarmasAbiertas} detalle={<>{p.alarmasCriticas} críticas</>} icono={<AlertTriangle className="size-4.5" />} tono={p.alarmasCriticas > 0 ? "rojo" : "verde"} delay={0.1} />
         <Kpi titulo="Órdenes de trabajo abiertas" valor={p.ordenesAbiertas} icono={<Wrench className="size-4.5" />} tono="ambar" delay={0.15} />
-        <Kpi titulo="Equipos operando" valor={equipos.filter((e) => e.estado === "operando").length} sufijo={`/ ${equipos.length}`} icono={<Activity className="size-4.5" />} tono="verde" delay={0.2} />
+        <Kpi titulo="Equipos produciendo" valor={equipos.filter((e) => defEstado(e.estado).marcha).length} sufijo={`/ ${equipos.length}`} icono={<Activity className="size-4.5" />} tono="verde" detalle={<>{equipos.filter((e) => defEstado(e.estado).critico).length} en falla o bloqueados</>} delay={0.2} />
       </div>
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
         <Tarjeta className="p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">Mapa de equipos</p><Leyenda items={[{ texto: "Operando", color: ESTADO_COLOR.operando }, { texto: "Alarma", color: ESTADO_COLOR.alarma }, { texto: "Mantención", color: ESTADO_COLOR.en_mantencion }, { texto: "Detenido", color: ESTADO_COLOR.detenido }]} /></div>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><p className="t-seccion">Mapa de equipos</p><Leyenda items={[...new Set(equipos.map((e) => defEstado(e.estado)))].map((d) => ({ texto: d.corta, color: d.color }))} /></div>
           <div className="grid gap-4 md:grid-cols-2">
             {zonas.map((z) => (
-              <div key={z} className="rounded-2xl border border-linea-suave bg-papel-2/60 p-3">
+              <div key={z} className="rounded-md border border-linea-suave bg-papel-2/60 p-3">
                 <p className="mb-2 text-[12.5px] font-medium text-gris">{z}</p>
                 <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {equipos.filter((e) => e.zona === z).map((e) => (
                     <li key={e.codigo}>
-                      <Link href={`/planta?equipo=${e.codigo}`} title={e.nombre} className="group relative flex items-center gap-2 overflow-hidden rounded-xl border border-linea-suave bg-papel px-2.5 py-2 transition-colors hover:border-acento/40">
-                        <span className="relative grid size-3 place-items-center">
-                          {e.estado === "alarma" && <span className="absolute inset-0 animate-ping rounded-full" style={{ background: ESTADO_COLOR.alarma }} />}
-                          <span className="relative size-2.5 rounded-full" style={{ background: ESTADO_COLOR[e.estado] ?? "var(--s-tenue)" }} />
-                        </span>
+                      <Link href={`/planta?equipo=${e.codigo}`} title={e.nombre} className={cx("group relative flex items-center gap-2 overflow-hidden rounded-md border px-2.5 py-2 transition-colors duration-150 hover:border-linea", defEstado(e.estado).critico ? "border-rojo/50 bg-rojo-claro" : "border-linea-suave bg-papel", e.simulado && "trama-sim")}>
+                        <IconoEstado estado={e.estado} />
                         <span className="min-w-0"><span className="num block text-[13px] font-semibold leading-tight">{e.codigo}</span><span className="block truncate text-[11.5px] text-gris">{e.nombre}</span></span>
                       </Link>
                     </li>
@@ -438,7 +415,7 @@ export function ModDespachos({ delay }: { delay?: number }) {
               <div className="flex items-start justify-between gap-3"><div><p className="num font-semibold">{d.codigo}</p><p className="display text-[19px] font-bold leading-tight">{d.destino}</p><p className="text-[13px] text-gris">{d.carga}</p></div>
                 <Chip tono={d.atrasado ? "peligro" : d.estado === "en_ruta" ? "info" : "aviso"}>{d.atrasado ? "Atrasado" : d.estado === "en_ruta" ? "En ruta" : "Por salir"}</Chip></div>
               <div className="relative mt-4 h-2 rounded-full bg-linea-suave">
-                <motion.div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-acento to-cobre" initial={{ width: 0 }} animate={{ width: `${(etapa[d.estado] / 2) * 100 + 6}%` }} transition={{ duration: 1, ease: CURVA }} />
+                <motion.div className="absolute inset-y-0 left-0 rounded-full bg-acento" initial={{ width: 0 }} animate={{ width: `${(etapa[d.estado] / 2) * 100 + 6}%` }} transition={{ duration: 1, ease: CURVA }} />
                 <motion.span className="absolute -top-2.5" initial={{ left: 0 }} animate={{ left: `calc(${(etapa[d.estado] / 2) * 100}% - 10px)` }} transition={{ duration: 1, ease: CURVA }}><Truck className="size-5 text-acento" /></motion.span>
               </div>
               <p className="mt-3 text-[13px] text-gris">{d.vehiculo} · {d.conductor} · compromiso {new Date(d.compromiso).toLocaleString("es-CL", { weekday: "short", hour: "2-digit", minute: "2-digit" })}</p>
@@ -448,4 +425,10 @@ export function ModDespachos({ delay }: { delay?: number }) {
       </div>
     </Bloque>
   );
+}
+
+/** Icono del estado del equipo con su color (el estado nunca se comunica solo con color). */
+function IconoEstado({ estado }: { estado: string }) {
+  const d = defEstado(estado);
+  return <d.icono className="size-3.5 shrink-0" style={{ color: d.color }} aria-label={d.etiqueta} />;
 }

@@ -60,7 +60,7 @@ export default function Remuneraciones() {
       <div className="mb-5 flex flex-wrap gap-2">
         {periodos.data?.map((p) => (
           <button key={p} onClick={() => setPeriodo(p)} className={`relative h-10 cursor-pointer px-4 font-medium transition-colors ${periodo === p ? "text-white" : "bg-papel hover:bg-chapa"}`}>
-            {periodo === p && <motion.span layoutId="periodo" className="absolute inset-0 bg-negro" transition={{ type: "spring", stiffness: 500, damping: 40 }} />}
+            {periodo === p && <motion.span layoutId="periodo" className="absolute inset-0 bg-negro" transition={{ duration: 0.2 }} />}
             <span className="relative capitalize">{periodoLegible(p)}</span>
           </button>
         ))}

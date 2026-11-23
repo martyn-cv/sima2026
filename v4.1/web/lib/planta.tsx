@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { conectarTiempoReal, type Equipo, type EventoPlanta } from "@sima/cliente";
+import { defEstado } from "@sima/ui";
 import { api, baseUrl, leerToken } from "./api";
 import { useAuth } from "./auth";
 
@@ -40,7 +41,7 @@ export function PlantaProvider({ children }: { children: ReactNode }) {
           return l ? { ...s, ultimo: l.valor, nivel: l.valor >= s.alarma ? "alarma" : l.valor >= s.aviso ? "aviso" : "ok" } : s;
         }) };
       })),
-      equipo: (x) => { qc.setQueryData<Equipo[]>(["equipos"], (prev) => prev?.map((e) => (e.codigo === x.codigo ? { ...e, estado: x.estado } : e))); if (x.estado === "operando") evento({ tipo: "equipo", texto: `${x.codigo} volvió a operar`, nivel: "ok", enlace: "/planta" }); },
+      equipo: (x) => { qc.setQueryData<Equipo[]>(["equipos"], (prev) => prev?.map((e) => (e.codigo === x.codigo ? { ...e, estado: x.estado } : e))); void qc.invalidateQueries({ queryKey: ["equipo"] }); const d = defEstado(x.estado); evento({ tipo: "equipo", texto: `${x.codigo}: ${d.etiqueta.toLowerCase()}`, nivel: d.critico ? "alarma" : d.marcha ? "ok" : "info", enlace: `/planta?equipo=${x.codigo}` }); },
       alarma: (a) => { void qc.invalidateQueries({ queryKey: ["alarmas"] }); void qc.invalidateQueries({ queryKey: ["panel"] }); if (a.abierta) evento({ tipo: "alarma", texto: a.mensaje, nivel: a.nivel === "alarma" ? "alarma" : "aviso", enlace: "/planta" }); },
       orden: (o) => { void qc.invalidateQueries({ queryKey: ["ordenes"] }); void qc.invalidateQueries({ queryKey: ["panel"] }); evento({ tipo: "orden", texto: `Orden ${o.codigo}: ${o.titulo} (${o.equipo})`, nivel: o.prioridad === "critica" ? "alarma" : "info", enlace: "/planta" }); },
       plc: (p) => { setPlcEstado((s) => ({ ...s, [p.codigo]: p.estado })); void qc.invalidateQueries({ queryKey: ["plc"] }); evento({ tipo: "plc", texto: `${p.codigo} pasó a ${p.estado === "run" ? "marcha" : p.estado}`, nivel: p.estado === "run" ? "ok" : "aviso", enlace: `/plc/equipo?codigo=${p.codigo}` }); },
@@ -52,6 +53,10 @@ export function PlantaProvider({ children }: { children: ReactNode }) {
       evento: (e) => { qc.setQueryData<EventoPlanta[]>(["eventos", "vivo"], (prev) => [e, ...(prev ?? [])].slice(0, 300)); },
       intervencion: (i) => { void qc.invalidateQueries({ queryKey: ["ordenes"] }); void qc.invalidateQueries({ queryKey: ["equipo"] }); evento({ tipo: "orden", texto: `${i.orden}: intervención de ${i.tecnico} en ${i.equipo}${i.cerrada ? " (cerrada)" : ""}`, nivel: i.cerrada ? "ok" : "info", enlace: "/mantenimiento" }); },
       estructura: () => { void qc.invalidateQueries({ queryKey: ["estructura"] }); void qc.invalidateQueries({ queryKey: ["equipos"] }); },
+      // notificación dirigida: queda guardada en el servidor; se refresca el centro y las bandejas
+      notificacion: () => { for (const k of ["notificaciones", "aprobaciones", "ordenes"]) void qc.invalidateQueries({ queryKey: [k] }); },
+      // si Personas revoca el acceso a SIMA Web, la sesión termina aquí (la de SIMA Desktop sigue su propia regla)
+      sesionRevocada: (x) => { if (x.plataforma === "web") salir(x.motivo); },
       cuentaCerrada: (m) => salir(m.motivo),
     });
     return () => { void h.detener(); };
