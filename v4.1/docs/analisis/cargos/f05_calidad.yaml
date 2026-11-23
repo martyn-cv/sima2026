@@ -1,0 +1,214 @@
+# Familia 5 · Calidad, laboratorio y metrología
+# Nota: en los indicadores, cualquier texto con comas va entre comillas.
+- id: 31
+  dashboard: Gestión de calidad
+  proposito: Define el sistema de calidad y tiene la autoridad para retener o liberar producto. Es el contrapeso de producción cuando un lote no cumple.
+  jornada:
+    inicio: Revisa lotes retenidos, no conformidades abiertas por severidad y reclamos de clientes.
+    durante: Dirige análisis de NC, decide liberaciones o rechazos, prepara auditorías y revisa acciones correctivas.
+    coordina: Con planta, comercial (reclamos), producción y proveedores.
+    anomalia: Ante un reclamo grave o un defecto crítico, retiene los lotes relacionados, convoca el análisis y comunica a comercial.
+    cierre: Revisa el avance de acciones correctivas y el costo de no calidad.
+  decide: Liberar o rechazar lotes retenidos, cerrar no conformidades, aceptar acciones correctivas.
+  escala: Gerencia de planta y comercial (reclamos de clientes clave).
+  consulta: [Lotes retenidos y NC abiertas, Reclamos de clientes, Defectos por producto y línea, Auditorías y hallazgos, Acciones correctivas y su avance]
+  genera:
+    aprobar: Liberación o rechazo de lotes.
+    cerrar: No conformidades y acciones correctivas.
+    crear: Planes de auditoría y planes de calidad.
+    exportar: Indicadores de calidad.
+  no_ve: Sueldos, contratos y datos personales.
+  impacto: Su decisión determina si un lote se despacha, se retrabaja o se descarta. Una liberación indebida termina en reclamo.
+  ui:
+    prioridad: Lotes retenidos esperando decisión y NC críticas.
+    disposicion: Franja (lotes retenidos, NC abiertas, reclamos, costo de no calidad) · bandeja de liberación · NC por severidad · acciones correctivas.
+    menu: [Inicio, Liberación de lotes, No conformidades, Reclamos, Auditorías, Acciones correctivas, Indicadores]
+    datos: "Tablas: lotes retenidos, NC, acciones. Formularios: decisión de liberación con fundamento, cierre de NC."
+    acciones: [Liberar lote, Rechazar lote, Cerrar NC, Programar auditoría]
+    alertas: [Lote retenido más de 24 horas, NC crítica abierta, Reclamo de cliente]
+    notificaciones: Inspección registró una NC; acción correctiva vencida.
+    vacio: “No hay lotes retenidos ni NC abiertas.”
+    componentes: Bandeja de liberación, Pareto de defectos.
+  medir:
+    - [Reclamos, Reclamos de clientes (no existen), falta]
+    - [Defectos, Rechazos en producción y NC, hoy]
+    - [Costos de no calidad, Costo de rechazos y retrabajos (no existe costo), falta]
+    - [Auditorías, Auditorías y hallazgos (no existen), falta]
+  flujo:
+    entrada: NC de inspección, reclamos, resultados de ensayos.
+    procesa: Analiza riesgo y decide.
+    salida: Lotes liberados o rechazados, NC cerradas, acciones correctivas.
+    destinatarios: Producción, despacho, comercial, proveedores.
+    consecuencia: Un lote liberado puede despacharse; uno rechazado se segrega.
+  permisos: {calidad: "c,cr,ap,ci,x@pl", inspecciones: "c@pl", produccion: "c@pl", despachos: "c@pl", pedidos: "c@em", proveedores: "c@em", documentos: "c,ap@pl", kpis: "c@pl", calibraciones: "c@pl"}
+  apps: [web]
+  validar: [Si solo la jefatura de calidad libera o también ingeniería de calidad en su ausencia]
+  hoy: Analiza NC y libera o rechaza lotes en la web. No hay reclamos, auditorías ni acciones correctivas con seguimiento.
+
+- id: 32
+  dashboard: Ingeniería de calidad
+  proposito: Diseña cómo se asegura la calidad (planes de control, muestreo, estadística) y encuentra la causa raíz de los defectos.
+  jornada:
+    inicio: Revisa defectos repetidos y NC en análisis asignadas a usted.
+    durante: Define planes de control y muestreo, hace análisis estadístico y lidera 8D.
+    coordina: Con procesos, producción, proveedores y clientes.
+    anomalia: Si un defecto se repite, abre el análisis de causa raíz y propone acciones.
+    cierre: Actualiza el estado de los 8D y planes de control.
+  decide: Contenido de los planes de control y del análisis de causa.
+  escala: Jefatura de calidad (liberaciones).
+  consulta: [Mediciones e inspecciones, Defectos por producto, NC y su historial, Especificaciones de producto]
+  genera:
+    crear: Planes de control y muestreo.
+    registrar: Análisis de causa (8D) y de capacidad.
+    editar: Acciones correctivas propuestas.
+  no_ve: Sueldos, contratos y datos personales.
+  impacto: Un buen plan de control detecta el defecto en línea y no en el cliente.
+  ui:
+    prioridad: NC en análisis y defectos repetidos.
+    disposicion: NC asignadas · gráficos de control · planes de control vigentes · 8D en curso.
+    menu: [Inicio, No conformidades, Planes de control, Análisis estadístico, Producción]
+    datos: "Tablas: NC, planes de control. Formularios: 8D, plan de control, análisis de capacidad."
+    acciones: [Analizar NC, Crear plan de control, Registrar 8D]
+    alertas: [Defecto repetido, Proceso fuera de control]
+    notificaciones: Nueva NC asignada.
+    vacio: “No hay NC en análisis.”
+    componentes: Gráfico de control, histograma de capacidad.
+  medir:
+    - [PPM, Unidades defectuosas por millón, hoy]
+    - [Cpk cuando aplica, Mediciones dimensionales (no se registran), falta]
+    - [Repetición de defectos, NC por producto y causa, parcial]
+  flujo:
+    entrada: Inspecciones, NC, especificaciones.
+    procesa: Analiza estadística y causas.
+    salida: Planes de control, 8D, acciones.
+    destinatarios: Producción, procesos, jefatura de calidad.
+    consecuencia: Cambian los controles en línea.
+  permisos: {calidad: "c,r,e@pl", inspecciones: "c,cr,e@pl", produccion: "c@pl", producto: "c@em", documentos: "c,cr@pl", kpis: "c@pl", proveedores: "c@em"}
+  apps: [web]
+  validar: [Qué productos requieren estudio de capacidad]
+  hoy: Analiza NC en la web. No hay planes de control, mediciones ni 8D.
+
+- id: 33
+  dashboard: Inspección de calidad
+  proposito: Mide e inspecciona materiales y productos con instrumentos calibrados, y separa lo que no cumple.
+  jornada:
+    inicio: Revisa los lotes por inspeccionar del turno y que sus instrumentos tengan la calibración vigente.
+    durante: Toma muestras, mide, registra resultados y etiqueta el estado (conforme, retenido).
+    coordina: Con producción, bodega (recepción), calidad e ingeniería.
+    anomalia: Si una muestra sale de tolerancia, retiene el lote, registra la NC y avisa a producción y calidad.
+    cierre: Deja los registros de inspección completos y los lotes con estado.
+  decide: Retener un lote por resultado fuera de criterio (la liberación final la decide la jefatura).
+  escala: Jefatura e ingeniería de calidad.
+  consulta: [Lotes en producción y recepción, Criterios de aceptación, Instrumentos y su vigencia, NC abiertas]
+  genera:
+    registrar: Inspecciones y mediciones, NC y retención.
+    crear: No conformidades.
+  no_ve: Sueldos, contratos y datos personales.
+  impacto: Una NC registrada a tiempo evita que el lote avance a embalaje o despacho.
+  ui:
+    prioridad: Lotes por inspeccionar e instrumentos vencidos.
+    disposicion: Lotes del turno · registro de inspección · NC abiertas · instrumentos.
+    menu: [Inspección de calidad, Lotes, No conformidades, Instrumentos, Seguridad, Mi cargo]
+    datos: "Formularios: inspección con criterio y resultado, NC con evidencia."
+    acciones: [Registrar inspección, Retener lote, Registrar NC]
+    alertas: [Muestra fuera de tolerancia, Lote sin inspección, Instrumento vencido]
+    notificaciones: Jefatura liberó o rechazó un lote que usted retuvo.
+    vacio: “No hay lotes por inspeccionar en este turno.”
+    componentes: Formulario de inspección con criterios del producto.
+  medir:
+    - [Defectos detectados, NC registradas por inspección, hoy]
+    - [Inspecciones a tiempo, Lotes inspeccionados contra plan (no hay plan), falta]
+    - [Falsos rechazos, NC liberadas sin defecto real, parcial]
+  flujo:
+    entrada: Lotes producidos o recibidos.
+    procesa: Inspecciona contra criterios.
+    salida: Registros, NC y lotes retenidos.
+    destinatarios: Jefatura de calidad, producción, bodega.
+    consecuencia: El lote queda retenido hasta la decisión.
+  permisos: {calidad: "c,cr,r@pl", inspecciones: "c,r@pl", produccion: "c@pl", calibraciones: "c@pl", herramientas: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si el inspector puede retener sin aprobación]
+  hoy: Inicio de calidad en Desktop y registro de NC. No hay registro de inspecciones conformes ni plan de inspección.
+
+- id: 34
+  dashboard: Mis ensayos
+  proposito: Evalúa propiedades del producto o la materia prima en laboratorio con métodos validados, y deja la trazabilidad de cada muestra.
+  jornada:
+    inicio: Revisa las muestras recibidas y los ensayos pendientes por prioridad.
+    durante: Prepara muestras, opera equipos de ensayo y registra resultados.
+    coordina: Con calidad, I+D, operaciones y proveedores.
+    anomalia: Si un resultado no cumple, lo informa a calidad para la NC y conserva la contramuestra.
+    cierre: Emite los informes de ensayo del día.
+  decide: Validez del ensayo según el método.
+  escala: Jefatura de calidad.
+  consulta: [Muestras y su origen (lote), Métodos de ensayo, Especificaciones, Equipos de laboratorio y su calibración]
+  genera:
+    registrar: Muestras, ensayos y resultados.
+    crear: Informes de ensayo.
+  no_ve: Sueldos, contratos y datos personales.
+  impacto: Sus resultados permiten liberar o rechazar lotes y evaluar proveedores.
+  ui:
+    prioridad: Ensayos pendientes y resultados fuera de especificación.
+    disposicion: Cola de muestras · registro de ensayo · resultados recientes.
+    menu: [Mis ensayos, Muestras, Resultados, Instrumentos, Mi cargo]
+    datos: "Formularios: recepción de muestra, ensayo con método y resultado."
+    acciones: [Registrar muestra, Registrar resultado, Emitir informe]
+    alertas: [Resultado fuera de especificación, Ensayo atrasado]
+    notificaciones: Nueva muestra recibida.
+    vacio: “No hay muestras pendientes.”
+    componentes: Cola de muestras con prioridad.
+  medir:
+    - [Ensayos a tiempo, Muestras con fecha de recepción y resultado (no existen), falta]
+    - [Repetibilidad, Resultados repetidos de la misma muestra (no existen), falta]
+    - [Cumplimiento del método, Ensayos con método registrado (no existen), falta]
+  flujo:
+    entrada: Muestras de producción o recepción.
+    procesa: Ensaya.
+    salida: Informe de ensayo trazado al lote.
+    destinatarios: Calidad, compras, proveedores.
+    consecuencia: Calidad decide la liberación con evidencia.
+  permisos: {inspecciones: "c,r@pl", calidad: "c,r@pl", calibraciones: "c@pl", produccion: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Qué ensayos se hacen internamente y cuáles en laboratorio externo]
+  hoy: Inicio de calidad en Desktop. No existe el registro de muestras ni ensayos.
+
+- id: 35
+  dashboard: Metrología
+  proposito: Administra la confiabilidad de todos los equipos de medición. Si un instrumento está fuera de tolerancia, sabe qué mediciones quedaron en duda.
+  jornada:
+    inicio: Revisa el plan maestro de calibración, vencimientos y equipos fuera de tolerancia.
+    durante: Verifica y calibra, identifica los equipos y gestiona certificados externos.
+    coordina: Con laboratorio, calidad, mantenimiento y compras.
+    anomalia: Si un equipo sale de tolerancia, lo bloquea para uso y evalúa el impacto en las mediciones hechas con él.
+    cierre: Actualiza el plan y los certificados.
+  decide: Bloquear o liberar un instrumento para uso.
+  escala: Jefatura de calidad (impacto en producto).
+  consulta: [Inventario de instrumentos, Plan de calibración, Certificados, Tolerancias e incertidumbre]
+  genera:
+    registrar: Verificaciones y calibraciones con resultado.
+    editar: Plan maestro de calibración e identificación de equipos.
+  no_ve: Sueldos, contratos y datos personales.
+  impacto: Sin trazabilidad metrológica, las mediciones de calidad no son defendibles ante un cliente.
+  ui:
+    prioridad: Vencidos, fuera de tolerancia y próximos 30 días.
+    disposicion: Plan maestro (calendario) · vencidos · fuera de tolerancia · certificados.
+    menu: [Metrología, Plan de calibración, Instrumentos, Mis OT, Alertas]
+    datos: "Tablas: instrumentos con estado e incertidumbre. Formularios: calibración, bloqueo de instrumento."
+    acciones: [Registrar calibración, Bloquear instrumento, Adjuntar certificado]
+    alertas: [Instrumento vencido en uso, Fuera de tolerancia]
+    notificaciones: Instrumento devuelto al pañol con calibración por vencer.
+    vacio: “Todos los instrumentos están vigentes.”
+    componentes: Calendario de calibraciones.
+  medir:
+    - [Calibraciones vigentes, Fechas de calibración, hoy]
+    - [Incertidumbre acorde al uso, Incertidumbre por instrumento (no se registra), falta]
+  flujo:
+    entrada: Instrumentos y plan.
+    procesa: Calibra y evalúa.
+    salida: Plan y trazabilidad metrológica.
+    destinatarios: Calidad, laboratorio, mantenimiento, pañol.
+    consecuencia: Un instrumento bloqueado no se puede retirar.
+  permisos: {calibraciones: "c,r,e@pl", herramientas: "c,e@pl", ot: "c,r,ci@pr", calidad: "c@pl", equipos: "c@pl", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si se gestionarán certificados digitales de calibración externa]
+  hoy: Calibra herramientas y ve vencimientos. Sin incertidumbre, certificados ni bloqueo por tolerancia.

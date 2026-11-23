@@ -1,0 +1,170 @@
+# Familia 10 · Comercial, cliente y diseño de producto
+- id: 61
+  dashboard: Comercial
+  proposito: Convierte necesidades de clientes en pedidos rentables y compromisos que la planta pueda cumplir.
+  jornada:
+    inicio: Revisa pedidos en riesgo, reclamos abiertos y el forecast del mes.
+    durante: Negocia precios y fechas, registra acuerdos y actualiza el forecast.
+    coordina: Con clientes, planificación, finanzas y calidad.
+    anomalia: Si un pedido no podrá cumplirse, negocia con el cliente antes de que venza.
+    cierre: Actualiza la cartera.
+  decide: Precios dentro de su banda autorizada y compromisos de fecha validados con planificación.
+  escala: Gerencia general (precios fuera de banda).
+  consulta: [Cartera y pedidos, Estado de producción y despacho de sus pedidos, Reclamos, Precios autorizados]
+  genera:
+    crear: Pedidos y acuerdos.
+    editar: Forecast.
+    registrar: Compromisos con clientes.
+  no_ve: Costos detallados, remuneraciones, datos personales, información técnica de planta.
+  impacto: Un compromiso no validado con planificación termina en atraso y reclamo.
+  ui:
+    prioridad: Pedidos en riesgo y reclamos.
+    disposicion: Pedidos por estado · en riesgo · forecast vs. real · reclamos.
+    menu: [Inicio, Pedidos, Clientes, Forecast, Reclamos, Despachos]
+    datos: "Tablas: pedidos, clientes. Formularios: pedido, acuerdo, forecast."
+    acciones: [Registrar pedido, Actualizar forecast, Ver estado del pedido]
+    alertas: [Pedido en riesgo de atraso, Reclamo de cliente]
+    notificaciones: Despacho entregó un pedido; calidad retuvo un lote de su pedido.
+    vacio: “No hay pedidos registrados.”
+    componentes: Seguimiento del pedido de punta a punta.
+  medir:
+    - [Ventas rentables, Ventas y costos (no existen), falta]
+    - [Satisfacción, Encuestas o reclamos (no existen), falta]
+    - [Exactitud forecast, Forecast y ventas reales (no existen), falta]
+  flujo:
+    entrada: Necesidades de clientes.
+    procesa: Negocia.
+    salida: Pedidos confirmados y forecast.
+    destinatarios: Planificación, finanzas, despacho.
+    consecuencia: Planificación programa la fabricación.
+  permisos: {pedidos: "c,cr,e,x@em", despachos: "c@em", produccion: "c@ag", calidad: "c@em", kpis: "c@ag"}
+  apps: [web]
+  validar: [Si los pedidos se ingresan en SIMA o se importan del ERP]
+  hoy: Ve despachos, producción y calidad. No hay pedidos ni clientes.
+
+- id: 62
+  dashboard: Servicio al cliente
+  proposito: Responde al cliente con el estado real de su pedido y coordina cambios y devoluciones.
+  jornada:
+    inicio: Revisa consultas y solicitudes abiertas.
+    durante: Registra pedidos, sigue su avance y gestiona devoluciones.
+    coordina: Con comercial, planificación, calidad y despacho.
+    anomalia: Si un pedido se atrasa, informa al cliente con la nueva fecha.
+    cierre: Cierra solicitudes respondidas.
+  decide: Respuesta al cliente según el estado registrado.
+  escala: Comercial.
+  consulta: [Pedidos y su estado, Despachos, Reclamos y devoluciones]
+  genera:
+    registrar: Pedidos, solicitudes y devoluciones.
+    editar: Estado de la solicitud.
+  no_ve: Costos, remuneraciones, datos personales.
+  impacto: Una respuesta errónea al cliente daña la relación comercial.
+  ui:
+    prioridad: Solicitudes abiertas y pedidos atrasados.
+    disposicion: Solicitudes · pedidos con estado · devoluciones.
+    menu: [Inicio, Solicitudes, Pedidos, Despachos, Devoluciones]
+    datos: "Formularios: solicitud, devolución."
+    acciones: [Registrar solicitud, Consultar pedido, Registrar devolución]
+    alertas: [Solicitud sin respuesta, Pedido atrasado]
+    notificaciones: Cambio de estado de un pedido.
+    vacio: “No hay solicitudes abiertas.”
+    componentes: Línea de tiempo del pedido.
+  medir:
+    - [Tiempo de respuesta, Solicitudes con fecha (no existen), falta]
+    - [Errores de pedido, Pedidos corregidos (no existen), falta]
+    - [Reclamos, Reclamos (no existen), falta]
+  flujo:
+    entrada: Consultas de clientes.
+    procesa: Consulta estados y coordina.
+    salida: Respuestas trazables.
+    destinatarios: Clientes, comercial.
+    consecuencia: El cliente sabe el estado real.
+  permisos: {pedidos: "c,r,e@em", despachos: "c@em", calidad: "c@em"}
+  apps: [web]
+  validar: [Canal de contacto del cliente (correo, portal)]
+  hoy: Ve despachos. No hay pedidos ni solicitudes.
+
+- id: 63
+  dashboard: Ingeniería de producto
+  proposito: Define qué se fabrica (planos, materiales, tolerancias) y controla cada cambio técnico.
+  jornada:
+    inicio: Revisa cambios de ingeniería en curso y consultas de producción o calidad.
+    durante: Actualiza planos, BOM y especificaciones; gestiona prototipos.
+    coordina: Con I+D, procesos, calidad, compras y producción.
+    anomalia: Si un defecto proviene del diseño, abre un cambio controlado.
+    cierre: Publica versiones aprobadas.
+  decide: Contenido técnico del producto.
+  escala: Gerencia (cambios mayores).
+  consulta: [Especificaciones y versiones, BOM, Defectos de diseño, Materiales]
+  genera:
+    crear: Especificaciones, BOM y cambios de ingeniería.
+    editar: Versiones.
+    aprobar: Cambios técnicos (con calidad).
+  no_ve: Costos detallados, remuneraciones, datos personales.
+  impacto: Una versión equivocada en planta fabrica un producto que no corresponde.
+  ui:
+    prioridad: Cambios en curso.
+    disposicion: Productos · cambios de ingeniería · versiones vigentes.
+    menu: [Inicio, Productos, Cambios, Documentos]
+    datos: "Tablas: productos con versión. Formularios: cambio de ingeniería."
+    acciones: [Crear cambio, Publicar versión]
+    alertas: [Cambio sin aprobación, Defecto de diseño reportado]
+    notificaciones: Calidad aprobó un cambio.
+    vacio: “No hay productos registrados.”
+    componentes: Historial de versiones.
+  medir:
+    - [Tiempo de industrialización, Cambios con fecha de inicio y liberación (no existen), falta]
+    - [Cambios correctos, Cambios sin reversión (no existen), falta]
+    - [Defectos de diseño, NC con causa de diseño (no hay causa estructurada), falta]
+  flujo:
+    entrada: Necesidades del cliente, defectos.
+    procesa: Diseña y versiona.
+    salida: Planos/BOM revisados.
+    destinatarios: Procesos, producción, compras, calidad.
+    consecuencia: Producción fabrica la versión vigente.
+  permisos: {producto: "c,cr,e,ap@em", documentos: "c,cr,e@em", calidad: "c@em", materiales: "c@pl"}
+  apps: [web]
+  validar: [Si los planos CAD se enlazan desde SIMA o se suben como archivo]
+  hoy: Perfil comercial (ve despachos). No hay productos ni cambios de ingeniería.
+
+- id: 64
+  dashboard: Desarrollo de proveedores
+  proposito: Evalúa capacidades y riesgos de proveedores estratégicos y los ayuda a mejorar.
+  jornada:
+    inicio: Revisa rechazos y atrasos de proveedores.
+    durante: Realiza homologaciones y auditorías, y sigue planes de mejora.
+    coordina: Con compras, calidad, ingeniería y proveedores.
+    anomalia: Si un proveedor crítico empeora, propone un plan o una alternativa.
+    cierre: Actualiza evaluaciones.
+  decide: Homologación de proveedores.
+  escala: Compras y calidad.
+  consulta: [Rechazos en recepción, Entregas, Auditorías, Capacidad del proveedor]
+  genera:
+    registrar: Evaluaciones y auditorías.
+    crear: Planes de mejora.
+    aprobar: Homologación.
+  no_ve: Datos personales, remuneraciones.
+  impacto: Un proveedor no homologado entrega fuera de especificación.
+  ui:
+    prioridad: Proveedores en riesgo.
+    disposicion: Ranking de proveedores · auditorías · planes de mejora.
+    menu: [Inicio, Proveedores, Evaluaciones, Auditorías, Planes de mejora]
+    datos: "Formularios: evaluación, auditoría, plan."
+    acciones: [Evaluar proveedor, Registrar auditoría]
+    alertas: [Rechazos sobre umbral, Entregas atrasadas]
+    notificaciones: Recepción rechazó material de un proveedor.
+    vacio: “No hay proveedores evaluados.”
+    componentes: Tarjeta de desempeño del proveedor.
+  medir:
+    - [Rechazos de proveedor, Recepciones rechazadas (no existen), falta]
+    - [Cumplimiento de entrega, OC y recepciones (no existen), falta]
+  flujo:
+    entrada: Datos de recepción y calidad.
+    procesa: Evalúa.
+    salida: Evaluaciones y planes.
+    destinatarios: Compras, calidad.
+    consecuencia: Base de proveedores más confiable.
+  permisos: {proveedores: "c,cr,e,ap@em", compras: "c@em", calidad: "c@em", inventario: "c@pl"}
+  apps: [web]
+  validar: [Criterios de homologación]
+  hoy: Perfil logística (ve despachos). No hay proveedores.

@@ -1,0 +1,255 @@
+# Familia 9 · Finanzas, sistemas y apoyo administrativo
+# Ojo: los seis cargos comparten el perfil «finanzas_adm», pero sus responsabilidades son muy distintas. Soporte TI y
+# servicios generales NO deben heredar acceso a información financiera por compartir perfil (regla del prompt y del Excel).
+- id: 55
+  dashboard: Finanzas
+  proposito: Asegura liquidez y control financiero; es la segunda firma de los pagos de remuneraciones y la dueña de los parámetros legales.
+  jornada:
+    inicio: Revisa caja, pagos programados y aprobaciones pendientes (cierre de remuneraciones, parámetros).
+    durante: Elabora presupuestos y pronósticos, revisa rentabilidad y capital de trabajo.
+    coordina: Con gerencia, compras, ventas y operaciones.
+    anomalia: Si la caja proyectada no cubre pagos, prioriza y escala.
+    cierre: Aprueba pagos y revisa el flujo.
+  decide: Aprobación de pagos, parámetros legales de remuneraciones, presupuesto.
+  escala: Gerencia general.
+  consulta: [Flujo de caja, Presupuesto vs. real, Remuneraciones, Costos, Cuentas por pagar y cobrar]
+  genera:
+    aprobar: Cierre de remuneraciones y parámetros legales.
+    editar: Parámetros de remuneraciones y presupuesto.
+    exportar: Estados de gestión.
+  no_ve: Información técnica de planta, OT, PLC.
+  impacto: Sin su aprobación no se paga; con un parámetro mal fijado, todas las liquidaciones salen mal.
+  ui:
+    prioridad: Aprobaciones y caja.
+    disposicion: Caja y proyección · aprobaciones · presupuesto vs. real · remuneraciones del período.
+    menu: [Inicio, Aprobaciones, Presupuesto, Remuneraciones, Parámetros, Indicadores]
+    datos: "Tablas: presupuesto por centro, pagos. Formularios: aprobación con comentario, parámetro."
+    acciones: [Aprobar cierre, Validar parámetros, Exportar estado]
+    alertas: [Cierre esperando aprobación, Desviación de presupuesto]
+    notificaciones: Remuneraciones preparó el cierre.
+    vacio: “No hay aprobaciones pendientes.”
+    componentes: Cascada presupuestaria.
+  medir:
+    - [Flujo de caja, Movimientos de caja (no existen), falta]
+    - [Margen, Ventas y costos (no existen), falta]
+    - [Desviación presupuestaria, Presupuesto (no existe), falta]
+  flujo:
+    entrada: Cierres, presupuestos, pagos.
+    procesa: Revisa y aprueba.
+    salida: Pagos aprobados y presupuesto.
+    destinatarios: Tesorería, gerencia.
+    consecuencia: Tesorería ejecuta pagos.
+  permisos: {remuneraciones: "c,ap,x@em", conceptos: "c@em", parametros: "c,e,ap@em", personal: "c@em", contratos: "c@em", terminos: "c@em", asistencia: "c@em", presupuesto: "c,cr,e,ap@em", costos: "c@em", kpis: "c@em", auditoria: "c@em", permisos: "c@em", compras: "c,ap@em", produccion: "c@ag"}
+  apps: [web]
+  validar: [Límite de aprobación de compras por finanzas]
+  hoy: Aprueba cierres y parámetros. No hay presupuesto ni caja.
+
+- id: 56
+  dashboard: Contabilidad
+  proposito: Registra las operaciones y concilia lo que dicen los sistemas con lo que respaldan los documentos.
+  jornada:
+    inicio: Revisa conciliaciones pendientes y documentos por contabilizar.
+    durante: Concilia facturas, activos y provisiones.
+    coordina: Con finanzas, compras, RR. HH. y auditoría.
+    anomalia: Si una conciliación no cuadra, la marca y pide respaldo.
+    cierre: Avanza el cierre contable.
+  decide: Tratamiento contable.
+  escala: Finanzas.
+  consulta: [Remuneraciones (para provisiones), Parámetros, Recepciones y facturas, Activos]
+  genera:
+    registrar: Conciliaciones y asientos.
+    exportar: Reportes de cierre.
+  no_ve: Datos personales más allá de lo necesario, información técnica.
+  impacto: Un cierre tardío retrasa los informes de gestión.
+  ui:
+    prioridad: Conciliaciones pendientes.
+    disposicion: Conciliaciones · cierre del mes · remuneraciones del período.
+    menu: [Inicio, Conciliaciones, Remuneraciones, Parámetros, Informes]
+    datos: "Tablas: conciliaciones. Formularios: conciliación."
+    acciones: [Conciliar, Exportar]
+    alertas: [Conciliación pendiente al cierre]
+    notificaciones: Cierre de remuneraciones aprobado.
+    vacio: “No hay conciliaciones pendientes.”
+    componentes: Lista de cierre.
+  medir:
+    - [Errores, Correcciones contables (no existen), falta]
+    - [Cierres oportunos, Fecha de cierre (no existe), falta]
+    - [Conciliaciones pendientes, Conciliaciones (no existen), falta]
+  flujo:
+    entrada: Documentos y registros.
+    procesa: Concilia.
+    salida: Libros y reportes.
+    destinatarios: Finanzas, auditoría.
+    consecuencia: Estados confiables.
+  permisos: {remuneraciones: "c,x@em", parametros: "c@em", costos: "c@em", compras: "c@em", presupuesto: "c@em"}
+  apps: [web]
+  validar: [Si la contabilidad seguirá en un ERP externo (SIMA solo exporta)]
+  hoy: Ve remuneraciones y parámetros. No hay contabilidad en SIMA.
+
+- id: 57
+  dashboard: Costos industriales
+  proposito: Calcula cuánto cuesta producir cada producto y explica por qué el real se aleja del estándar.
+  jornada:
+    inicio: Revisa producción, consumos y scrap del período.
+    durante: Calcula costo real, lo compara con el estándar y analiza variaciones.
+    coordina: Con finanzas, producción, procesos y compras.
+    anomalia: Si una variación es grande, la investiga con producción.
+    cierre: Emite el análisis de variación.
+  decide: Metodología de costeo.
+  escala: Finanzas.
+  consulta: [Producción y scrap, Consumos de materiales y repuestos, Horas (en totales), Remuneraciones en totales, Estándares]
+  genera:
+    crear: Costos estándar y análisis de variación.
+    exportar: Rentabilidad por producto.
+  no_ve: Remuneraciones individuales, datos personales.
+  impacto: Precios y decisiones de producto dependen de un costo bien calculado.
+  ui:
+    prioridad: Variaciones del período.
+    disposicion: Costo real vs. estándar · variaciones por causa · scrap valorizado.
+    menu: [Inicio, Costos, Variaciones, Producción, Indicadores]
+    datos: "Tablas: costo por producto. Formularios: estándar."
+    acciones: [Actualizar estándar, Exportar análisis]
+    alertas: [Variación sobre umbral]
+    notificaciones: Cierre de producción del período.
+    vacio: “No hay costos estándar definidos.”
+    componentes: Cascada de variaciones.
+  medir:
+    - [Precisión del costo, Costos reales y estándar (no existen), falta]
+    - [Desviaciones explicadas, Variaciones con causa (no existen), falta]
+  flujo:
+    entrada: Producción, consumos, remuneraciones en totales.
+    procesa: Costea.
+    salida: Costos y variaciones.
+    destinatarios: Finanzas, comercial, gerencia.
+    consecuencia: Decisiones de precio y mejora.
+  permisos: {costos: "c,cr,e,x@em", produccion: "c@ag", remuneraciones: "c@ag", repuestos: "c@pl", kpis: "c@em", materiales: "c@pl"}
+  apps: [web]
+  validar: [Base de asignación de costos indirectos]
+  hoy: Ve producción y remuneraciones en totales. No hay costos.
+
+- id: 58
+  dashboard: Tesorería
+  proposito: Administra pagos, cobros y posición de caja con autorizaciones verificadas.
+  jornada:
+    inicio: Revisa pagos del día, vencimientos y cobros.
+    durante: Ejecuta pagos aprobados, registra cobros y concilia.
+    coordina: Con finanzas, ventas, compras y proveedores.
+    anomalia: Si un pago no tiene aprobación, no lo ejecuta.
+    cierre: Concilia cuentas.
+  decide: Calendario de pagos según aprobaciones.
+  escala: Finanzas.
+  consulta: [Pagos aprobados (incluye remuneraciones), Vencimientos, Datos bancarios para pagar]
+  genera:
+    registrar: Pagos y cobros.
+    exportar: Archivo de pago.
+  no_ve: Información técnica, contratos (salvo lo necesario para pagar).
+  impacto: Un pago a destiempo genera multas o corta el suministro.
+  ui:
+    prioridad: Pagos del día.
+    disposicion: Calendario de pagos · cobros vencidos · conciliaciones.
+    menu: [Inicio, Pagos, Cobros, Remuneraciones aprobadas]
+    datos: "Tablas: pagos, cobros. Formularios: registro de pago."
+    acciones: [Registrar pago, Exportar archivo de pago]
+    alertas: [Pago vencido, Cartera vencida]
+    notificaciones: Cierre de remuneraciones aprobado para pago.
+    vacio: “No hay pagos programados hoy.”
+    componentes: Calendario.
+  medir:
+    - [Pagos a tiempo, Pagos con vencimiento (no existen), falta]
+    - [Cartera vencida, Cobros (no existen), falta]
+    - [Conciliaciones, Conciliaciones bancarias (no existen), falta]
+  flujo:
+    entrada: Pagos aprobados.
+    procesa: Ejecuta y concilia.
+    salida: Pagos y cuentas conciliadas.
+    destinatarios: Proveedores, trabajadores, finanzas.
+    consecuencia: Se cumplen las obligaciones.
+  permisos: {remuneraciones: "c,x@em", personal: "c@em"}
+  apps: [web]
+  validar: [Si tesorería necesita ver datos bancarios dentro de SIMA o el archivo se genera sin mostrarlos]
+  hoy: Ve remuneraciones y datos sensibles. No hay pagos ni cobros.
+
+- id: 59
+  dashboard: Soporte TI
+  proposito: Mantiene operativos los sistemas y cuentas. Administra accesos, pero administrar una cuenta no le da derecho a leer la información de las personas.
+  jornada:
+    inicio: Revisa tickets abiertos, cuentas bloqueadas y respaldos de la noche.
+    durante: Atiende usuarios, desbloquea cuentas, restablece claves y coordina cambios con OT.
+    coordina: Con todas las áreas, ciberseguridad y OT.
+    anomalia: Si un respaldo falla o hay accesos anómalos, investiga con la auditoría.
+    cierre: Cierra tickets.
+  decide: Acciones técnicas sobre cuentas (bloqueo, clave, segundo factor) según solicitud autorizada.
+  escala: RR. HH. (quién debe tener cuenta) y ciberseguridad.
+  consulta: [Estado de cuentas (sin datos personales ni sueldos), Auditoría de accesos, Tickets, Respaldos]
+  genera:
+    editar: Estado técnico de cuentas (desbloquear, restablecer clave, quitar segundo factor) y la matriz de permisos por cargo, bajo instrucción documentada.
+    crear: Tickets.
+    cerrar: Tickets.
+  no_ve: Remuneraciones, contratos, datos personales sensibles, información financiera. No debe recibirlos por compartir perfil con finanzas.
+  impacto: Una cuenta mal gestionada deja a alguien sin trabajar o con accesos indebidos.
+  ui:
+    prioridad: Cuentas bloqueadas y tickets.
+    disposicion: Tickets · cuentas bloqueadas · auditoría reciente · respaldos.
+    menu: [Inicio, Cuentas de acceso, Tickets, Auditoría, Permisos por cargo]
+    datos: "Tablas: cuentas (correo, estado, último acceso), tickets. Formularios: ticket."
+    acciones: [Desbloquear cuenta, Restablecer clave, Cerrar sesiones, Atender ticket]
+    alertas: [Cuenta bloqueada, Respaldo fallido, Intentos fallidos repetidos]
+    notificaciones: Nuevo ticket.
+    vacio: “No hay tickets abiertos.”
+    componentes: Línea de tiempo de auditoría.
+  medir:
+    - [Disponibilidad ERP, Salud del servidor (existe el chequeo pero no el historial), parcial]
+    - [Tiempos de solución, Tickets (no existen), falta]
+    - [Accesos correctos, Auditoría de cambios de cuenta, hoy]
+  flujo:
+    entrada: Solicitudes de usuarios y RR. HH.
+    procesa: Resuelve técnicamente.
+    salida: Cuentas operativas, tickets cerrados.
+    destinatarios: Usuarios, RR. HH.
+    consecuencia: Las personas acceden a lo que su cargo permite.
+  permisos: {cuentas: "c,e@em", auditoria: "c@em", permisos: "c,e@em", tickets: "c,cr,e,ci@em"}
+  apps: [web]
+  validar: [Si TI debe editar la matriz de permisos o solo aplicarla]
+  hoy: Gestiona cuentas, permisos y auditoría. La web le muestra además planta y mantenimiento, que no son su trabajo.
+
+- id: 60
+  dashboard: Servicios generales
+  proposito: Mantiene los servicios auxiliares (aseo, vigilancia, comedor, infraestructura) y controla a los contratistas.
+  jornada:
+    inicio: Revisa solicitudes de servicio e incidencias de contratistas.
+    durante: Coordina servicios y accesos de contratistas, evalúa su cumplimiento.
+    coordina: Con administración, prevención, RR. HH. y proveedores.
+    anomalia: Si un servicio falla, activa el reemplazo y registra la incidencia.
+    cierre: Registra evaluaciones.
+  decide: Coordinación diaria de servicios.
+  escala: Jefatura de administración.
+  consulta: [Contratos de servicio, Solicitudes, Contratistas en planta]
+  genera:
+    registrar: Trabajos de servicio, incidencias y evaluaciones.
+    crear: Solicitudes a contratistas.
+  no_ve: Información financiera, remuneraciones, datos personales.
+  impacto: Un servicio caído afecta a toda la planta.
+  ui:
+    prioridad: Incidencias abiertas.
+    disposicion: Solicitudes · contratistas en planta · evaluaciones.
+    menu: [Inicio, Servicios, Contratistas, Solicitudes]
+    datos: "Formularios: solicitud, incidencia, evaluación."
+    acciones: [Registrar incidencia, Evaluar servicio]
+    alertas: [Servicio crítico caído, Contratista sin acreditación]
+    notificaciones: Nueva solicitud.
+    vacio: “No hay solicitudes abiertas.”
+    componentes: Lista de contratistas con acreditación.
+  medir:
+    - [Servicios disponibles, Incidencias de servicio (no existen), falta]
+    - [Incidentes, Incidentes de contratistas (no existen), falta]
+    - [Cumplimiento, Evaluaciones (no existen), falta]
+  flujo:
+    entrada: Solicitudes y contratos.
+    procesa: Coordina.
+    salida: Servicios prestados y evaluados.
+    destinatarios: Administración, planta.
+    consecuencia: Planta con servicios operativos.
+  permisos: {servicios: "c,cr,r,e@pl", sst: "r@pr"}
+  apps: [web]
+  validar: [Si el acceso de contratistas a planta se controlará en SIMA]
+  hoy: Perfil finanzas sin capacidades financieras (bien). No existe el módulo de servicios.

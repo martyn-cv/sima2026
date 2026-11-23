@@ -1,0 +1,225 @@
+# Familia 1 · Dirección y gobierno de la empresa
+# Convención de permisos: modulo: "acciones@alcance". Acciones: c consultar, cr crear, r registrar, e editar, as asignar,
+# ap aprobar/rechazar, ci cerrar, x exportar, s solicitar. Alcance: pr propio, eq equipo, ln línea, ar área, pl planta,
+# em empresa, ag agregado (solo totales, sin datos por persona).
+- id: 1
+  dashboard: Dirección general
+  proposito: Fija hacia dónde va la empresa y qué riesgos acepta. Sin este cargo las áreas compiten por recursos sin un criterio común y las inversiones se deciden por urgencia y no por estrategia.
+  jornada:
+    inicio: Revisa el tablero consolidado (seguridad, producción contra plan, calidad, caja) y la bandeja de decisiones que esperan su firma.
+    durante: Revisa propuestas de inversión y presupuesto, y se reúne con gerencias de planta, finanzas y comercial.
+    coordina: Resuelve conflictos de prioridad entre áreas (un pedido urgente contra una detención programada, por ejemplo).
+    anomalia: Ante un incidente grave, una pérdida de un cliente clave o una desviación fuerte de caja, recibe el aviso, pide el informe de la gerencia responsable y decide medidas.
+    cierre: Deja registradas sus decisiones y los compromisos asignados a cada gerencia.
+  decide: Aprueba presupuestos, proyectos e inversiones sobre el límite de las gerencias, define qué riesgos se aceptan y resuelve conflictos de recursos entre áreas.
+  escala: Directorio (inversiones mayores, riesgos legales o reputacionales).
+  consulta: [Indicadores consolidados por planta, Cumplimiento del plan de producción, Incidentes graves de seguridad, Reclamos y costos de no calidad, Presupuesto vs. real, Flujo de caja, Cartera de proyectos, Dotación agregada y ausentismo]
+  genera:
+    consultar: Tableros consolidados de todas las áreas, solo en totales para remuneraciones.
+    aprobar: Presupuesto anual, proyectos de inversión y decisiones estratégicas registradas en la bandeja de aprobaciones.
+    rechazar: Propuestas devueltas con comentario a la gerencia que las envió.
+    exportar: Informe ejecutivo mensual para el directorio.
+  no_ve: Liquidaciones individuales, datos bancarios, domicilio o salud de trabajadores, ni formularios operativos de terreno. No necesita editar fichas, OT ni parámetros de máquina.
+  impacto: Sus decisiones fijan presupuesto, prioridades y metas de todas las áreas. Una decisión demorada deja proyectos y compras detenidos; una mal priorizada traslada el costo a la operación.
+  ui:
+    prioridad: Seguridad (incidentes graves), cumplimiento del plan, margen y caja, y las decisiones pendientes de su firma.
+    disposicion: Franja de 4 indicadores (seguridad, plan, calidad, caja) · bandeja de decisiones · tendencia mensual por planta · riesgos abiertos · proyectos en curso.
+    menu: [Inicio, Decisiones pendientes, Indicadores, Proyectos, Riesgos, Organización]
+    datos: "Tablas: proyectos (monto, avance, estado), riesgos abiertos. Formularios: decisión con comentario (aprobar o rechazar)."
+    acciones: [Aprobar o rechazar una propuesta, Abrir el informe de un incidente grave, Exportar informe ejecutivo]
+    alertas: [Accidente con tiempo perdido, Desviación de presupuesto sobre el umbral, Proyecto atrasado, Reclamo de cliente clave]
+    notificaciones: Nueva propuesta esperando su decisión; incidente grave registrado; cierre mensual disponible.
+    vacio: “No hay decisiones pendientes. Los indicadores se actualizan con los registros de cada área.”
+    componentes: Tarjetas KPI con meta y tendencia, bandeja de aprobaciones, mapa de calor de riesgos.
+  medir:
+    - [Margen operativo, Ventas y costos (no existen en SIMA; vendrían del ERP o de los módulos de costos y comercial), falta]
+    - [Cumplimiento del plan, Órdenes de producción (meta y unidades buenas), parcial]
+    - [Incidentes graves, Incidentes SST por severidad, hoy]
+  flujo:
+    entrada: Propuestas de presupuesto, inversión y proyectos de las gerencias; tableros consolidados.
+    procesa: Compara alternativas contra estrategia, caja y riesgo.
+    salida: Decisiones aprobadas o rechazadas, plan estratégico y presupuesto anual.
+    destinatarios: Gerencias de operaciones, planta, finanzas, comercial y RR. HH.; directorio.
+    consecuencia: Se liberan presupuestos y proyectos; cambian metas y prioridades de las áreas.
+  permisos: {kpis: "c,x@em", produccion: "c@em", calidad: "c@em", sst: "c@em", despachos: "c@em", remuneraciones: "c@ag", personal: "c@em", contratos: "c@em", asistencia: "c@em", habilitaciones: "c@em", presupuesto: "c,ap@em", proyectos: "c,ap@em", costos: "c@em", pedidos: "c@em", auditoria: "c@em", permisos: "c,e@em", cuentas: "c@em", equipos: "c@em"}
+  apps: [web]
+  validar: [Límite de monto que aprueba la gerencia general frente al directorio, Si debe seguir editando la matriz de permisos (hoy lo hace) o solo verla]
+  hoy: Inicio web por capacidades, indicadores, aprobaciones y auditoría. No hay presupuesto, proyectos, riesgos ni margen.
+
+- id: 2
+  dashboard: Operaciones
+  proposito: Convierte el plan de negocio en capacidad productiva real. Evita que las plantas trabajen con metas desalineadas o con cuellos de botella que nadie atiende.
+  jornada:
+    inicio: Revisa productividad, OEE, OTIF y costo unitario por planta y detecta la que se aleja de su meta.
+    durante: Balancea capacidad entre líneas o plantas, revisa inversiones operacionales y avance de mejoras.
+    coordina: Reúne a gerentes de planta, supply chain, calidad y mantenimiento en torno a los cuellos de botella.
+    anomalia: Si una planta cae bajo la meta o un pedido grande está en riesgo, pide el plan de recuperación y reasigna capacidad.
+    cierre: Actualiza el tablero mensual de operaciones y los compromisos de cada planta.
+  decide: Metas por planta, balance de capacidad y prioridad de inversiones operacionales dentro de su autoridad.
+  escala: Gerencia general (inversiones fuera de presupuesto, cambios de compromiso con clientes).
+  consulta: [OEE y productividad por planta y línea, OTIF y pedidos en riesgo, Costo unitario, Backlog de mantenimiento crítico, Cuellos de botella (líneas con más detención), Proyectos de mejora y su beneficio]
+  genera:
+    crear: Metas operativas por planta y período.
+    editar: Plan operativo mensual.
+    aprobar: Inversiones operacionales y planes de recuperación dentro de su límite.
+    exportar: Tablero mensual de operaciones.
+  no_ve: Datos personales, contratos individuales y liquidaciones. No ejecuta OT ni registra producción.
+  impacto: Define la meta que cada planta persigue. Si el balance de capacidad es malo, hay sobretiempo en una línea y capacidad ociosa en otra, y se pierden entregas.
+  ui:
+    prioridad: Plantas o líneas bajo meta, pedidos en riesgo de OTIF y cuellos de botella.
+    disposicion: Comparativo por planta (OEE, plan, OTIF, costo) · ranking de detenciones por línea · metas del período · inversiones por aprobar.
+    menu: [Inicio, Metas y plan operativo, Capacidad, Indicadores, Mejora continua, Aprobaciones]
+    datos: "Tablas: metas por planta, líneas con más pérdida. Formularios: meta del período, aprobación de inversión."
+    acciones: [Fijar meta de planta, Ver detalle de un cuello de botella, Aprobar plan de recuperación]
+    alertas: [OEE bajo meta dos semanas seguidas, Pedido con fecha comprometida en riesgo, Línea crítica detenida]
+    notificaciones: Nueva propuesta de inversión operacional; planta reporta desviación de meta.
+    vacio: “Aún no hay metas para este período. Defina la meta de cada planta para comparar el avance.”
+    componentes: Comparativo de barras por planta, cascada de pérdidas OEE, semáforos de meta.
+  medir:
+    - [Productividad, Unidades buenas por hora-persona (producción + asistencia), parcial]
+    - [OEE, Registros de producción y detenciones por equipo, hoy]
+    - [OTIF, Despachos con fecha comprometida y entrega, hoy]
+    - [Costo unitario, Costos de producción (no existen en SIMA), falta]
+  flujo:
+    entrada: Plan de negocio y resultados de cada planta.
+    procesa: Compara capacidad con demanda y detecta cuellos de botella.
+    salida: Metas por planta, plan operativo y decisiones de balance.
+    destinatarios: Gerencias de planta, jefatura de producción, planificación y mantenimiento.
+    consecuencia: Cambian las metas y prioridades que ven los tableros de planta y producción.
+  permisos: {kpis: "c,x@em", produccion: "c@em", plan_prod: "c,ap@em", calidad: "c@em", ot: "c@em", despachos: "c@em", pedidos: "c@em", proyectos: "c,ap@em", costos: "c@em", sst: "c@em", personal: "c@em", contratos: "c@em", asistencia: "c@em", habilitaciones: "c@em", remuneraciones: "c@ag", equipos: "c@em", permisos: "c@em"}
+  apps: [web]
+  validar: [Hay una sola planta en la base; confirmar si el módulo debe ser multiplanta desde el inicio, Límite de aprobación de inversiones operacionales]
+  hoy: Indicadores generales (OEE, plan, OTIF) y producción. No hay metas por planta, capacidad ni plan operativo.
+
+- id: 3
+  dashboard: Gerencia de planta
+  proposito: Responde por todo lo que ocurre dentro de la instalación. Es el punto donde seguridad, producción, mantenimiento, calidad y costos se priorizan juntos.
+  jornada:
+    inicio: Revisa incidentes del turno anterior, producción contra plan, equipos críticos detenidos y lotes retenidos.
+    durante: Dirige la reunión diaria de desempeño, prioriza pedidos, detenciones y mantenimiento, y aprueba cambios de PLC y gastos de su nivel.
+    coordina: Con jefaturas de producción, mantenimiento, calidad, prevención y RR. HH.
+    anomalia: Ante un accidente, una falla de equipo crítico o un lote rechazado, decide prioridad y recursos y verifica que exista plan correctivo.
+    cierre: Firma el acta de revisión y los compromisos del día siguiente.
+  decide: Prioridad entre producción y mantenimiento, publicación de cambios de PLC solicitados por otros, gestión de incidentes SST y uso del presupuesto de la planta.
+  escala: Gerencia de operaciones o general (dotación, inversiones, compromisos con clientes).
+  consulta: [Producción del día y del turno, Equipos críticos fuera de servicio, Backlog de mantenimiento, Lotes retenidos y no conformidades, Incidentes SST abiertos, Dotación y ausentismo del día, Costos de la planta]
+  genera:
+    aprobar: Cambios de programa de PLC (control de cuatro ojos), cierre de investigaciones SST, prioridades de mantenimiento.
+    editar: Estructura de planta (áreas, líneas, equipos) y plan maestro de planta.
+    registrar: Acta de revisión diaria y planes correctivos.
+    exportar: Informe de planta.
+  no_ve: Liquidaciones individuales y datos bancarios. Ve dotación y contratos solo para gestionar la planta.
+  impacto: Si no prioriza, producción y mantenimiento compiten por el mismo equipo y la seguridad queda en segundo lugar. Sus aprobaciones habilitan cambios técnicos en las máquinas.
+  ui:
+    prioridad: Seguridad, equipos críticos detenidos, cumplimiento del día y aprobaciones pendientes.
+    disposicion: Franja seguridad-producción-calidad-mantenimiento · mapa de planta en vivo · bandeja de aprobaciones · acta del día.
+    menu: [Inicio, Planta en vivo, Producción, Mantenimiento, Calidad, Seguridad, Aprobaciones, Personas (agregado), Estructura]
+    datos: "Tablas: equipos críticos, NC abiertas, incidentes, backlog crítico. Formularios: acta de revisión, aprobación con comentario."
+    acciones: [Aprobar cambio de PLC, Priorizar una OT, Abrir investigación SST, Registrar acta del día]
+    alertas: [Accidente o casi accidente, Equipo crítico en falla, Lote retenido, Cambio de PLC esperando aprobación]
+    notificaciones: Nueva solicitud de cambio PLC; incidente SST reportado; lote retenido por calidad.
+    vacio: “Sin incidentes ni aprobaciones pendientes. La planta opera según el plan.”
+    componentes: Mapa de planta animado, bandeja de aprobaciones, semáforos por área.
+  medir:
+    - [Seguridad, Incidentes SST (frecuencia y severidad), hoy]
+    - [Entrega a tiempo, Despachos (OTIF), hoy]
+    - [Costo por unidad, Costos de producción (no existen), falta]
+    - [Desperdicio, Unidades rechazadas en registros de producción, hoy]
+    - [OEE, Producción y detenciones, hoy]
+  flujo:
+    entrada: Resultados de cada área, solicitudes de aprobación y reportes de incidentes.
+    procesa: Prioriza y decide entre metas en conflicto.
+    salida: Prioridades, aprobaciones, actas y planes correctivos.
+    destinatarios: Jefaturas de producción, mantenimiento, calidad, prevención, automatización.
+    consecuencia: Se publican cambios de PLC, se reordena el backlog y se cierran investigaciones.
+  permisos: {kpis: "c,x@pl", produccion: "c@pl", calidad: "c@pl", sst: "c,ap,ci@pl", ot: "c,as@pl", plc: "c,ap@pl", plc_comandos: "c@pl", equipos: "c,cr,e@pl", traspaso: "c@pl", despachos: "c@pl", personal: "c@pl", contratos: "c@pl", terminos: "c@pl", asistencia: "c@pl", habilitaciones: "c@pl", remuneraciones: "c@ag", permisos: "c@em", presupuesto: "c@pl", costos: "c@pl"}
+  apps: [web, desktop]
+  validar: [Si la gerencia de planta debe aprobar cambios de PLC o solo la jefatura de mantenimiento, Si necesita SIMA Desktop para recorridos en planta]
+  hoy: Aprueba cambios de PLC, gestiona SST, edita estructura y ve aprobaciones. No hay acta diaria ni costos.
+
+- id: 4
+  dashboard: Administración de planta
+  proposito: Mantiene funcionando lo que no es producción pero sin lo cual la planta se detiene, como servicios, contratos administrativos, documentación y gastos de apoyo.
+  jornada:
+    inicio: Revisa solicitudes administrativas abiertas, contratos de servicio por vencer y gasto del mes contra presupuesto.
+    durante: Gestiona proveedores no productivos, aprueba gastos de apoyo y revisa expedientes; valida parámetros y aprueba el pago de remuneraciones como segunda firma.
+    coordina: Con finanzas, RR. HH., seguridad, mantenimiento y contratistas.
+    anomalia: Si un servicio crítico (vigilancia, comedor, aseo) falla o un contrato vence sin renovación, activa el reemplazo y registra la incidencia.
+    cierre: Actualiza el control de gastos y el estado de contratos.
+  decide: Gastos administrativos dentro de su límite, renovación de contratos de servicios, segunda firma del cierre de remuneraciones.
+  escala: Gerencia de planta y finanzas (gastos fuera de presupuesto).
+  consulta: [Contratos de servicios y vencimientos, Solicitudes administrativas, Gasto vs. presupuesto administrativo, Expedientes, Remuneraciones (para aprobar el cierre), Parámetros legales]
+  genera:
+    crear: Contratos de servicios y solicitudes administrativas.
+    registrar: Control de gastos y evaluaciones de servicio.
+    aprobar: Cierre de remuneraciones preparado por otra persona; valores de parámetros legales.
+    exportar: Informe de gastos administrativos.
+  no_ve: Parámetros técnicos de máquinas, programas PLC y OT técnicas. No edita fichas personales.
+  impacto: Si un contrato de servicio vence sin control, se interrumpen vigilancia, aseo o alimentación. Su segunda firma impide pagos sin revisión.
+  ui:
+    prioridad: Contratos por vencer, gasto contra presupuesto y aprobaciones de pago pendientes.
+    disposicion: Indicadores de gasto · contratos por vencer (30/60/90 días) · solicitudes abiertas · bandeja de aprobaciones.
+    menu: [Inicio, Servicios y contratos, Solicitudes, Gastos, Remuneraciones (aprobación), Parámetros, Documentos]
+    datos: "Tablas: contratos de servicio, solicitudes, gastos por centro. Formularios: contrato, registro de gasto, evaluación de servicio."
+    acciones: [Aprobar cierre de remuneraciones, Registrar gasto, Renovar contrato de servicio]
+    alertas: [Contrato de servicio vence en menos de 30 días, Gasto sobre presupuesto, Cierre de pago esperando aprobación]
+    notificaciones: Remuneraciones preparadas para aprobar; nueva solicitud administrativa.
+    vacio: “No hay contratos de servicio registrados. Agregue el primero para controlar vencimientos.”
+    componentes: Línea de tiempo de vencimientos, barra presupuesto vs. real.
+  medir:
+    - [Gasto vs. presupuesto, Presupuesto administrativo y gastos (no existen), falta]
+    - [Continuidad de servicios, Incidencias de servicios contratados (no existen), falta]
+    - [Cumplimiento contractual, Evaluaciones de contratistas (no existen), falta]
+  flujo:
+    entrada: Solicitudes de áreas, facturas de servicios, cierre de remuneraciones preparado.
+    procesa: Verifica presupuesto, contratos y respaldos.
+    salida: Gastos aprobados, contratos renovados y segunda firma de pagos.
+    destinatarios: Finanzas, tesorería, contratistas, RR. HH.
+    consecuencia: Se pagan servicios y remuneraciones con doble control.
+  permisos: {remuneraciones: "c,ap@em", conceptos: "c@em", parametros: "c,e,ap@em", personal: "c@em", contratos: "c@em", terminos: "c@em", asistencia: "c@em", servicios: "c,cr,e,ap@pl", presupuesto: "c@pl", documentos: "c,cr,e@pl", produccion: "c@ag", kpis: "c@pl"}
+  apps: [web]
+  validar: [Si la segunda firma de remuneraciones debe quedar en Administración de planta o solo en Finanzas, Límite de gasto autorizable]
+  hoy: Aprueba cierres de remuneraciones y valida parámetros. No existe el módulo de servicios, contratos de proveedores ni gastos.
+
+- id: 5
+  dashboard: Control de gestión
+  proposito: Explica con datos por qué la planta obtuvo sus resultados. Sin este cargo las gerencias deciden sobre cifras no conciliadas.
+  jornada:
+    inicio: Revisa que los datos del día anterior estén completos (producción, detenciones, calidad) y marca los faltantes.
+    durante: Consolida reportes, calcula desviaciones contra plan y presupuesto y prepara análisis de variación.
+    coordina: Con finanzas, producción, operaciones y sistemas para corregir datos maestros.
+    anomalia: Si un indicador cambia bruscamente o hay datos incoherentes, lo marca como dato por validar y pide corrección al área dueña.
+    cierre: En el cierre mensual entrega el informe de variaciones.
+  decide: Qué datos se consideran válidos para el informe y qué alertas de gestión proponer.
+  escala: Gerencia de operaciones y finanzas (desviaciones significativas).
+  consulta: [Producción, detenciones y OEE, Calidad y rechazos, Mantenimiento (MTTR, MTBF), Costos y presupuesto, Remuneraciones solo en totales, Indicadores históricos]
+  genera:
+    consultar: Todos los indicadores en totales.
+    crear: Alertas de gestión (umbral por indicador) y análisis de variación.
+    exportar: Informes y datos en Excel/CSV.
+  no_ve: Liquidaciones individuales, datos personales y contratos. No modifica registros operativos de las áreas.
+  impacto: Sus análisis orientan las decisiones de gerencia y finanzas. Un dato mal consolidado hace que se corrija el problema equivocado.
+  ui:
+    prioridad: Calidad del dato (faltantes, incoherencias) y desviaciones del período.
+    disposicion: Panel de completitud de datos · variaciones contra meta · series históricas · exportaciones.
+    menu: [Inicio, Indicadores, Variaciones, Calidad de datos, Informes]
+    datos: "Tablas: indicadores con meta, real y desviación. Formularios: umbral de alerta, nota de análisis."
+    acciones: [Exportar período, Crear alerta de gestión, Marcar dato por validar]
+    alertas: [Registro de producción faltante, Indicador fuera de umbral]
+    notificaciones: Cierre de período disponible; área corrigió un dato marcado.
+    vacio: “No hay datos para el período elegido.”
+    componentes: Gráficos de series, tabla pivote, indicadores con su fuente visible.
+  medir:
+    - [Exactitud de reportes, Correcciones posteriores a datos publicados (no se registran), falta]
+    - [Plazo de cierre, Fecha de cierre del período (no se registra), falta]
+    - [Desviación presupuestaria, Presupuesto (no existe), falta]
+  flujo:
+    entrada: Registros de producción, calidad, mantenimiento, personas (totales) y finanzas.
+    procesa: Valida, concilia y calcula desviaciones.
+    salida: Informe de variaciones, alertas de gestión y cierre mensual.
+    destinatarios: Gerencias, finanzas, operaciones.
+    consecuencia: Las gerencias priorizan sobre datos conciliados.
+  permisos: {kpis: "c,cr,x@em", produccion: "c,x@ag", calidad: "c@em", ot: "c@em", despachos: "c@em", remuneraciones: "c@ag", costos: "c@em", presupuesto: "c@em"}
+  apps: [web]
+  validar: [Qué indicadores deben tener umbral de alerta automático]
+  hoy: Ve indicadores y producción en totales. No existen alertas de gestión, marca de dato por validar ni exportación del período.

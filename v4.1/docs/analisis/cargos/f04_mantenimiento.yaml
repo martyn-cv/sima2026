@@ -1,0 +1,347 @@
+# Familia 4 · Mantenimiento y confiabilidad
+- id: 23
+  dashboard: Gestión de mantenimiento
+  proposito: Mantiene los equipos seguros y disponibles con los recursos que tiene. Decide la estrategia (cuánto preventivo, qué predictivo, qué repuestos críticos) y responde por los resultados.
+  jornada:
+    inicio: Revisa equipos críticos fuera de servicio, backlog por prioridad, fallas de las últimas 24 horas y aprobaciones pendientes.
+    durante: Prioriza incidencias, revisa el avance de las OT, aprueba cambios de PLC y verificaciones de cierre, y controla repuestos críticos.
+    coordina: Con producción (ventanas), compras (repuestos), prevención e ingeniería.
+    anomalia: Ante una falla de un equipo crítico, fija prioridad, asigna recursos y decide si se escala a compra urgente o a apoyo externo.
+    cierre: Revisa indicadores del día y deja el backlog priorizado.
+  decide: Prioridad del backlog, estrategia preventiva, publicación de cambios de PLC solicitados por otros, aprobación de cierres técnicos y de compras de repuestos dentro de su límite.
+  escala: Gerencia de planta (presupuesto, dotación, detenciones largas).
+  consulta: [Disponibilidad por equipo, Backlog por prioridad y antigüedad, Fallas repetitivas, Técnicos y su carga, Repuestos críticos bajo mínimo, Costos de mantenimiento, MTTR y MTBF]
+  genera:
+    asignar: Prioridades y responsables de OT.
+    aprobar: Cierres técnicos, cambios de PLC, solicitudes de repuestos críticos.
+    crear: OT preventivas y planes de mantenimiento.
+    editar: Estructura de equipos y criticidad.
+    exportar: Informe de mantenimiento.
+  no_ve: Sueldos y contratos del personal. Ve asistencia y habilitaciones solo de su equipo.
+  impacto: Su priorización decide qué equipos vuelven primero a producción. Un backlog mal priorizado deja equipos críticos detenidos mientras se atienden trabajos menores.
+  ui:
+    prioridad: Equipos críticos fuera de servicio, backlog crítico, fallas repetitivas y aprobaciones.
+    disposicion: Franja (disponibilidad, backlog, fuera de servicio, MTTR) · disponibilidad más baja · backlog por prioridad · fallas repetitivas y repuestos críticos · bandeja de aprobaciones.
+    menu: [Gestión de mantenimiento, Plan de mantenimiento, Órdenes de trabajo, Condición de activos, Automatización, Explorador, Pañol, Traspaso, Indicadores]
+    datos: "Tablas: backlog, fallas repetitivas, repuestos críticos. Formularios: priorización, asignación, aprobación de cierre."
+    acciones: [Planificar trabajos, Priorizar incidencia, Asignar responsable, Aprobar cierre técnico, Aprobar cambio de PLC]
+    alertas: [Equipo crítico fuera de servicio, Falla repetida en 30 días, Repuesto crítico agotado, OT crítica sin asignar]
+    notificaciones: Cierre técnico esperando verificación; nuevo cambio de PLC; falla en equipo crítico.
+    vacio: “Sin equipos críticos detenidos ni aprobaciones pendientes.”
+    componentes: Barras de disponibilidad, dona de backlog, bandeja de aprobaciones.
+  medir:
+    - [Disponibilidad, Cambios de estado de equipos, hoy]
+    - [Mantenimiento planificado, OT preventivas programadas y cumplidas, parcial]
+    - [Costos, Costos de repuestos y horas (los repuestos tienen costo; las horas no), parcial]
+    - [Reincidencias, Fallas por equipo en un período, hoy]
+  flujo:
+    entrada: Avisos de falla, plan preventivo, indicadores, solicitudes de cambio.
+    procesa: Prioriza, asigna y aprueba.
+    salida: Backlog priorizado, OT asignadas, aprobaciones.
+    destinatarios: Planificador, supervisor, técnicos, producción, compras.
+    consecuencia: Los técnicos reciben sus OT; producción conoce cuándo vuelve el equipo.
+  permisos: {ot: "c,cr,as,ap,ci,x@pl", equipos: "c,cr,e@pl", repuestos: "c,e,ap@pl", herramientas: "c,e@pl", plc: "c,ap@pl", plc_comandos: "c,r@pl", condicion: "c@pl", calibraciones: "c@pl", eventos: "c@pl", traspaso: "c,cr@ar", kpis: "c,x@pl", asistencia: "c@eq", habilitaciones: "c,e@eq", sst: "c@ar", compras: "c,s@pl", costos: "c@ar", produccion: "c@pl"}
+  apps: [desktop, web]
+  validar: [Límite de monto de repuestos que aprueba sin compras, Si la jefatura de mantenimiento o la gerencia de planta tiene la última palabra en cambios de PLC]
+  hoy: Inicio de gestión en Desktop, aprueba cambios de PLC y cierres, edita equipos. No hay costos de mano de obra ni aprobación de solicitudes de repuesto.
+
+- id: 24
+  dashboard: Plan semanal de OT
+  proposito: Prepara los trabajos antes de que se ejecuten (alcance, repuestos, herramientas, permisos, técnico y ventana) para que nadie improvise frente al equipo.
+  jornada:
+    inicio: Revisa el backlog sin programar, las OT sin técnico y la disponibilidad de técnicos y ventanas de detención.
+    durante: Prepara cada OT (alcance, repuestos, herramientas, permisos), la programa en el calendario semanal y la asigna.
+    coordina: Con supervisores, técnicos, pañol (reserva de repuestos) y producción (ventanas).
+    anomalia: Si un repuesto no está o la ventana se pierde, reprograma y avisa a los afectados.
+    cierre: Publica el programa de la semana y revisa el cumplimiento del anterior.
+  decide: Fecha, técnico y secuencia de las OT dentro de la ventana acordada.
+  escala: Jefatura de mantenimiento (conflictos de prioridad), producción (ventanas).
+  consulta: [Backlog y OT preparadas, Técnicos por especialidad y su carga, Habilitaciones de los técnicos, Repuestos y herramientas disponibles, Ventanas de detención]
+  genera:
+    crear: OT preparadas con alcance y repuestos.
+    asignar: Técnico y fecha programada.
+    editar: Prioridad, especialidad y fecha.
+    solicitar: Reserva de repuestos al pañol.
+  no_ve: Sueldos y contratos. No firma la ejecución técnica de las OT.
+  impacto: Un programa bien preparado sube el mantenimiento planificado y baja las urgencias. Si programa a un técnico sin habilitación, la OT no se puede ejecutar.
+  ui:
+    prioridad: OT sin fecha o sin técnico, y el programa de la semana.
+    disposicion: Calendario semanal (días × técnicos) · backlog por preparar · carga por técnico · repuestos reservados.
+    menu: [Plan semanal de OT, Backlog, Técnicos, Pañol, Explorador, Alertas]
+    datos: "Tablas: backlog, carga por técnico. Formularios: preparación de OT (alcance, especialidad, fecha, técnico, repuestos)."
+    acciones: [Programar OT, Asignar técnico, Reservar repuestos, Reprogramar]
+    alertas: [OT sin fecha, OT sin técnico, OT programada sin repuestos, Técnico asignado sin habilitación]
+    notificaciones: Un técnico tomó o cerró una OT programada; pañol confirma reserva.
+    vacio: “No hay OT por programar esta semana.”
+    componentes: Calendario con arrastrar y soltar, barra de carga por técnico.
+  medir:
+    - [Cumplimiento del programa, OT programadas cerradas en su fecha, hoy]
+    - [Trabajos listos, "OT con alcance, repuestos y técnico completos", parcial]
+    - [Backlog, OT abiertas y antigüedad, hoy]
+  flujo:
+    entrada: Backlog priorizado, disponibilidad de técnicos y repuestos.
+    procesa: Prepara y programa.
+    salida: Programa semanal y OT asignadas.
+    destinatarios: Técnicos, supervisor, pañol, producción.
+    consecuencia: Cada técnico ve sus OT del día en SIMA Desktop.
+  permisos: {ot: "c,cr,as,e@pl", repuestos: "c,s@pl", herramientas: "c@pl", equipos: "c,cr,e@pl", habilitaciones: "c@eq", asistencia: "c@eq", eventos: "c@pl", kpis: "c@ar", plan_prod: "c@pl", traspaso: "c@ar"}
+  apps: [desktop]
+  validar: [Si existen ventanas de detención acordadas con producción y quién las registra]
+  hoy: Puede planificar (fecha, técnico, prioridad) en el backend recién agregado; no firma la ejecución. No hay reserva de repuestos ni chequeo de habilitación al asignar.
+
+- id: 25
+  dashboard: Cuadrilla de mantenimiento
+  proposito: Dirige la ejecución segura y la calidad técnica de las intervenciones, y entrega los equipos a operación solo cuando están verificados.
+  jornada:
+    inicio: Distribuye las OT del día a su cuadrilla y verifica habilitaciones y aislamientos requeridos.
+    durante: Sigue el avance, verifica bloqueos LOTO activos, coordina pruebas y revisa la documentación de cada intervención.
+    coordina: Con técnicos, operación (entrega del equipo), prevención y pañol.
+    anomalia: Si una intervención se hace sin aislamiento o se atrasa, la detiene o reasigna recursos.
+    cierre: Verifica los cierres técnicos, registra causas de desviación y entrega equipos a operación.
+  decide: Verificación de cierre técnico y liberación del equipo a operación, reasignación de OT en su cuadrilla.
+  escala: Jefatura de mantenimiento.
+  consulta: [OT de su cuadrilla y su estado, Técnicos y habilitaciones, LOTO activos, Resultados de pruebas e intervenciones, Repuestos usados]
+  genera:
+    asignar: OT a técnicos de su cuadrilla.
+    aprobar: Verificación de cierre técnico.
+    registrar: Causa de desviación y entrega del equipo a operación.
+    editar: Habilitaciones de su equipo (según la hoja Permisos).
+  no_ve: Sueldos, contratos y datos personales de los técnicos más allá de lo operativo.
+  impacto: Si verifica mal, un equipo vuelve a producción con un problema; si demora la verificación, producción espera un equipo ya reparado.
+  ui:
+    prioridad: Intervenciones activas con LOTO, cierres por verificar y retrasos.
+    disposicion: Carga de la cuadrilla · LOTO activos · cierres por verificar · retrasos.
+    menu: [Cuadrilla de mantenimiento, Plan, Órdenes de trabajo, Explorador, Alertas, Pañol, Traspaso, Seguridad]
+    datos: "Tablas: OT por técnico, cierres pendientes. Formularios: verificación de cierre (checklist), liberación a operación."
+    acciones: [Asignar OT, Verificar cierre, Liberar equipo a operación, Registrar desviación]
+    alertas: [Intervención sin LOTO, OT crítica atrasada, Equipo reparado esperando liberación]
+    notificaciones: Un técnico solicita verificación de cierre.
+    vacio: “Su cuadrilla no tiene OT activas.”
+    componentes: Tarjetas por técnico con OT en curso y tiempo transcurrido.
+  medir:
+    - [OT cerradas correctamente, Cierres verificados sin reapertura, parcial]
+    - [Retrabajo, OT reabiertas o fallas repetidas tras cierre, parcial]
+    - [Tiempos de reparación, Duración de intervenciones, hoy]
+  flujo:
+    entrada: OT asignadas, intervenciones documentadas.
+    procesa: Distribuye, supervisa y verifica.
+    salida: Cierres verificados y equipos liberados.
+    destinatarios: Operación, jefatura de mantenimiento, producción.
+    consecuencia: El equipo vuelve a operando solo con su liberación.
+  permisos: {ot: "c,as,ap,ci@eq", equipos: "c@pl", plc: "c@pl", repuestos: "c,e@pl", herramientas: "c,e@pl", habilitaciones: "c,e@eq", asistencia: "c@eq", traspaso: "c,cr@eq", eventos: "c@pl", plc_comandos: "c,r@pl", sst: "c,r@ar", kpis: "c@ar"}
+  apps: [desktop]
+  validar: [Quién libera el equipo a operación cuando no hay supervisor de mantenimiento en el turno]
+  hoy: Puede firmar cierres de cualquier OT, pero el cierre deja el equipo operando sin verificación. No hay verificación ni liberación separadas.
+
+- id: 26
+  dashboard: Mis OT mecánicas
+  proposito: Inspecciona, ajusta y repara los sistemas mecánicos (transmisiones, rodamientos, reductores, bombas). Su diagnóstico decide si la falla se repite.
+  jornada:
+    inicio: Ve sus OT asignadas por prioridad, las urgentes y los equipos que debe intervenir; revisa manuales e historial.
+    durante: Confirma LOTO, diagnostica, retira repuestos con la OT, repara y registra mediciones.
+    coordina: Con su supervisor, producción (entrega del equipo) y pañol.
+    anomalia: Si necesita un repuesto que no hay, lo solicita y deja la OT en espera; si excede su autorización, escala.
+    cierre: Documenta la intervención, retira el bloqueo y solicita la verificación de cierre.
+  decide: Diagnóstico técnico y acción correctiva dentro de su especialidad.
+  escala: Supervisor de mantenimiento (falta de repuesto, riesgo, trabajo eléctrico).
+  consulta: [Sus OT asignadas y las disponibles de su especialidad, Manuales y procedimientos del equipo, Historial de fallas e intervenciones, Repuestos del equipo y su stock, Herramientas disponibles, Sus habilitaciones]
+  genera:
+    registrar: Inicio con LOTO, diagnóstico, mediciones, repuestos usados e intervención.
+    solicitar: Repuestos y verificación de cierre.
+    crear: Avisos de falla detectados en inspección.
+  no_ve: Contratos, sueldos y datos personales de otros. No ve OT eléctricas que no le correspondan salvo para consultar.
+  impacto: Su registro alimenta MTTR, historial y costos. Un diagnóstico pobre provoca fallas repetidas.
+  ui:
+    prioridad: OT asignadas, urgentes y diagnósticos pendientes.
+    disposicion: Asignadas a usted · disponibles de su especialidad · equipo en intervención con manual e historial · repuestos necesarios.
+    menu: [Mis OT mecánicas, Órdenes de trabajo, Explorador, Alertas, Pañol, Reportar, Seguridad, Mi cargo]
+    datos: "Formularios: flujo guiado de OT (LOTO, diagnóstico, intervención, repuestos, cierre), solicitud de repuesto."
+    acciones: [Iniciar trabajo con LOTO, Registrar diagnóstico, Solicitar repuesto, Documentar reparación, Solicitar verificación de cierre]
+    alertas: [Trabajo sin aislamiento, Repuesto no disponible, Nueva falla mecánica crítica]
+    notificaciones: Se le asignó una OT; pañol entregó su repuesto; su cierre fue verificado.
+    vacio: “No tiene órdenes asignadas. Puede tomar una disponible de su especialidad.”
+    componentes: Flujo guiado paso a paso, visor de manual, historial del equipo.
+  medir:
+    - [MTTR, Duración de sus intervenciones por falla, hoy]
+    - [Retrabajos, Fallas repetidas en equipos que intervino, parcial]
+    - [Cumplimiento preventivo, OT preventivas asignadas cerradas a tiempo, hoy]
+  flujo:
+    entrada: OT asignada, manual, historial, repuestos.
+    procesa: Diagnostica y repara.
+    salida: Intervención documentada, movimiento de repuestos, solicitud de verificación.
+    destinatarios: Supervisor, pañol, jefatura, producción.
+    consecuencia: El supervisor verifica y libera el equipo; el stock se descuenta.
+  permisos: {ot: "c,r,ci@pr", repuestos: "c,s@pl", herramientas: "c,r@pr", equipos: "c@pl", plc: "c@pl", eventos: "c@pl", documentos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si un técnico puede tomar una OT asignada a otro técnico]
+  hoy: Flujo guiado de OT con LOTO e intervenciones. Puede tomar cualquier OT abierta aunque esté asignada a otra persona, y el retiro de repuestos es directo, sin solicitud.
+
+- id: 27
+  dashboard: Mis OT eléctricas
+  proposito: Mantiene motores, tableros, circuitos y protecciones. Trabaja con energía peligrosa, así que la habilitación eléctrica y el aislamiento son condición para empezar.
+  jornada:
+    inicio: Ve sus OT eléctricas, confirma su habilitación de trabajo eléctrico vigente y revisa diagramas del equipo.
+    durante: Aísla y bloquea, diagnostica con instrumentos calibrados, repara y registra las mediciones.
+    coordina: Con su supervisor, automatización (protecciones y señales) y producción.
+    anomalia: Si la medición indica riesgo o la protección no corresponde, detiene y escala.
+    cierre: Registra pruebas y mediciones, actualiza planos si cambió algo y solicita verificación.
+  decide: Diagnóstico eléctrico y acción dentro de su habilitación.
+  escala: Supervisor y automatización.
+  consulta: [OT eléctricas, Diagramas y planos, Historial eléctrico del equipo, Protecciones, Sus habilitaciones, Instrumentos calibrados disponibles]
+  genera:
+    registrar: Pruebas, mediciones (aislamiento, corriente, tensión) e intervención.
+    solicitar: Repuestos y verificación de cierre.
+    editar: Planos eléctricos (propuesta de actualización).
+  no_ve: Contratos, sueldos y datos personales de otros.
+  impacto: Sus mediciones previenen fallas de motores y riesgos eléctricos para las personas.
+  ui:
+    prioridad: OT eléctricas, habilitación vigente e instrumentos calibrados.
+    disposicion: Asignadas · disponibles eléctricas · habilitación · registro de mediciones.
+    menu: [Mis OT eléctricas, Órdenes de trabajo, Explorador, Alertas, Pañol, Reportar, Seguridad, Mi cargo]
+    datos: "Formularios: flujo guiado de OT con registro de mediciones eléctricas."
+    acciones: [Iniciar con LOTO, Registrar medición, Solicitar repuesto, Solicitar verificación]
+    alertas: [Habilitación eléctrica vencida, Instrumento sin calibración, Falla eléctrica crítica]
+    notificaciones: Se le asignó una OT eléctrica.
+    vacio: “No tiene órdenes eléctricas asignadas.”
+    componentes: Tabla de mediciones con límites.
+  medir:
+    - [Fallas eléctricas, OT de especialidad eléctrica por falla, hoy]
+    - [Restablecimiento, Duración de intervenciones eléctricas, hoy]
+    - [Reincidencias, Fallas eléctricas repetidas por equipo, parcial]
+  flujo:
+    entrada: OT eléctrica, diagramas.
+    procesa: Aísla, mide y repara.
+    salida: Mediciones e intervención documentadas.
+    destinatarios: Supervisor, automatización, jefatura.
+    consecuencia: El historial eléctrico del equipo queda completo.
+  permisos: {ot: "c,r,ci@pr", repuestos: "c,s@pl", herramientas: "c,r@pr", equipos: "c@pl", plc: "c@pl", eventos: "c@pl", documentos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si iniciar una OT eléctrica debe bloquearse cuando la habilitación eléctrica está vencida]
+  hoy: Mismo inicio técnico filtrado por especialidad eléctrica. No se verifica la habilitación al iniciar.
+
+- id: 28
+  dashboard: Mis OT electromecánicas
+  proposito: Atiende fallas que combinan mecanismos, motores, sensores y accionamientos, y sabe cuándo una tarea excede su autorización.
+  jornada:
+    inicio: Ve sus OT, que pueden ser mecánicas, eléctricas o electromecánicas, y revisa el historial del equipo.
+    durante: Diagnostica el sistema completo, interviene dentro de su autorización y registra.
+    coordina: Con mantenimiento, automatización y operación.
+    anomalia: Si la tarea excede su autorización, la escala sin intervenir.
+    cierre: Documenta el diagnóstico y solicita verificación.
+  decide: Diagnóstico integral y si la tarea está dentro de su autorización.
+  escala: Supervisor, técnico eléctrico o automatización según la tarea.
+  consulta: [OT de varias especialidades, Manuales e historial, Sensores y señales del equipo, Repuestos]
+  genera:
+    registrar: Diagnóstico e intervención.
+    solicitar: Repuestos, apoyo de otra especialidad y verificación.
+  no_ve: Contratos, sueldos y datos personales de otros.
+  impacto: Reduce el tiempo de restablecimiento en equipos integrados al evitar traspasos entre especialidades.
+  ui:
+    prioridad: OT asignadas de las tres especialidades.
+    disposicion: Asignadas · disponibles por especialidad · equipo con señales en vivo.
+    menu: [Mis OT electromecánicas, Órdenes de trabajo, Explorador, Alertas, Pañol, Reportar, Seguridad, Mi cargo]
+    datos: "Formularios: flujo guiado de OT, solicitud de apoyo."
+    acciones: [Iniciar con LOTO, Registrar diagnóstico, Pedir apoyo de especialidad, Solicitar verificación]
+    alertas: [Tarea fuera de su autorización, Repuesto no disponible]
+    notificaciones: Se le asignó una OT.
+    vacio: “No tiene órdenes asignadas.”
+    componentes: Vista de señales del equipo durante la intervención.
+  medir:
+    - [Tiempo de restablecimiento, Duración de intervenciones, hoy]
+    - [Mantenimiento efectivo, OT cerradas sin reapertura, parcial]
+  flujo:
+    entrada: OT multifunción.
+    procesa: Diagnostica y repara o escala.
+    salida: Diagnóstico e intervención.
+    destinatarios: Supervisor, otras especialidades.
+    consecuencia: Menos traspasos entre especialidades.
+  permisos: {ot: "c,r,ci@pr", repuestos: "c,s@pl", herramientas: "c,r@pr", equipos: "c@pl", plc: "c@pl", eventos: "c@pl", documentos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Qué tareas eléctricas puede hacer sin un técnico eléctrico]
+  hoy: Inicio técnico con varias especialidades. Sin solicitud de apoyo entre especialidades.
+
+- id: 29
+  dashboard: Condición de activos
+  proposito: Detecta la degradación antes de que se convierta en falla, mediante rutas de lubricación, muestreo e inspección de tendencias.
+  jornada:
+    inicio: Revisa su ruta del día y los equipos con tendencias de vibración o temperatura al alza.
+    durante: Ejecuta la ruta, lubrica, toma muestras y registra hallazgos.
+    coordina: Con mantenimiento (hallazgos), almacén (lubricantes) y laboratorio externo.
+    anomalia: Si una tendencia supera el umbral de aviso, crea un aviso con evidencia para planificación.
+    cierre: Registra la ruta completada y los hallazgos abiertos.
+  decide: Si un hallazgo amerita una OT y con qué prioridad sugerida.
+  escala: Planificador y jefatura de mantenimiento.
+  consulta: [Rutas y puntos de inspección, Tendencias de vibración y temperatura, Historial de lubricación, Lubricantes disponibles]
+  genera:
+    registrar: Rutas ejecutadas, mediciones y hallazgos.
+    crear: Avisos de degradación con evidencia.
+  no_ve: Datos personales, sueldos. No cambia parámetros de máquina.
+  impacto: Un hallazgo a tiempo convierte una falla con detención larga en una intervención programada.
+  ui:
+    prioridad: Equipos más cerca del límite y ruta del día.
+    disposicion: Ranking de equipos por cercanía al límite · ruta del día · tendencias · hallazgos abiertos.
+    menu: [Condición de activos, Rutas, Órdenes de trabajo, Explorador, Alertas, Reportar]
+    datos: "Tablas: puntos de la ruta, hallazgos. Formularios: medición en punto, hallazgo con prioridad sugerida."
+    acciones: [Ejecutar ruta, Registrar hallazgo, Crear aviso de degradación]
+    alertas: [Vibración o temperatura sobre aviso, Ruta atrasada]
+    notificaciones: Planificación programó una OT por su hallazgo.
+    vacio: “No hay equipos con tendencias anormales.”
+    componentes: Barras de cercanía al límite, gráfico de tendencia con umbrales.
+  medir:
+    - [Fallas por lubricación, "Causa de falla en intervenciones (texto libre, sin catálogo)", parcial]
+    - [Adherencia a rutas, Rutinas ejecutadas a tiempo, hoy]
+    - [Hallazgos resueltos, Avisos creados y su OT cerrada, parcial]
+  flujo:
+    entrada: Rutas, tendencias de sensores.
+    procesa: Inspecciona y analiza tendencias.
+    salida: Rutas cumplidas, hallazgos y avisos.
+    destinatarios: Planificador, jefatura de mantenimiento.
+    consecuencia: Se programan intervenciones antes de la falla.
+  permisos: {condicion: "c,r@pl", rutinas: "c,r@pl", ot: "c,cr@pl", equipos: "c@pl", eventos: "c@pl", repuestos: "c,s@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Umbral de aviso predictivo por tipo de equipo]
+  hoy: Inicio de condición en Desktop con ranking por cercanía al límite y rutinas. No hay rutas con puntos ni hallazgos estructurados.
+
+- id: 30
+  dashboard: Pañol de repuestos
+  proposito: Garantiza que el repuesto esté cuando el técnico lo necesita y que cada salida quede trazada a una OT.
+  jornada:
+    inicio: Revisa repuestos bajo mínimo, críticos agotados y solicitudes de los técnicos.
+    durante: Entrega repuestos contra OT, registra devoluciones y herramientas, y controla ubicaciones.
+    coordina: Con mantenimiento, compras, proveedores y bodega.
+    anomalia: Si un crítico se agota o una OT programada no tiene stock, avisa al planificador y solicita compra.
+    cierre: Concilia salidas del día y deja el kardex al día.
+  decide: Entrega o rechazo de una solicitud (sin OT no hay salida), equivalencias aprobadas.
+  escala: Jefatura de mantenimiento (críticos), compras (reposición).
+  consulta: [Inventario de repuestos con mínimos, Solicitudes pendientes, OT programadas y sus repuestos, Kardex, Herramientas retiradas]
+  genera:
+    registrar: Entradas, salidas contra OT, devoluciones y herramientas retiradas.
+    aprobar: Solicitudes de repuesto (entregar o rechazar con motivo).
+    solicitar: Reposición a compras.
+    editar: Mínimos y ubicaciones.
+  no_ve: Nóminas, datos bancarios, contratos.
+  impacto: Un quiebre de un crítico alarga la detención; una salida sin OT descuadra el costo y el stock.
+  ui:
+    prioridad: Solicitudes pendientes y críticos bajo mínimo.
+    disposicion: Solicitudes por atender · bajo mínimo · OT de la semana sin stock · herramientas fuera.
+    menu: [Pañol de repuestos, Solicitudes, Inventario, Herramientas, Explorador, Alertas, Mi cargo]
+    datos: "Tablas: solicitudes, stock bajo mínimo, kardex. Formularios: entrega contra OT, ingreso, devolución."
+    acciones: [Entregar repuesto, Registrar ingreso, Solicitar reposición, Ajustar mínimo]
+    alertas: [Crítico agotado, Stock bajo mínimo, OT programada sin stock]
+    notificaciones: Un técnico solicitó un repuesto; el planificador reservó repuestos.
+    vacio: “No hay solicitudes pendientes.”
+    componentes: Kardex por repuesto, indicador de cobertura.
+  medir:
+    - [Disponibilidad de críticos, Repuestos críticos con stock sobre mínimo, hoy]
+    - [Exactitud del stock, Conteos físicos (no existen), falta]
+    - [Rotación, Movimientos de salida por período, hoy]
+  flujo:
+    entrada: Solicitudes y reservas con OT.
+    procesa: Verifica stock y entrega.
+    salida: Movimientos de inventario trazados a la OT.
+    destinatarios: Técnicos, planificador, compras, costos.
+    consecuencia: El stock baja y la OT acumula su costo de repuestos.
+  permisos: {repuestos: "c,r,e,ap@pl", herramientas: "c,r,e@pl", ot: "c@pl", compras: "c,s@pl", equipos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si las equivalencias de repuestos se registran en SIMA]
+  hoy: Inventario con mínimos y egreso obligatorio con OT. No hay solicitudes ni reservas; el técnico retira directamente.
