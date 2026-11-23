@@ -36,15 +36,18 @@ public static class SemillaV4
         foreach (var e in equipos.Where(e => e.Tipo is not "Cinta transportadora" and not "Robot industrial articulado"))
         {
             var prods = Productos[e.Linea];
-            for (var d = 9; d >= 0; d--)
+            var turnosHoy = new[] { "D", "A", "B", "N" };
+            var idx = equipos.IndexOf(e);
+            for (var d = 9; d >= -1; d--)
             {
-                foreach (var turno in new[] { "D", "A" })
+                // días anteriores: turnos D y A terminados · hoy (d = 0): una orden en curso por equipo, rotando los turnos · d = -1: la siguiente, planificada
+                foreach (var turno in d > 0 ? new[] { "D", "A" } : new[] { turnosHoy[idx % turnosHoy.Length] })
                 {
                     n++;
                     var cant = rnd.Next(4, 12) * 50;
-                    var inicio = ahora.Date.AddDays(-d).AddHours(turno == "D" ? 8 + rnd.Next(0, 2) : 16 + rnd.Next(0, 2));
-                    var enCurso = d == 0 && inicio <= ahora && (turno == "D" ? ahora.Hour < 20 : true);
-                    var futura = inicio > ahora;
+                    var inicio = d > 0 ? ahora.Date.AddDays(-d).AddHours(turno == "D" ? 11 + rnd.Next(0, 2) : 19 + rnd.Next(0, 2)) : d == 0 ? ahora.AddHours(-2 - rnd.NextDouble() * 3) : ahora.AddHours(6);
+                    var enCurso = d == 0;
+                    var futura = d < 0;
                     var o = new OrdenProduccion
                     {
                         Codigo = $"OP-{inicio:yyMM}-{n:000}", Producto = prods[rnd.Next(prods.Length)], Lote = $"L{inicio:yyMMdd}-{n:000}", EquipoId = e.Id, Linea = e.Linea, Turno = turno,

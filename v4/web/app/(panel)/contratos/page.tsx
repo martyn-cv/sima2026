@@ -50,7 +50,7 @@ export default function Contratos() {
             <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" className="size-4 accent-[var(--s-acento)]" checked={soloActuales} onChange={(e) => setSoloActuales(e.target.checked)} />Solo el contrato actual de cada persona</label>
             <Chip punto={false} className="ml-auto">{lista.length} contratos</Chip>
           </div>
-          <Tabla columnas={columnas} filas={lista} clave={(c) => c.id} cargando={isLoading} alHacerClic={(c) => router.push(`/trabajadores/${c.trabajadorId}`)} maxAlto="calc(100dvh - 440px)" />
+          <Tabla columnas={columnas} filas={lista} clave={(c) => c.id} cargando={isLoading} alHacerClic={(c) => router.push(`/trabajadores/ficha?id=${c.trabajadorId}`)} maxAlto="calc(100dvh - 440px)" />
         </Seccion>
       )}
       {renovar && <DialogoContrato abierto onCerrar={() => setRenovar(null)} trabajadorId={renovar.trabajadorId} nombre={renovar.trabajador} base={{ tipo: renovar.tipo, fechaInicio: renovar.fechaInicio, sueldoBase: renovar.sueldoBase, colacion: renovar.colacion, movilizacion: renovar.movilizacion } satisfies ContratoBase} />}

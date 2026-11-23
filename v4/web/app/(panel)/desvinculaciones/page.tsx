@@ -36,7 +36,7 @@ export default function Desvinculaciones() {
       <Encabezado titulo="Desvinculaciones" descripcion="Al registrar una desvinculación la cuenta de la persona se cierra y sus sesiones terminan, en la web y en la app."
         acciones={puede("terminos", "editar") ? <Boton variante="peligro" onClick={() => { setElegido(""); setEligiendo(true); }}><UserMinus className="size-4" />Registrar desvinculación</Boton> : undefined} />
       {error ? <ErrorCarga error={error} reintentar={() => void refetch()} /> : (
-        <Seccion><Tabla columnas={columnas} filas={data} clave={(t) => t.id} cargando={isLoading} alHacerClic={(t) => router.push(`/trabajadores/${t.trabajadorId}`)} vacio={<p className="p-10 text-center text-gris">Todavía no hay desvinculaciones registradas.</p>} /></Seccion>
+        <Seccion><Tabla columnas={columnas} filas={data} clave={(t) => t.id} cargando={isLoading} alHacerClic={(t) => router.push(`/trabajadores/ficha?id=${t.trabajadorId}`)} vacio={<p className="p-10 text-center text-gris">Todavía no hay desvinculaciones registradas.</p>} /></Seccion>
       )}
       <Dialogo abierto={eligiendo} onCerrar={() => setEligiendo(false)} titulo="¿A quién se desvincula?" ancho={520}
         pie={<><Boton variante="contorno" onClick={() => setEligiendo(false)}>Cancelar</Boton><Boton disabled={!elegido} onClick={() => { setPersona(lista.find((t) => t.id === elegido) ?? null); setEligiendo(false); }}>Continuar</Boton></>}>

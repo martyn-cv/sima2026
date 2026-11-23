@@ -6,7 +6,7 @@ export type Permiso = "ver" | "editar" | "no";
 
 export interface Usuario {
   id: string; nombre: string; correo: string; cargoId: number; cargo: string; familia: string; perfil: string; canal: Canal;
-  turno: string; jefe?: string | null; estadoCuenta: string; permisos: Record<string, Permiso>;
+  turno: string; jefe?: string | null; estadoCuenta: string; permisos: Record<string, Permiso>; capacidades?: Record<string, string>;
   totpActivo?: boolean; restringido?: "clave" | "2fa" | null;
 }
 export interface RespuestaLogin { token: string; vence: string; usuario: Usuario }
@@ -41,7 +41,7 @@ export interface Variable { nombre: string; tipo: "bool" | "timer" | "counter"; 
 export interface ProgramaPlc { version: number; variables: Variable[]; peldanos: Peldano[] }
 
 export interface PlcDetalle extends Omit<PlcResumen, "modulos" | "puntos" | "entradas" | "salidas" | "equipos"> {
-  modulos: PlcModulo[]; puntos: PlcPunto[]; equipos: { codigo: string; nombre: string; tipo: string; estado: string }[]; programa: ProgramaPlc; io: Record<string, number>;
+  modulos: PlcModulo[]; puntos: PlcPunto[]; equipos: { codigo: string; nombre: string; tipo: string; estado: string }[]; programa: ProgramaPlc; io: Record<string, number>; version?: number;
 }
 
 export class ApiError extends Error {
@@ -97,6 +97,10 @@ export interface EventosPlanta {
   plc?: (p: { codigo: string; estado: string }) => void;
   plcIO?: (p: { codigo: string; estado: string; io: Record<string, number>; ciclos?: number }) => void;
   cuentaCerrada?: (m: { motivo: string }) => void;
+  produccion?: (p: { id: number; codigo: string; estado: string; producidas?: number; buenas?: number }) => void;
+  calidad?: (c: { id: number; codigo: string; estado: string; severidad: string; texto: string }) => void;
+  sst?: (s: { id: number; codigo: string; tipo: string; severidad: string; texto: string }) => void;
+  cambioPlc?: (c: { id: number; plc: string; estado: string; por: string; resumen: string; version?: number }) => void;
   conexion?: (estado: "conectado" | "reconectando" | "desconectado") => void;
 }
 
@@ -106,7 +110,7 @@ export function conectarTiempoReal(baseUrl: string, token: () => string | null, 
     .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
     .configureLogging(LogLevel.Error)
     .build();
-  (["lecturas", "equipo", "alarma", "orden", "plc", "plcIO", "cuentaCerrada"] as const).forEach((n) => {
+  (["lecturas", "equipo", "alarma", "orden", "plc", "plcIO", "cuentaCerrada", "produccion", "calidad", "sst", "cambioPlc"] as const).forEach((n) => {
     const f = ev[n] as ((x: never) => unknown) | undefined;
     // el manejador no debe devolver nada: SignalR toma un valor devuelto como respuesta al servidor
     if (f) c.on(n, (...a: unknown[]) => { (f as (...x: unknown[]) => unknown)(...a); });

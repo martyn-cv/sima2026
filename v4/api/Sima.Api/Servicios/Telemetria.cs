@@ -114,6 +114,36 @@ public class SimuladorInterno(IServiceScopeFactory fabrica, IConfiguration cfg, 
         return sigma * Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
     }
 
+    int _vuelta;
+    static readonly string[] Motivos = { "Rebaba", "Medida fuera de tolerancia", "Rechupe", "Mancha o color" };
+
+    /// <summary>Contador de piezas de cada equipo que opera con una orden en curso (lo que en la planta real informa el PLC).</summary>
+    static async Task ContarProduccionAsync(SimaDb db, IHubContext<PlantaHub> hub, CancellationToken ct)
+    {
+        var activas = await db.OrdenesProduccion.Where(o => o.Estado == "en_curso").ToListAsync(ct);
+        if (activas.Count == 0) return;
+        var estados = await db.Equipos.AsNoTracking().ToDictionaryAsync(e => e.Id, e => e.Estado, ct);
+        var hoy = Reloj.Hoy();
+        foreach (var o in activas.Where(o => estados.GetValueOrDefault(o.EquipoId) == "operando"))
+        {
+            var piezas = Math.Max(2, o.Cantidad / 240 + Random.Shared.Next(-1, 3));
+            var malas = Random.Shared.NextDouble() < 0.25 ? 1 : 0;
+            db.RegistrosProduccion.Add(new RegistroProduccion { OrdenId = o.Id, OperadorId = "PLC", OperadorNombre = "Contador automático del PLC", Conformes = piezas - malas, Rechazo = malas, Motivo = malas > 0 ? Motivos[Random.Shared.Next(Motivos.Length)] : "" });
+            o.Producidas += piezas; o.Buenas += piezas - malas;
+            var dia = await db.Produccion.FirstOrDefaultAsync(p => p.EquipoId == o.EquipoId && p.Fecha == hoy, ct);
+            if (dia is null) db.Produccion.Add(dia = new ProduccionDia { EquipoId = o.EquipoId, Fecha = hoy, UnidadesPlan = o.Cantidad, HorasPlan = 16 });
+            dia.UnidadesProducidas += piezas; dia.UnidadesBuenas += piezas - malas;
+            if (o.Producidas >= o.Cantidad)
+            {
+                o.Estado = "terminada"; o.Fin = DateTime.UtcNow;
+                var siguiente = await db.OrdenesProduccion.Where(x => x.EquipoId == o.EquipoId && x.Estado == "planificada").OrderBy(x => x.Id).FirstOrDefaultAsync(ct);
+                if (siguiente is not null) { siguiente.Estado = "en_curso"; siguiente.Inicio = DateTime.UtcNow; }
+            }
+        }
+        await db.SaveChangesAsync(ct);
+        foreach (var o in activas) await hub.Clients.Group("planta").SendAsync("produccion", new { id = o.Id, codigo = o.Codigo, estado = o.Estado, producidas = o.Producidas, buenas = o.Buenas }, ct);
+    }
+
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         if (!cfg.GetValue("Simulador:Habilitado", true)) return;
@@ -147,6 +177,7 @@ public class SimuladorInterno(IServiceScopeFactory fabrica, IConfiguration cfg, 
                     if (!await db.Alarmas.AnyAsync(a => a.EquipoId == eq.Id && a.Nivel == "alarma" && a.Inicio > viejas, ct))
                         foreach (var s in libres.Where(s => s.EquipoId == eq.Id)) s.Deriva = 0;
                 await db.SaveChangesAsync(ct);
+                if (++_vuelta % 15 == 0) await ContarProduccionAsync(db, scope.ServiceProvider.GetRequiredService<IHubContext<PlantaHub>>(), ct);
                 // retención del historial: 6 horas
                 if (Random.Shared.NextDouble() < 0.02) await db.Lecturas.Where(l => l.Ts < DateTime.UtcNow.AddHours(-6)).ExecuteDeleteAsync(ct);
             }

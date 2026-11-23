@@ -13,6 +13,8 @@ interface Ctx {
   refrescar: (token?: string) => Promise<void>;
   salir: (motivo?: string) => void;
   puede: (recurso: string, accion?: "ver" | "editar") => boolean;
+  /** Capacidad exacta del cargo (p. ej. «calidad.liberar»). El servidor vuelve a validarla. */
+  tiene: (capacidad: string) => boolean;
 }
 const AuthCtx = createContext<Ctx | null>(null);
 
@@ -62,6 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     puede: (recurso, accion = "ver") => {
       const p = usuario?.permisos?.[recurso];
       return accion === "editar" ? p === "editar" : p === "ver" || p === "editar";
+    },
+    tiene: (cap) => {
+      const c = usuario?.capacidades ?? {};
+      return cap in c || (cap.endsWith(".ver") && `${cap.slice(0, -4)}.editar` in c);
     },
   }), [usuario, cargando, aviso, entrar, refrescar, salir]);
 

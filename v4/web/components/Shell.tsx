@@ -162,9 +162,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const plcs = useQuery({ queryKey: ["plc"], queryFn: () => api.get<{ codigo: string; nombre: string }[]>("/api/plc"), enabled: paleta && puede("plc") });
   const comandos = useMemo<Comando[]>(() => [
     ...GRUPOS.flatMap((g) => g.items.filter((i) => !i.recurso || puede(i.recurso)).map((i) => ({ id: i.href, titulo: i.titulo, detalle: i.detalle, grupo: "Pantallas", icono: <i.icono className="size-4" />, accion: () => router.push(i.href) }))),
-    ...(puede("personal") ? (directorio.data ?? []).map((p) => ({ id: `t-${p.id}`, titulo: p.nombre, detalle: p.cargo, grupo: "Personas", icono: <Users className="size-4" />, accion: () => router.push(`/trabajadores/${p.id}`) })) : []),
+    ...(puede("personal") ? (directorio.data ?? []).map((p) => ({ id: `t-${p.id}`, titulo: p.nombre, detalle: p.cargo, grupo: "Personas", icono: <Users className="size-4" />, accion: () => router.push(`/trabajadores/ficha?id=${p.id}`) })) : []),
     ...equipos.map((e) => ({ id: `e-${e.codigo}`, titulo: `${e.codigo} · ${e.nombre}`, detalle: `${e.tipo} · ${e.estado.replace("_", " ")}`, grupo: "Equipos", icono: <Factory className="size-4" />, accion: () => router.push(`/planta?equipo=${e.codigo}`) })),
-    ...(plcs.data ?? []).map((p) => ({ id: `p-${p.codigo}`, titulo: p.codigo, detalle: p.nombre, grupo: "Controladores PLC", icono: <Cpu className="size-4" />, accion: () => router.push(`/plc/${p.codigo}`) })),
+    ...(plcs.data ?? []).map((p) => ({ id: `p-${p.codigo}`, titulo: p.codigo, detalle: p.nombre, grupo: "Controladores PLC", icono: <Cpu className="size-4" />, accion: () => router.push(`/plc/equipo?codigo=${p.codigo}`) })),
     { id: "tema", titulo: tema === "claro" ? "Cambiar al tema noche" : "Cambiar al tema día", grupo: "Acciones", icono: tema === "claro" ? <Moon className="size-4" /> : <Sun className="size-4" />, accion: alternar },
     { id: "seg", titulo: "Seguridad de la cuenta", detalle: "Clave y segundo factor", grupo: "Acciones", icono: <ShieldCheck className="size-4" />, accion: () => setSeguridad(true) },
     { id: "salir", titulo: "Cerrar sesión", grupo: "Acciones", icono: <LogOut className="size-4" />, accion: () => salir() },

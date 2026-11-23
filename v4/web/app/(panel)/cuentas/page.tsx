@@ -46,7 +46,7 @@ export default function Cuentas() {
             <Seleccion className="w-[160px]" value={canal} onChange={(e) => setCanal(e.target.value)} aria-label="Canal"><option value="">Web y app</option><option value="web">Solo web</option><option value="app">Solo app</option></Seleccion>
             <Chip punto={false} className="ml-auto">{lista.length} cuentas</Chip>
           </div>
-          <Tabla columnas={columnas} filas={lista} clave={(c) => c.id} cargando={isLoading} alHacerClic={(c) => router.push(`/trabajadores/${c.id}`)} maxAlto="calc(100dvh - 330px)" />
+          <Tabla columnas={columnas} filas={lista} clave={(c) => c.id} cargando={isLoading} alHacerClic={(c) => router.push(`/trabajadores/ficha?id=${c.id}`)} maxAlto="calc(100dvh - 330px)" />
         </Seccion>
       )}
       <Dialogo abierto={clave != null} onCerrar={() => setClave(null)} titulo="Clave temporal" ancho={460} pie={<Boton onClick={() => setClave(null)}>Listo</Boton>}>

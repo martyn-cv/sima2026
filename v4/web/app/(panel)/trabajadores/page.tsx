@@ -54,7 +54,7 @@ export default function Trabajadores() {
             <Seleccion className="w-[210px]" value={familia} onChange={(e) => setFamilia(e.target.value)} aria-label="Área"><option value="">Todas las áreas</option>{familias.map((f) => <option key={f}>{f}</option>)}</Seleccion>
             <Chip tono="neutro" punto={false} className="ml-auto">{filtradas.length} de {data.length}</Chip>
           </div>
-          <Tabla columnas={columnas} filas={filtradas} clave={(t) => t.id} cargando={isLoading} alHacerClic={(t) => router.push(`/trabajadores/${t.id}`)} maxAlto="calc(100dvh - 330px)" />
+          <Tabla columnas={columnas} filas={filtradas} clave={(t) => t.id} cargando={isLoading} alHacerClic={(t) => router.push(`/trabajadores/ficha?id=${t.id}`)} maxAlto="calc(100dvh - 330px)" />
         </Seccion>
       )}
     </>

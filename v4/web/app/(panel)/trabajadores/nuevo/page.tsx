@@ -18,7 +18,7 @@ export default function NuevoTrabajador() {
     onSuccess: (r) => {
       for (const k of ["trabajadores", "panel", "cuentas", "directorio", "contratos", "organigrama", "cargos"]) void qc.invalidateQueries({ queryKey: [k] });
       aviso(`Cuenta creada. Usuario: ${r.login}`);
-      router.push(`/trabajadores/${r.id}`);
+      router.push(`/trabajadores/ficha?id=${r.id}`);
     },
     onError: (e) => aviso(mensajeDe(e), "error"),
   });

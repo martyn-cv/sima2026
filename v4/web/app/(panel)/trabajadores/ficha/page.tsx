@@ -1,5 +1,6 @@
 "use client";
-import { use, useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, KeyRound, LogOut, Pencil, Plus, RotateCcw, ShieldOff, Unlock } from "lucide-react";
@@ -25,8 +26,12 @@ interface Detalle {
   cuenta: { login: string; alias?: string | null; totpActivo?: boolean; debeCambiarClave?: boolean; ultimoAcceso?: string | null; estado: string; accesoWeb: boolean; accesoApp: boolean; bloqueada: boolean };
 }
 
-export default function FichaTrabajador({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function Pagina() {
+  return <Suspense fallback={<Esqueleto className="h-72" />}><FichaTrabajador /></Suspense>;
+}
+
+function FichaTrabajador() {
+  const id = useSearchParams().get("id") ?? "";
   const { puede } = useAuth();
   const qc = useQueryClient();
   const aviso = useAviso();
@@ -118,12 +123,12 @@ export default function FichaTrabajador({ params }: { params: Promise<{ id: stri
             <Seccion titulo="En la empresa" className="lg:col-span-2"><dl className="grid gap-4 p-5 sm:grid-cols-3">
               <Dato etiqueta="Cargo" className="sm:col-span-2">{data.cargo.nombre}</Dato><Dato etiqueta="Turno">{TURNO_NOMBRE[r.turno]}</Dato>
               <Dato etiqueta="Ingreso">{fecha(p.fechaIngreso)}</Dato><Dato etiqueta="Área">{r.familia}</Dato>
-              <Dato etiqueta="Jefe directo">{data.jefe ? <Link className="underline decoration-linea underline-offset-2 hover:decoration-negro" href={`/trabajadores/${data.jefe.id}`}>{data.jefe.nombre}</Link> : null}</Dato>
+              <Dato etiqueta="Jefe directo">{data.jefe ? <Link className="underline decoration-linea underline-offset-2 hover:decoration-negro" href={`/trabajadores/ficha?id=${data.jefe.id}`}>{data.jefe.nombre}</Link> : null}</Dato>
               <Dato etiqueta="Para qué existe el cargo" className="sm:col-span-3"><span className="font-normal text-gris">{data.cargo.paraQueExiste}</span></Dato>
             </dl></Seccion>
             <Seccion titulo={`Equipo a cargo (${data.equipo.length})`}>
               {data.equipo.length === 0 ? <p className="p-5 text-gris">No tiene personas a cargo.</p> : (
-                <ul className="max-h-[260px] divide-y divide-linea-suave overflow-auto px-5 py-2">{data.equipo.map((e) => <li key={e.id}><Link href={`/trabajadores/${e.id}`} className="block py-2 hover:bg-chapa/60"><p className="font-medium">{e.nombre}</p><p className="text-[13px] text-gris">{e.cargo}</p></Link></li>)}</ul>
+                <ul className="max-h-[260px] divide-y divide-linea-suave overflow-auto px-5 py-2">{data.equipo.map((e) => <li key={e.id}><Link href={`/trabajadores/ficha?id=${e.id}`} className="block py-2 hover:bg-chapa/60"><p className="font-medium">{e.nombre}</p><p className="text-[13px] text-gris">{e.cargo}</p></Link></li>)}</ul>
               )}
             </Seccion>
           </div>

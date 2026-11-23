@@ -21,7 +21,7 @@ export default function ListaPlc() {
             const est = ESTADO_PLC[plcEstado[p.codigo] && p.estado !== "sin_conexion" ? plcEstado[p.codigo] : p.estado] ?? ESTADO_PLC.sin_conexion;
             return (
               <motion.li key={p.codigo} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                <Link href={`/plc/${p.codigo}`} className="group block tarjeta p-5 transition-colors hover:bg-chapa/40">
+                <Link href={`/plc/equipo?codigo=${p.codigo}`} className="group block tarjeta p-5 transition-colors hover:bg-chapa/40">
                   <div className="flex items-start justify-between gap-3">
                     <div><div className="flex items-center gap-2.5"><span className={cx("size-3 rounded-full", est.led)} /><p className="display text-[34px] font-bold leading-none">{p.codigo}</p></div><p className="mt-1 font-medium">{p.nombre}</p><p className="text-[14px] text-gris">{p.fabricante} {p.modelo}</p></div>
                     <Chip tono={est.tono}>{est.texto}</Chip>

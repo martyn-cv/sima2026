@@ -31,7 +31,7 @@ function Tarjeta({ e, i }: { e: Equipo; i: number }) {
       <div className="space-y-3 px-4 py-3">{e.sensores.map((s) => <Medidor key={s.variable} s={s} />)}</div>
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-linea-suave px-4 py-2 text-[13px] text-gris">
         <span className="truncate">{e.ubicacion}</span>
-        {e.plc && <Link href={`/plc/${e.plc}`} className="shrink-0 font-medium text-negro underline decoration-linea underline-offset-2 hover:decoration-negro">{e.plc}</Link>}
+        {e.plc && <Link href={`/plc/equipo?codigo=${e.plc}`} className="shrink-0 font-medium text-negro underline decoration-linea underline-offset-2 hover:decoration-negro">{e.plc}</Link>}
       </div>
     </motion.li>
   );

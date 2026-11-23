@@ -5,7 +5,7 @@ import { conectarTiempoReal, type Equipo } from "@sima/cliente";
 import { api, baseUrl, leerToken } from "./api";
 import { useAuth } from "./auth";
 
-export interface EventoVivo { id: number; tipo: "alarma" | "orden" | "plc" | "equipo"; texto: string; nivel: "alarma" | "aviso" | "info" | "ok"; ts: number; enlace?: string }
+export interface EventoVivo { id: number; tipo: "alarma" | "orden" | "plc" | "equipo" | "produccion" | "calidad" | "sst"; texto: string; nivel: "alarma" | "aviso" | "info" | "ok"; ts: number; enlace?: string }
 interface Ctx {
   conexion: "conectado" | "reconectando" | "desconectado";
   eventos: EventoVivo[];
@@ -43,8 +43,12 @@ export function PlantaProvider({ children }: { children: ReactNode }) {
       equipo: (x) => { qc.setQueryData<Equipo[]>(["equipos"], (prev) => prev?.map((e) => (e.codigo === x.codigo ? { ...e, estado: x.estado } : e))); if (x.estado === "operando") evento({ tipo: "equipo", texto: `${x.codigo} volvió a operar`, nivel: "ok", enlace: "/planta" }); },
       alarma: (a) => { void qc.invalidateQueries({ queryKey: ["alarmas"] }); void qc.invalidateQueries({ queryKey: ["panel"] }); if (a.abierta) evento({ tipo: "alarma", texto: a.mensaje, nivel: a.nivel === "alarma" ? "alarma" : "aviso", enlace: "/planta" }); },
       orden: (o) => { void qc.invalidateQueries({ queryKey: ["ordenes"] }); void qc.invalidateQueries({ queryKey: ["panel"] }); evento({ tipo: "orden", texto: `Orden ${o.codigo}: ${o.titulo} (${o.equipo})`, nivel: o.prioridad === "critica" ? "alarma" : "info", enlace: "/planta" }); },
-      plc: (p) => { setPlcEstado((s) => ({ ...s, [p.codigo]: p.estado })); void qc.invalidateQueries({ queryKey: ["plc"] }); evento({ tipo: "plc", texto: `${p.codigo} pasó a ${p.estado === "run" ? "marcha" : p.estado}`, nivel: p.estado === "run" ? "ok" : "aviso", enlace: `/plc/${p.codigo}` }); },
+      plc: (p) => { setPlcEstado((s) => ({ ...s, [p.codigo]: p.estado })); void qc.invalidateQueries({ queryKey: ["plc"] }); evento({ tipo: "plc", texto: `${p.codigo} pasó a ${p.estado === "run" ? "marcha" : p.estado}`, nivel: p.estado === "run" ? "ok" : "aviso", enlace: `/plc/equipo?codigo=${p.codigo}` }); },
       plcIO: (p) => { setIo((s) => ({ ...s, [p.codigo]: p.io })); setPlcEstado((s) => ({ ...s, [p.codigo]: p.estado })); if (p.ciclos != null) setCiclos((s) => ({ ...s, [p.codigo]: p.ciclos! })); },
+      produccion: () => { void qc.invalidateQueries({ queryKey: ["produccion"] }); },
+      calidad: (c) => { void qc.invalidateQueries({ queryKey: ["calidad"] }); void qc.invalidateQueries({ queryKey: ["aprobaciones"] }); evento({ tipo: "calidad", texto: c.texto, nivel: c.estado === "abierta" ? (c.severidad === "critica" ? "alarma" : "aviso") : "ok", enlace: "/calidad" }); },
+      sst: (x) => { void qc.invalidateQueries({ queryKey: ["sst"] }); void qc.invalidateQueries({ queryKey: ["aprobaciones"] }); evento({ tipo: "sst", texto: x.texto, nivel: x.severidad === "leve" ? "aviso" : "alarma", enlace: "/seguridad" }); },
+      cambioPlc: (c) => { void qc.invalidateQueries({ queryKey: ["cambios"] }); void qc.invalidateQueries({ queryKey: ["aprobaciones"] }); void qc.invalidateQueries({ queryKey: ["plc"] }); evento({ tipo: "plc", texto: c.estado === "pendiente" ? `${c.plc}: cambio de programa por aprobar (${c.resumen})` : `${c.plc}: cambio ${c.estado} por ${c.por}`, nivel: c.estado === "aprobado" ? "ok" : c.estado === "rechazado" ? "aviso" : "info", enlace: "/mantenimiento" }); },
       cuentaCerrada: (m) => salir(m.motivo),
     });
     return () => { void h.detener(); };

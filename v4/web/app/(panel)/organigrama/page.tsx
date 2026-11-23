@@ -21,7 +21,7 @@ function Rama({ n, hijos, nivel }: { n: Nodo; hijos: Map<string, Nodo[]>; nivel:
             <ChevronRight className={cx("size-4 transition-transform duration-200", abierto && "rotate-90")} />
           </button>
         ) : <span className="size-6 shrink-0" />}
-        <Link href={`/trabajadores/${n.id}`} className="group flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-0.5 hover:bg-chapa/70">
+        <Link href={`/trabajadores/ficha?id=${n.id}`} className="group flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-0.5 hover:bg-chapa/70">
           <span className="font-medium group-hover:underline">{n.nombre}</span>
           <span className="truncate text-[14px] text-gris">{n.cargo}</span>
         </Link>
