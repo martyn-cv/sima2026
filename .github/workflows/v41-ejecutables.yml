@@ -7,7 +7,7 @@ on:
   push:
     branches: ["**"]
     tags: ["v4.1.*"]
-    paths: ["v4.1/terreno/**", "v4.1/plc-sim/**", "v4.1/paquetes/**", ".github/workflows/v41-ejecutables.yml"]
+    paths: ["v4.1/terreno/**", "v4.1/plc-sim/**", "v4.1/paquetes/**", "v4.1/package-lock.json", "v4.1/scripts/construir-exe.ps1", ".github/workflows/v41-ejecutables.yml"]
 
 jobs:
   windows:
