@@ -244,7 +244,7 @@ public static class EndpointsPlanta
             return await CambiosPlc.SolicitarAsync(db, hub, codigo, programa, "SIM", "Estación de ingeniería (simulador de PLC)", "simulador", programa.TryGetProperty("justificacion", out var j) ? j.GetString() ?? "" : "");
         });
 
-        k.MapPost("/plc/{codigo}/telemetria", async (string codigo, TelemetriaPlcEntrada e, HttpRequest r, SimaDb db, ProcesadorTelemetria proc, IMemoryCache cache) =>
+        k.MapPost("/plc/{codigo}/telemetria", async (string codigo, TelemetriaPlcEntrada e, HttpRequest r, SimaDb db, ProcesadorTelemetria proc, IMemoryCache cache, IHubContext<PlantaHub> hub) =>
         {
             var canal = Canal(r, cfg);
             if (canal is null) return Ayudas.Error("Clave de ingesta incorrecta.", 401);
@@ -258,6 +258,12 @@ public static class EndpointsPlanta
             p.Estado = e.Estado is "run" or "stop" or "error" ? e.Estado : "run"; p.UltimoContacto = DateTime.UtcNow;
             if (e.Io is not null) { ImagenPlc.Poner(codigo, e.Io); await proc.AvisarIoAsync(codigo, p.Estado, e.Io, e.Ciclos); }
             var ok = repetido ? 0 : await proc.RegistrarAsync(db, e.Lecturas ?? new(), e.Equipos, default, canal, p.Origen != "real");
+            if (p.Estado == "error" && estadoAntes != "error")
+            {
+                var avisosFalla = new List<(string, object)>();
+                await IngestaEventos.FallaDePlcAsync(db, p, await db.Equipos.Where(x => x.PlcId == p.Id).ToListAsync(), canal, p.Origen != "real", null, DateTime.UtcNow, avisosFalla);
+                foreach (var (n, d) in avisosFalla) await hub.Clients.Group("planta").SendAsync(n, d);
+            }
             if (p.Estado != estadoAntes) Eventos.Agregar(db, "estado_plc", p.Estado == "error" ? "alarma" : p.Estado == "run" ? "ok" : "aviso", $"{p.Codigo} pasó a {p.Estado}", canal, p.Origen != "real", plcId: p.Id, datos: new { desde = estadoAntes, hasta = p.Estado });
             await db.SaveChangesAsync();
             if (p.Estado != estadoAntes) await proc.AvisarPlcAsync(p);

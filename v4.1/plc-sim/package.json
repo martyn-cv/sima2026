@@ -1,6 +1,6 @@
 {
-  "name": "sima-plc-sim",
-  "version": "3.0.0",
+  "name": "sima-plc-simulator",
+  "version": "4.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,7 +19,8 @@
     "lucide-react": "^1.77.0",
     "motion": "^14.14.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "@sima/ui": "*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.5",

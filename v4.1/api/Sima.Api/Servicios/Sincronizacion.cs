@@ -99,16 +99,11 @@ public class IngestaEventos(IHubContext<PlantaHub> hub)
                     break;
                 case "estado_plc":
                     var estado = Dato("estado");
-                    if (estado is "run" or "stop" or "error" && plc.Estado != estado)
-                    {
-                        plc.Estado = estado;
-                        avisos.Add(("plc", new { codigo = plc.Codigo, estado, simulado }));
-                        if (estado == "error")
-                            foreach (var x in equipos.Where(x => x.Estado != "en_mantencion"))
-                                EstadosEquipo.Cambiar(db, x, "alarma", origen, simulado, $"falla del {plc.Codigo}", ts, avisos);
-                        if (estado == "error" && equipos.OrderByDescending(x => x.Criticidad == "alta").FirstOrDefault() is { } critico)
-                            await OrdenAutomaticaAsync(db, critico, $"Falla del controlador {plc.Codigo}", e.Mensaje ?? "El PLC informó un error de CPU.", avisos, ct);
-                    }
+                    if (estado is not ("run" or "stop" or "error")) break;
+                    if (plc.Estado != estado) { plc.Estado = estado; avisos.Add(("plc", new { codigo = plc.Codigo, estado, simulado })); }
+                    // la telemetría pudo cambiar el estado del PLC antes de que llegara este evento: los efectos se aplican igual
+                    // (Cambiar no repite un estado y la orden automática no se duplica)
+                    if (estado == "error") await FallaDePlcAsync(db, plc, equipos, origen, simulado, e.Mensaje, ts, avisos, ct);
                     break;
                 case "produccion" when eq is not null:
                     var piezas = int.TryParse(Dato("piezas"), out var p) ? Math.Clamp(p, 0, 10_000) : 0;
@@ -132,6 +127,15 @@ public class IngestaEventos(IHubContext<PlantaHub> hub)
         }
         foreach (var (n, d) in avisos) await hub.Clients.Group("planta").SendAsync(n, d, ct);
         return (nuevos.Count, validos.Count - nuevos.Count, rechazados);
+    }
+
+    /// <summary>Falla de CPU: los equipos del PLC pasan a alarma (salvo los que están en mantención) y se abre una orden.</summary>
+    public static async Task FallaDePlcAsync(SimaDb db, Plc plc, List<Equipo> equipos, string origen, bool simulado, string? mensaje, DateTime ts, List<(string, object)> avisos, CancellationToken ct = default)
+    {
+        foreach (var x in equipos.Where(x => x.Estado != "en_mantencion"))
+            EstadosEquipo.Cambiar(db, x, "alarma", origen, simulado, $"falla del {plc.Codigo}", ts, avisos);
+        if (equipos.OrderByDescending(x => x.Criticidad == "alta").FirstOrDefault() is { } critico)
+            await OrdenAutomaticaAsync(db, critico, $"Falla del controlador {plc.Codigo}", mensaje ?? "El PLC informó un error de CPU.", avisos, ct);
     }
 
     static async Task OrdenAutomaticaAsync(SimaDb db, Equipo eq, string titulo, string detalle, List<(string, object)> avisos, CancellationToken ct)

@@ -1,17 +1,19 @@
 @import "tailwindcss";
+@import "../../paquetes/ui/src/tema.css";
+@source "../../paquetes/ui/src";
 
 @theme {
-  --font-sans: "Barlow", system-ui, sans-serif;
-  --font-display: "Barlow Condensed", "Barlow", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --color-fondo: #0f1013;
-  --color-panel: #17191d;
-  --color-panel2: #1f2227;
-  --color-borde: #2c2f36;
-  --color-texto: #e8eaee;
-  --color-tenue: #8b909a;
-  --color-rojo: #d91f26;
-  --color-rojo-vivo: #ff4b52;
+  --font-sans: "Plus Jakarta Sans Variable", system-ui, sans-serif;
+  --font-display: "Sora Variable", "Plus Jakarta Sans Variable", sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --color-fondo: #05070e;
+  --color-panel: #0b1020;
+  --color-panel2: #111830;
+  --color-borde: #1e2a48;
+  --color-texto: #e3e9ff;
+  --color-tenue: #7f8bb0;
+  --color-rojo: #0891b2;              /* acción principal de la estación (cian); el rojo de alarma es rojo-vivo */
+  --color-rojo-vivo: #fb7185;
   --color-led-verde: #2fc77a;
   --color-led-ambar: #ffb000;
   --color-led-azul: #4aa3ff;
@@ -23,6 +25,13 @@
   @keyframes giro { to { transform: rotate(360deg); } }
 }
 
+/* SIMA PLC Simulator · «laboratorio»: azul casi negro con rejilla técnica, cian y violeta como acentos.
+   Los colores de estado (verde, ámbar, rojo) son los mismos de la web y de SIMA Desktop. */
+:root {
+  --s-fondo: #05070e; --s-superficie: #0b1020; --s-superficie-2: #111830; --s-borde: #1e2a48; --s-borde-suave: #152038;
+  --s-tenue: #7f8bb0; --s-texto: #e3e9ff; --s-texto-2: #bcc6e8; --s-sobre-texto: #031018;
+  --s-acento: #22d3ee; --s-acento-claro: rgb(34 211 238 / .14); --s-cobre: #8b5cf6; --s-vidrio: rgb(11 16 32 / .8);
+}
 html, body, #raiz { height: 100%; }
 body { background: var(--color-fondo); color: var(--color-texto); font-family: var(--font-sans); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; overflow: hidden; }
 .display { font-family: var(--font-display); }
@@ -42,5 +51,5 @@ html { color-scheme: dark; }
 select { appearance: none; background-color: var(--color-panel2); color: var(--color-texto); padding-right: 1.5rem; border-radius: 0;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b909a' stroke-width='1.6'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 0.5rem center; }
-select option { background: #1f2227; color: #e8eaee; }
+select option { background: #111830; color: #e3e9ff; }
 input, textarea { color-scheme: dark; }

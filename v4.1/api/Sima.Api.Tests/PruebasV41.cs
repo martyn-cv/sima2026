@@ -149,4 +149,22 @@ public class PruebasV41(Fabrica f)
         Assert.True(b.GetProperty("repetido").GetBoolean());
         Assert.Equal(0, b.GetProperty("ok").GetInt32());
     }
+
+    [Fact]
+    public async Task SiLaTelemetriaInformaElErrorAntesQueElEventoLosEquiposIgualPasanAAlarma()
+    {
+        var sim = Simulador();
+        await sim.PostAsJsonAsync("/api/ingesta/plc/PLC-01/telemetria", new { uid = Uid(), estado = "run" });
+        await sim.PostAsJsonAsync("/api/ingesta/plc/PLC-01/telemetria", new { uid = Uid(), estado = "error" });       // primero la telemetría
+        var r = await sim.PostAsJsonAsync("/api/ingesta/plc/PLC-01/eventos", new[] { new { uid = Uid(), tipo = "estado_plc", nivel = "alarma", mensaje = "CPU", datos = new { estado = "error" } } });
+        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+        var tec = await f.Entrar("tecnico", "Tecnico2026", "app");
+        Assert.Equal("alarma", (await f.Leer(tec, "/api/equipos/TC-02")).GetProperty("equipo").GetProperty("estado").GetString());
+        Assert.Equal(1, (await f.Leer(tec, "/api/ordenes")).EnumerateArray().Count(o => o.GetProperty("titulo").GetString() == "Falla del controlador PLC-01" && o.GetProperty("estado").GetString() != "cerrada"));
+        // una lectura normal informada como «alarma» por el PLC no vuelve el equipo a «operando»
+        await sim.PostAsJsonAsync("/api/ingesta/plc/PLC-01/telemetria", new { uid = Uid(), estado = "error", lecturas = new[] { new { equipo = "TC-02", variable = "vibracion", valor = 2.0 } }, equipos = new[] { new { equipo = "TC-02", estado = "alarma" } } });
+        Assert.Equal("alarma", (await f.Leer(tec, "/api/equipos/TC-02")).GetProperty("equipo").GetProperty("estado").GetString());
+        await sim.PostAsJsonAsync("/api/ingesta/plc/PLC-01/telemetria", new { uid = Uid(), estado = "run", lecturas = new[] { new { equipo = "TC-02", variable = "vibracion", valor = 2.0 } }, equipos = new[] { new { equipo = "TC-02", estado = "operando" } } });
+        Assert.Equal("operando", (await f.Leer(tec, "/api/equipos/TC-02")).GetProperty("equipo").GetProperty("estado").GetString());
+    }
 }

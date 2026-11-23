@@ -82,7 +82,7 @@ public class ProcesadorTelemetria(IHubContext<PlantaHub> hub)
             var hayAlarma = abiertas.Any(a => a.EquipoId == eq.Id && a.Nivel == "alarma");
             if (eq.Estado != "en_mantencion")
             {
-                var nuevo = hayAlarma ? "alarma" : reportados.TryGetValue(eq.Codigo, out var rep) && rep is "operando" or "detenido" ? rep : eq.Estado == "alarma" ? "operando" : eq.Estado;
+                var nuevo = hayAlarma ? "alarma" : reportados.TryGetValue(eq.Codigo, out var rep) && rep is "operando" or "detenido" or "alarma" ? rep : eq.Estado == "alarma" ? "operando" : eq.Estado;
                 EstadosEquipo.Cambiar(db, eq, nuevo, origen, simulado, hayAlarma ? "variable sobre el límite de alarma" : reportados.ContainsKey(eq.Codigo) ? "informado por el PLC" : "variables normalizadas", ahora, avisos);
             }
             if (hayAlarma && !await db.Ordenes.AnyAsync(o => o.EquipoId == eq.Id && o.Automatica && o.Estado != "cerrada", ct))
