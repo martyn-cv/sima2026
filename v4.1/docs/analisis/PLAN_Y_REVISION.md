@@ -17,6 +17,7 @@
 | H9 | SIMA Desktop muestra el mismo menú y el mismo inicio a todos los cargos. | `terreno/src/App.tsx` (lista `NAV` fija) | Lo que motivó el pedido | 1 |
 | H10 | Cargos que comparten perfil heredan lo mismo: el líder de línea (8) recibe asistencia, habilitaciones e indicadores del equipo como un supervisor de turno. | `Permisos.cs` (reglas por perfil `supervisor_turno`) | Mínimo privilegio | 1 |
 | H11 | La asistencia solo existe como resumen mensual: el supervisor no puede registrar quién está en el turno ni asignar puestos. | `asistencias` | Habilitación no verificable al asignar | 2 |
+| H12 | En la app de terreno, el directorio entregaba turno, correo y jefatura de cualquier persona; la hoja Permisos permite solo nombre y cargo. | `EndpointsPersonas.cs`, `GET /directorio` | Datos de contacto de terceros | 1 |
 
 ### Cobertura por módulo
 
@@ -49,4 +50,27 @@ existe como entidad), criticidad (seguridad y control primero) y valor operativo
 
 ## 10 · Implementación y pruebas de la fase 1
 
-*(Se completa al terminar la fase; ver el detalle de cambios y la salida de las pruebas en el historial del repositorio.)*
+| Hallazgo | Qué se hizo | Cómo se verificó |
+|---|---|---|
+| H4, H10 | La matriz de fábrica **v7** se compila del catálogo (`generar.py` → `PermisosCatalogo.g.cs`). Cada capacidad sale de la ficha del cargo; el perfil ya no reparte permisos. Nueva capacidad `ordenes.asignar` y recurso `planta` (`planta.ver`, `planta.registrar`). | Prueba `LaMatrizDeFabricaSeDefinePorCargoYNoPorPerfil` (líder de línea ≠ supervisor de turno; soporte TI sin pagos; RR. HH. sin planta) |
+| H1 | `planta.ver` en equipos, estructura, eventos, alarmas, resumen y ficha; `ordenes.ver` en OT (con alcance *propio* para quien opera); `repuestos.ver` y `herramientas.ver`; reconocer alarmas exige `planta.registrar`; el hub solo envía la planta en vivo a quien puede verla. Datos de personas filtrados por alcance (propio, equipo). | `LasConsultasDePlantaYOtExigenSuPermiso`, `ReconocerAlarmasEsDeQuienLasAtiende`, `ElOperadorVeSoloSusAvisosDeFalla` |
+| H2 | El técnico **termina** (OT `por_verificar`, equipo sigue en mantención). Otra persona con `ordenes.aprobar` **verifica** o **devuelve** con motivo; al aprobar, el equipo queda `detenido` (liberado) y se envía el reinicio al PLC. La **marcha** la da operación (`POST /api/equipos/{codigo}/reanudar`): por el PLC si está conectado; un PLC físico desconectado no se marca como operando. Si hay otra OT abierta en el mismo equipo, verificar no lo libera. | `ElCierreTecnicoNoPoneLaMaquinaEnMarchaYLaVerificaOtraPersona`, `VerificarUnaOtNoLiberaElEquipoSiOtraIntervencionSigueAbierta`; recorrido en el navegador con 5 personas (ver abajo) |
+| H3 | Una OT asignada solo la toma su técnico (o quien puede reasignar). | `UnaOtAsignadaLaTomaSuTecnicoYConLotoVigente` |
+| H5 | Iniciar una OT exige la habilitación LOTO vigente (la cuenta de confiabilidad, con LOTO vencida en el Excel, queda bloqueada). | misma prueba |
+| H6 | La web oculta Planta, Estructura, Eventos, Mantenimiento e Inventario a quien no tiene esos permisos, y no los consulta. | Navegador: RR. HH., gerencia de planta y soporte TI sin respuestas 403 |
+| H8 (OT) | Las OT automáticas que nacen de un PLC simulado quedan marcadas `simulada` y se muestran con su distintivo. | `UnaOtAutomaticaNacidaDeUnPlcSimuladoQuedaMarcadaComoSimulada` |
+| H9 | SIMA Desktop arma el menú y el inicio desde el cargo (`roles.ts` + capacidades del servidor): 11 inicios por perfil, ajustes por cargo, pantallas nuevas (Producción, Mi equipo de turno, Plan de mantenimiento, Seguridad, Inspección de calidad, Instrumentos, Condición, PLC y automatización), «Mi jornada» y «Cómo se mide mi trabajo» desde el catálogo; los cargos cuyo módulo aún no existe ven qué viene, sin cifras inventadas. | Navegador: 16 cargos distintos, cada uno con su menú e inicio, sin errores de consola |
+| H12 (nuevo) | En la app de terreno el directorio entrega solo nombre y cargo de los demás; turno, correo y jefatura solo de uno mismo y de su equipo (hoja Permisos). | `EnLaAppElDirectorioMuestraSoloNombreYCargoDeLosDemas` |
+| — | Notificaciones dirigidas por persona y cargo: OT asignada → técnico; cierre por verificar → supervisión; equipo liberado → producción. | Recorrido en el navegador (avisos recibidos) |
+
+**Pruebas automáticas:** 48 de 48 pasan (39 anteriores, ajustadas al flujo nuevo donde correspondía, y 9 nuevas).
+
+**Recorrido del flujo A en el navegador** (SIMA Desktop, cinco cuentas): el operador reporta una vibración en TC-02 → el
+planificador la asigna y programa en *Plan de mantenimiento* → el técnico la ve en *Asignadas a usted*, bloquea con LOTO,
+diagnostica, registra y pide verificación (OT `por_verificar`, equipo `en_mantencion`) → la supervisión de mantenimiento
+la ve en *Cierres por verificar* y la aprueba (OT `cerrada`, equipo `detenido`) → el supervisor de turno pulsa *Poner en
+marcha* en el explorador (equipo `operando`).
+
+**Pendiente para la fase 2** (no se implementó en esta iteración): solicitudes de repuesto (H7), asistencia diaria y
+asignación de puestos (H11), alcance *propio* del operador sobre equipos (requiere la asignación operador-equipo),
+indicadores con origen simulado o real (H8).

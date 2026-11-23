@@ -29,8 +29,12 @@ public static class EndpointsPersonas
         var g = app.MapGroup("/api").RequireAuthorization();
 
         // directorio: lo ve cualquier perfil (sin datos personales, contratos ni sueldos)
-        g.MapGet("/directorio", async (string? buscar, string? turno, int? cargoId, SimaDb db) =>
+        g.MapGet("/directorio", async (string? buscar, string? turno, int? cargoId, ClaimsPrincipal u, SimaDb db) =>
         {
+            // hoja Permisos del Excel: en la app de terreno se ve nombre y cargo de los demás; turno, correo y jefatura
+            // solo de uno mismo y de su equipo. En la web (oficina) se ve también turno y correo corporativo.
+            var s = u.S();
+            var completo = s.Canal != "app" ? null : (await Ayudas.EquipoDeAsync(db, s.Id)).Append(s.Id).ToHashSet();
             var est = await Reglas.CalcularTodosAsync(db);
             var q = db.Trabajadores.AsNoTracking().Include(t => t.Cargo).AsQueryable();
             if (!string.IsNullOrWhiteSpace(buscar)) { var b = buscar.ToLower(); q = q.Where(t => (t.Nombres + " " + t.ApellidoPaterno + " " + t.ApellidoMaterno).ToLower().Contains(b) || t.Cargo!.Nombre.ToLower().Contains(b)); }
@@ -38,7 +42,9 @@ public static class EndpointsPersonas
             if (cargoId is not null) q = q.Where(t => t.CargoId == cargoId);
             var nombres = await db.Trabajadores.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Nombres + " " + t.ApellidoPaterno);
             var lista = (await q.OrderBy(t => t.CargoId).ThenBy(t => t.ApellidoPaterno).ToListAsync()).Where(t => est[t.Id].EstadoLaboral == "Activo")
-                .Select(t => new { t.Id, nombre = t.NombreCompleto, cargoId = t.CargoId, cargo = t.Cargo!.Nombre, familia = t.Cargo.Familia, perfil = t.Cargo.PerfilSima, t.Turno, correo = t.CorreoCorporativo, jefe = t.JefeDirectoId is null ? null : nombres.GetValueOrDefault(t.JefeDirectoId) });
+                .Select(t => completo is null || completo.Contains(t.Id)
+                    ? new { t.Id, nombre = t.NombreCompleto, cargoId = t.CargoId, cargo = t.Cargo!.Nombre, familia = t.Cargo.Familia, perfil = t.Cargo.PerfilSima, turno = (string?)t.Turno, correo = (string?)t.CorreoCorporativo, jefe = t.JefeDirectoId is null ? null : nombres.GetValueOrDefault(t.JefeDirectoId) }
+                    : new { t.Id, nombre = t.NombreCompleto, cargoId = t.CargoId, cargo = t.Cargo!.Nombre, familia = t.Cargo.Familia, perfil = t.Cargo.PerfilSima, turno = (string?)null, correo = (string?)null, jefe = (string?)null });
             return Results.Ok(lista);
         });
 

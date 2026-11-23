@@ -7,6 +7,7 @@ import { AlertTriangle, Cpu, Factory, Radio } from "lucide-react";
 import { fecha, hace, type Equipo, type PlantaNodo } from "@sima/cliente";
 import { api } from "@/lib/api";
 import { usePlanta } from "@/lib/planta";
+import { useAuth } from "@/lib/auth";
 import { ESTADO_EQ, FichaEquipoVista, MarcaSim } from "@/components/FichaEquipo";
 import { Cajon, Chip, Encabezado, ErrorCarga, Esqueleto, Maquina, Pestanas, Tabla, Tarjeta, cx, type Columna } from "@/components/ui";
 
@@ -47,7 +48,8 @@ function Planta() {
   const [area, setArea] = useState<number | null>(null);
   const estructura = useQuery({ queryKey: ["estructura"], queryFn: () => api.get<PlantaNodo[]>("/api/estructura"), refetchInterval: 20_000 });
   const alarmas = useQuery({ queryKey: ["alarmas"], queryFn: () => api.get<Alarma[]>("/api/alarmas"), refetchInterval: 10_000, enabled: tab === "alarmas" });
-  const ordenes = useQuery({ queryKey: ["ordenes"], queryFn: () => api.get<Orden[]>("/api/ordenes"), refetchInterval: 15_000 });
+  const { tiene } = useAuth();
+  const ordenes = useQuery({ queryKey: ["ordenes"], queryFn: () => api.get<Orden[]>("/api/ordenes"), refetchInterval: 15_000, enabled: tiene("ordenes.ver") });
   const vivos = useMemo(() => new Map(equipos.map((e) => [e.codigo, e])), [equipos]);
   const planta = estructura.data?.[0];
   const elegir = (codigo: string | null) => router.replace(codigo ? `/planta?equipo=${codigo}` : "/planta", { scroll: false });
@@ -85,7 +87,7 @@ function Planta() {
         ))}
       </div>
 
-      <Pestanas id="planta" activa={tab} onCambio={setTab} items={[{ clave: "mapa", titulo: "Mapa de planta" }, { clave: "alarmas", titulo: "Alarmas" }, { clave: "ordenes", titulo: "Órdenes de trabajo", n: ordenes.data?.filter((o) => o.estado !== "cerrada").length }]} />
+      <Pestanas id="planta" activa={tab} onCambio={setTab} items={[{ clave: "mapa", titulo: "Mapa de planta" }, { clave: "alarmas", titulo: "Alarmas" }, ...(tiene("ordenes.ver") ? [{ clave: "ordenes" as const, titulo: "Órdenes de trabajo", n: ordenes.data?.filter((o) => o.estado !== "cerrada").length }] : [])]} />
 
       <div className="mt-5">
         {tab === "mapa" && (estructura.error ? <ErrorCarga error={estructura.error} /> : !planta ? <Esqueleto className="h-[60vh]" /> : (

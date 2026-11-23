@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { conectarTiempoReal, type Equipo, type EventoPlanta } from "@sima/cliente";
 import { api, baseUrl, leerToken } from "./api";
 import { useAuth } from "./auth";
+import { tiene } from "../roles";
 
 export interface Notificacion { id: number; texto: string; nivel: "alarma" | "aviso" | "info" | "ok"; ts: number; destino?: string; simulado?: boolean }
 interface Ctx {
@@ -30,7 +31,9 @@ export function PlantaProvider({ children }: { children: ReactNode }) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [aviso, setAviso] = useState<Notificacion | null>(null);
   const [noLeidas, setNoLeidas] = useState(0);
-  const { data: equipos = [] } = useQuery({ queryKey: ["equipos"], queryFn: () => api.get<Equipo[]>("/api/equipos"), enabled: !!usuario });
+  // solo los cargos que trabajan con la planta reciben su estado (el servidor también lo exige)
+  const vePlanta = tiene(usuario, "planta.ver");
+  const { data: equipos = [] } = useQuery({ queryKey: ["equipos"], queryFn: () => api.get<Equipo[]>("/api/equipos"), enabled: !!usuario && vePlanta });
   const notificar = (n: Omit<Notificacion, "id" | "ts">, emergente = false) => {
     const x = { ...n, id: Date.now() + Math.random(), ts: Date.now() };
     setNotificaciones((l) => [x, ...l].slice(0, 60));
@@ -49,7 +52,9 @@ export function PlantaProvider({ children }: { children: ReactNode }) {
       })),
       equipo: (x) => { qc.setQueryData<Equipo[]>(["equipos"], (prev) => prev?.map((e) => (e.codigo === x.codigo ? { ...e, estado: x.estado } : e))); refrescar("resumen", "equipo", "estructura"); },
       alarma: (a) => { refrescar("alarmas", "resumen"); if (a.abierta) notificar({ texto: a.mensaje, nivel: a.nivel === "alarma" ? "alarma" : "aviso", destino: `/explorador?equipo=${a.equipo}` }, a.nivel === "alarma"); },
-      orden: (o) => { refrescar("ordenes", "resumen", "orden"); notificar({ texto: `Orden ${o.codigo}: ${o.titulo} (${o.equipo})`, nivel: o.prioridad === "critica" ? "alarma" : "info", destino: `/mantenimiento?orden=${o.id}` }, o.prioridad === "critica"); },
+      // los cambios de OT refrescan las listas; el aviso a la persona correcta llega como «notificacion»
+      orden: (o) => { refrescar("ordenes", "resumen", "orden"); if (!o.estado && o.prioridad === "critica") notificar({ texto: `Orden ${o.codigo}: ${o.titulo} (${o.equipo})${o.simulada ? " · simulada" : ""}`, nivel: "alarma", destino: `/mantenimiento?orden=${o.id}`, simulado: o.simulada }, true); },
+      notificacion: (n) => { refrescar("ordenes", "orden", "equipos"); notificar({ texto: n.texto, nivel: n.nivel, destino: n.destino ?? undefined }, n.nivel !== "info"); },
       plc: (p) => { setPlcEstado((s) => ({ ...s, [p.codigo]: p.estado })); refrescar("resumen"); if (p.estado === "error") notificar({ texto: `${p.codigo} informa una falla`, nivel: "alarma" }, true); },
       plcIO: (p) => { setIo((s) => ({ ...s, [p.codigo]: p.io })); setPlcEstado((s) => ({ ...s, [p.codigo]: p.estado })); },
       evento: (e: EventoPlanta) => { qc.setQueryData<EventoPlanta[]>(["eventos", "vivo"], (prev) => [e, ...(prev ?? [])].slice(0, 200)); },

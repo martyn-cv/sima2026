@@ -195,17 +195,23 @@ public static class EndpointsPlanta
             }
             o.Estado = "cerrada"; o.Cerrada = DateTime.UtcNow; o.VerificadaPorId = s.Id; o.VerificadaEn = DateTime.UtcNow;
             if (!string.IsNullOrWhiteSpace(e.Nota)) o.Descripcion = (o.Descripcion + "\nVerificación: " + e.Nota.Trim()).Trim();
-            // liberado a operación: queda detenido (disponible). El estado físico lo vuelve a informar el PLC
-            EstadosEquipo.Cambiar(db, eq, "detenido", "desktop", false, $"{o.Codigo} verificada por {s.Nombre}: equipo liberado a operación");
-            foreach (var sen in eq.Sensores) sen.Deriva = 0;
-            if (eq.PlcId is { } plcId) db.PlcComandos.Add(new PlcComando { PlcId = plcId, Tag = CodigoNum(eq.Codigo) + "_REPARAR", Valor = 1, SolicitadoPor = s.Nombre });
-            db.Auditar(s, "verificó una orden y liberó el equipo", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}");
+            // si otra intervención sigue abierta en el mismo equipo, el equipo no se libera: sigue en mantención
+            var pendiente = await db.Ordenes.Where(x => x.EquipoId == eq.Id && x.Id != o.Id && (x.Estado == "en_curso" || x.Estado == "por_verificar")).Select(x => x.Id).FirstOrDefaultAsync();
+            var liberado = pendiente == 0;
+            if (liberado)
+            {
+                // liberado a operación: queda detenido (disponible). El estado físico lo vuelve a informar el PLC
+                EstadosEquipo.Cambiar(db, eq, "detenido", "desktop", false, $"{o.Codigo} verificada por {s.Nombre}: equipo liberado a operación");
+                foreach (var sen in eq.Sensores) sen.Deriva = 0;
+                if (eq.PlcId is { } plcId) db.PlcComandos.Add(new PlcComando { PlcId = plcId, Tag = CodigoNum(eq.Codigo) + "_REPARAR", Valor = 1, SolicitadoPor = s.Nombre });
+            }
+            db.Auditar(s, liberado ? "verificó una orden y liberó el equipo" : "verificó una orden (el equipo sigue en mantención por otra OT)", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}");
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
             await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
             await Avisos.AUsuarioAsync(hub, o.AsignadoAId, $"{o.Codigo} verificada por {s.Nombre}. Gracias.", "ok", $"/mantenimiento?orden={o.Id}");
-            await Avisos.ACargosAsync(hub, Avisos.Produccion, $"{eq.Codigo} liberado por mantenimiento ({o.Codigo}). Puede reanudar la operación.", "ok", $"/explorador?equipo={eq.Codigo}");
-            return Results.Ok(new { ok = true, estado = o.Estado });
+            if (liberado) await Avisos.ACargosAsync(hub, Avisos.Produccion, $"{eq.Codigo} liberado por mantenimiento ({o.Codigo}). Puede reanudar la operación.", "ok", $"/explorador?equipo={eq.Codigo}");
+            return Results.Ok(new { ok = true, estado = o.Estado, equipoLiberado = liberado, otraOrden = liberado ? null : $"OT-{pendiente:0000}" });
         });
 
         // Operación pone en marcha un equipo liberado. Si su PLC está conectado, la marcha la ordena el PLC (y él informa

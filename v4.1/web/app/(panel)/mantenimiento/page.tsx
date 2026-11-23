@@ -12,6 +12,7 @@ import { Boton, Cajon, Chip, Encabezado, Esqueleto, Pestanas, Tarjeta, AreaTexto
 interface Orden { id: number; codigo: string; equipo: string; equipoNombre: string; titulo: string; prioridad: string; estado: string; automatica: boolean; creada: string; cerrada?: string | null; asignado?: string | null }
 interface DetalleOrden {
   id: number; codigo: string; titulo: string; descripcion: string; tipo: string; prioridad: string; estado: string; automatica: boolean; loto: boolean; creada: string; cerrada?: string | null; asignado?: string | null;
+  simulada?: boolean; cierreSolicitado?: string | null; verificadaPor?: string | null; verificadaEn?: string | null;
   equipo: { codigo: string; nombre: string; tipo: string; estado: string; area: string; linea: string };
   intervenciones: { id: number; tecnicoNombre: string; inicio: string; fin: string; causa: string; diagnostico: string; accion: string; resultado: string; observaciones: string; herramientas: string[] }[];
   repuestos: { codigo: string; nombre: string; cantidad: number; fecha: string; porNombre: string }[];
@@ -34,6 +35,7 @@ function Mantenimiento() {
   const columnas = [
     { k: "abierta", t: "Por tomar", color: "var(--s-rojo)" },
     { k: "en_curso", t: "En curso (con LOTO)", color: "var(--s-ambar)" },
+    { k: "por_verificar", t: "Por verificar", color: "var(--s-cobre)" },
     { k: "cerrada", t: "Cerradas", color: "var(--s-verde)" },
   ];
   const pendientes = cambios.data?.filter((c) => c.estado === "pendiente").length ?? 0;
@@ -44,7 +46,7 @@ function Mantenimiento() {
       <Pestanas id="mant" activa={tab} onCambio={setTab} items={[{ clave: "ordenes", titulo: "Órdenes de trabajo", n: ordenes.data?.filter((o) => o.estado !== "cerrada").length }, { clave: "cambios", titulo: "Cambios de PLC", n: pendientes }]} />
       <div className="mt-5">
         {tab === "ordenes" && (!ordenes.data ? <Esqueleto className="h-[50vh]" /> : (
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
             {columnas.map((c) => {
               const lista = ordenes.data.filter((o) => o.estado === c.k).slice(0, c.k === "cerrada" ? 12 : 50);
               return (
@@ -90,11 +92,11 @@ function Mantenimiento() {
 function DetalleOt({ id }: { id: number }) {
   const { data } = useQuery({ queryKey: ["ordenes", id], queryFn: () => api.get<DetalleOrden>(`/api/ordenes/${id}`) });
   if (!data) return <Esqueleto className="h-80" />;
-  const pasos = [{ t: "Creada", ok: true, d: fecha(data.creada) }, { t: "Tomada con LOTO", ok: data.estado !== "abierta", d: data.asignado ?? "—" }, { t: "Intervención", ok: data.intervenciones.length > 0, d: `${data.intervenciones.length} registrada(s)` }, { t: "Cerrada", ok: data.estado === "cerrada", d: data.cerrada ? fecha(data.cerrada) : "—" }];
+  const pasos = [{ t: "Creada", ok: true, d: fecha(data.creada) }, { t: "Tomada con LOTO", ok: data.estado !== "abierta", d: data.asignado ?? "—" }, { t: "Intervención", ok: data.intervenciones.length > 0, d: `${data.intervenciones.length} registrada(s)` }, { t: "Terminada por el técnico", ok: data.estado === "por_verificar" || data.estado === "cerrada", d: data.cierreSolicitado ? fecha(data.cierreSolicitado) : "—" }, { t: "Verificada y liberada", ok: data.estado === "cerrada", d: data.verificadaPor ? `${data.verificadaPor}` : data.cerrada ? fecha(data.cerrada) : "—" }];
   return (
     <div className="grid gap-5">
       <div><p className="num text-[13px] text-gris">{data.codigo} · {data.tipo}</p><h3 className="display text-[24px] font-bold leading-tight">{data.titulo}</h3><p className="mt-1 text-[13.5px] text-gris">{data.equipo.codigo} {data.equipo.nombre} · {data.equipo.area} · {data.equipo.linea}</p></div>
-      <ol className="grid grid-cols-4 gap-2">
+      <ol className="grid grid-cols-5 gap-2">
         {pasos.map((p, i) => (
           <motion.li key={p.t} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className="relative">
             <div className={cx("h-1.5 rounded-full", p.ok ? "degradado-marca" : "bg-linea-suave")} />

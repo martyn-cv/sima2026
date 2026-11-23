@@ -26,7 +26,7 @@ export function PlantaProvider({ children }: { children: ReactNode }) {
   const [ciclos, setCiclos] = useState<Record<string, number>>({});
   const [eventos, setEventos] = useState<EventoVivo[]>([]);
   const evento = (e: Omit<EventoVivo, "id" | "ts">) => setEventos((l) => [{ ...e, id: Date.now() + Math.random(), ts: Date.now() }, ...l].slice(0, 40));
-  const { data: equipos = [] } = useQuery({ queryKey: ["equipos"], queryFn: () => api.get<Equipo[]>("/api/equipos"), enabled: !!usuario });
+  const { data: equipos = [] } = useQuery({ queryKey: ["equipos"], queryFn: () => api.get<Equipo[]>("/api/equipos"), enabled: !!usuario && !!usuario.capacidades && "planta.ver" in usuario.capacidades });
 
   useEffect(() => {
     if (!usuario) return;

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, BookOpen, ChevronRight, Cpu, FileText, History, Layers, Package, Rows3, ShieldAlert, TriangleAlert, Wrench, X } from "lucide-react";
+import { AlertTriangle, BookOpen, ChevronRight, Cpu, FileText, History, Layers, Package, Play, Rows3, ShieldAlert, TriangleAlert, Wrench, X } from "lucide-react";
 import type { FichaEquipo, PlantaNodo } from "@sima/cliente";
-import { Chip, CURVA, Esqueleto, Maquina, Medidor, cx } from "@sima/ui";
+import { Chip, CURVA, Esqueleto, Maquina, Medidor, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api } from "../lib/api";
 import { usePlanta } from "../lib/planta";
 import { ir, useParametro } from "../ruta";
+import { useAuth } from "../lib/auth";
+import { tiene } from "../roles";
 
 const ESTADO: Record<string, { t: string; c: string; tono: "ok" | "peligro" | "aviso" | "neutro" }> = {
   operando: { t: "Operando", c: "var(--s-verde)", tono: "ok" }, alarma: { t: "Con alarma", c: "var(--s-rojo)", tono: "peligro" }, en_mantencion: { t: "En mantención", c: "var(--s-ambar)", tono: "aviso" }, detenido: { t: "Detenido", c: "var(--s-tenue)", tono: "neutro" },
@@ -130,6 +132,16 @@ function DetalleMaquina({ codigo }: { codigo: string }) {
   const estado = vivo?.estado ?? data?.equipo.estado ?? "detenido";
   const tabs: { k: Tab; t: string; i: typeof History }[] = [{ k: "variables", t: "Variables", i: Rows3 }, { k: "plc", t: "PLC", i: Cpu }, { k: "historial", t: "Historial", i: History }, { k: "fallas", t: "Fallas", i: AlertTriangle }, { k: "mantenimiento", t: "Mantenimiento", i: Wrench }, { k: "manuales", t: "Manuales", i: BookOpen }, { k: "repuestos", t: "Repuestos", i: Package }];
   const ioPlc = data?.plc ? io[data.plc.codigo] ?? {} : {};
+  const { usuario } = useAuth();
+  const qc = useQueryClient(); const aviso = useAviso();
+  // poner en marcha un equipo liberado por mantenimiento es de quien opera o conduce la producción
+  const daMarcha = ["produccion.registrar", "produccion.editar", "plc_comandos.editar"].some((c) => tiene(usuario, c));
+  const reportaFalla = tiene(usuario, "ordenes.crear");
+  const marcha = useMutation({
+    mutationFn: () => api.post<{ via: string }>(`/api/equipos/${codigo}/reanudar`),
+    onSuccess: (r) => { aviso(r.via === "plc" ? `Orden de marcha enviada al PLC de ${codigo}. El estado lo confirmará el propio PLC.` : `${codigo} en marcha.`); void qc.invalidateQueries({ queryKey: ["equipos"] }); void qc.invalidateQueries({ queryKey: ["equipo", codigo] }); },
+    onError: (e) => aviso(mensajeDe(e), "error"),
+  });
 
   return (
     <>
@@ -146,7 +158,8 @@ function DetalleMaquina({ codigo }: { codigo: string }) {
                   <div className="flex flex-wrap items-center gap-2"><h2 className="display text-[32px] font-bold leading-none">{data.equipo.codigo}</h2><Chip tono={ESTADO[estado]?.tono}>{ESTADO[estado]?.t}</Chip>{data.equipo.simulado && <Sim />}</div>
                   <p className="mt-1 text-[15px] font-medium">{data.equipo.nombre}</p>
                   <p className="text-[13px] text-gris">{data.equipo.tipo} · {data.equipo.marca} {data.equipo.modelo} · {data.equipo.ubicacion}</p>
-                  <div className="mt-3 flex gap-2"><button onClick={() => ir(`/reportar?equipo=${codigo}`)} className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-rojo/40 px-3 text-[12.5px] font-medium text-rojo hover:bg-rojo-claro"><TriangleAlert className="size-3.5" />Reportar falla</button>
+                  <div className="mt-3 flex flex-wrap gap-2">{reportaFalla && <button onClick={() => ir(`/reportar?equipo=${codigo}`)} className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-rojo/40 px-3 text-[12.5px] font-medium text-rojo hover:bg-rojo-claro"><TriangleAlert className="size-3.5" />Reportar falla</button>}
+                    {daMarcha && estado === "detenido" && !data.ordenes.some((o) => o.estado === "en_curso" || o.estado === "por_verificar") && <button disabled={marcha.isPending} onClick={() => marcha.mutate()} className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-verde px-3 text-[12.5px] font-semibold text-sobre-negro disabled:opacity-50"><Play className="size-3.5" />Poner en marcha</button>}
                     {data.ordenes.some((o) => o.estado !== "cerrada") && <button onClick={() => ir(`/mantenimiento?orden=${data.ordenes.find((o) => o.estado !== "cerrada")!.id}`)} className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-ambar-claro px-3 text-[12.5px] font-medium text-ambar-hondo"><Wrench className="size-3.5" />Orden abierta</button>}</div>
                 </div>
               </div>

@@ -25,7 +25,7 @@ export default function Inicio() {
   if (error) return <ErrorCarga error={error} reintentar={() => void refetch()} />;
 
   const disponible: Record<Modulo, boolean> = {
-    planta: true, produccion: tiene("produccion.ver"), personas: !!panel?.personas, pagos: !!panel?.personas?.verPagos,
+    planta: tiene("planta.ver"), produccion: tiene("produccion.ver"), personas: !!panel?.personas, pagos: !!panel?.personas?.verPagos,
     calidad: tiene("calidad.ver"), sst: tiene("sst.ver"), despachos: puede("despachos"),
   };
   const orden = (ORDEN[usuario?.perfil ?? ""] ?? ["planta", "produccion", "personas"]).filter((m) => disponible[m]);

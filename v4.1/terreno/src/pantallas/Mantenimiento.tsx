@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardList, Lock, Minus, Plus, Search, ShieldCheck, Stethoscope, Unlock, Wrench } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Check, CheckCircle2, ClipboardList, FlaskConical, Lock, Minus, Plus, Search, ShieldCheck, Stethoscope, Undo2, Unlock, Wrench } from "lucide-react";
 import type { FichaEquipo } from "@sima/cliente";
 import { AreaTexto, Boton, Chip, CURVA, Esqueleto, Maquina, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api } from "../lib/api";
@@ -9,9 +9,17 @@ import { useAuth } from "../lib/auth";
 import { enviar } from "../lib/offline";
 import { usePlanta } from "../lib/planta";
 import { ir, useParametro } from "../ruta";
+import { ESPECIALIDAD_CARGO, tiene } from "../roles";
+import { ESP } from "./bloques";
 
-interface Orden { id: number; codigo: string; equipo: string; equipoNombre: string; titulo: string; descripcion: string; prioridad: string; estado: string; automatica: boolean; creada: string; cerrada?: string | null; asignado?: string | null; asignadoAId?: string | null }
-interface DetalleOrden { id: number; codigo: string; titulo: string; descripcion: string; tipo: string; prioridad: string; estado: string; asignadoAId?: string | null; asignado?: string | null; creada: string; equipo: { codigo: string; nombre: string; tipo: string; estado: string; area: string; linea: string }; intervenciones: { id: number; tecnicoNombre: string; accion: string; resultado: string; fin: string }[] }
+interface Orden { id: number; codigo: string; equipo: string; equipoNombre: string; titulo: string; descripcion: string; prioridad: string; estado: string; automatica: boolean; simulada?: boolean; especialidad: string; programada?: string | null; creada: string; cerrada?: string | null; asignado?: string | null; asignadoAId?: string | null }
+interface DetalleOrden {
+  id: number; codigo: string; titulo: string; descripcion: string; tipo: string; prioridad: string; estado: string; asignadoAId?: string | null; asignado?: string | null; creada: string; version: number;
+  especialidad: string; programada?: string | null; automatica: boolean; simulada: boolean; cierreSolicitado?: string | null; verificadaPor?: string | null; verificadaEn?: string | null;
+  equipo: { codigo: string; nombre: string; tipo: string; estado: string; area: string; linea: string }; intervenciones: { id: number; tecnicoNombre: string; accion: string; resultado: string; fin: string; diagnostico?: string }[]
+}
+type Filtro = "mias" | "abierta" | "en_curso" | "por_verificar" | "cerrada";
+const FILTROS: [Filtro, string][] = [["mias", "Mías"], ["abierta", "Por tomar"], ["en_curso", "En curso"], ["por_verificar", "Por verificar"], ["cerrada", "Cerradas"]];
 interface Herramienta { id: number; codigo: string; nombre: string; estado: string }
 interface Repuesto { id: number; codigo: string; nombre: string; stock: number; stockMinimo: number; ubicacion: string }
 
@@ -24,22 +32,27 @@ const hace = (iso: string) => { const m = Math.round((Date.now() - +new Date(iso
 export function Mantenimiento() {
   const { usuario } = useAuth();
   const sel = useParametro("orden");
-  const [filtro, setFiltro] = useState<"mias" | "abierta" | "en_curso" | "cerrada">("mias");
+  const verifica = tiene(usuario, "ordenes.aprobar");
+  const esp = ESPECIALIDAD_CARGO[usuario?.cargoId ?? 0];
+  const [filtro, setFiltro] = useState<Filtro>(verifica ? "por_verificar" : "mias");
   const [buscar, setBuscar] = useState("");
   const { data: ordenes } = useQuery({ queryKey: ["ordenes"], queryFn: () => api.get<Orden[]>("/api/ordenes"), refetchInterval: 20_000 });
-  const lista = (ordenes ?? []).filter((o) => (filtro === "mias" ? o.asignadoAId === usuario?.id && o.estado !== "cerrada" : o.estado === filtro) && (!buscar || `${o.codigo} ${o.titulo} ${o.equipo}`.toLowerCase().includes(buscar.toLowerCase())));
-  const n = (f: typeof filtro) => (ordenes ?? []).filter((o) => (f === "mias" ? o.asignadoAId === usuario?.id && o.estado !== "cerrada" : o.estado === f)).length;
-  useEffect(() => { if (ordenes && filtro === "mias" && n("mias") === 0) setFiltro("abierta"); }, [ordenes]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cumple = (o: Orden, f: Filtro) => (f === "mias" ? o.asignadoAId === usuario?.id && o.estado !== "cerrada" : o.estado === f);
+  // a cada técnico le aparecen primero las órdenes de su especialidad
+  const peso = (o: Orden) => (esp && !esp.includes(o.especialidad) ? 10 : 0) + ["critica", "alta", "media", "baja"].indexOf(o.prioridad);
+  const lista = (ordenes ?? []).filter((o) => cumple(o, filtro) && (!buscar || `${o.codigo} ${o.titulo} ${o.equipo}`.toLowerCase().includes(buscar.toLowerCase()))).sort((a, b) => (filtro === "abierta" ? peso(a) - peso(b) : 0));
+  const n = (f: Filtro) => (ordenes ?? []).filter((o) => cumple(o, f)).length;
+  useEffect(() => { if (ordenes && filtro === "mias" && n("mias") === 0) setFiltro("abierta"); if (ordenes && filtro === "por_verificar" && n("por_verificar") === 0) setFiltro("abierta"); }, [ordenes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="grid h-[calc(100dvh-56px-48px)] min-h-[560px] gap-5 lg:grid-cols-[360px_1fr]">
       <div className="flex min-h-0 flex-col">
         <h1 className="display mb-1 text-[30px] font-bold leading-tight">Centro de mantenimiento</h1>
-        <p className="mb-4 text-[13px] text-gris">Tome una orden, bloquee el equipo, diagnostique, intervenga y cierre.</p>
-        <div className="mb-3 grid grid-cols-4 gap-1 rounded-xl bg-papel-2 p-1">
-          {([["mias", "Mías"], ["abierta", "Por tomar"], ["en_curso", "En curso"], ["cerrada", "Cerradas"]] as const).map(([k, t]) => (
-            <button key={k} onClick={() => setFiltro(k)} className={cx("relative h-8 cursor-pointer rounded-lg text-[12.5px] font-medium", filtro === k ? "text-negro" : "text-gris")}>
-              {filtro === k && <motion.span layoutId="filtro-ot" className="absolute inset-0 rounded-lg bg-papel shadow" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}<span className="relative">{t} <span className="num text-[11px] text-gris">{n(k)}</span></span>
+        <p className="mb-4 text-[13px] text-gris">{verifica ? "Verifique los cierres técnicos y libere los equipos. También puede ejecutar órdenes asignadas a usted." : "Tome una orden, bloquee el equipo, diagnostique, intervenga y pida la verificación."}</p>
+        <div className="mb-3 grid grid-cols-5 gap-1 rounded-xl bg-papel-2 p-1">
+          {FILTROS.map(([k, t]) => (
+            <button key={k} onClick={() => setFiltro(k)} className={cx("relative h-9 cursor-pointer rounded-lg text-[11.5px] font-medium leading-tight", filtro === k ? "text-negro" : "text-gris")}>
+              {filtro === k && <motion.span layoutId="filtro-ot" className="absolute inset-0 rounded-lg bg-papel shadow" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}<span className="relative">{t} <span className={cx("num text-[11px]", k === "por_verificar" && verifica && n(k) > 0 ? "font-bold text-cobre" : "text-gris")}>{n(k)}</span></span>
             </button>
           ))}
         </div>
@@ -52,9 +65,9 @@ export function Mantenimiento() {
               <motion.li key={o.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, height: 0 }}>
                 <button onClick={() => ir(`/mantenimiento?orden=${o.id}`)} className={cx("relative w-full cursor-pointer overflow-hidden rounded-2xl border p-3.5 text-left transition-colors", String(o.id) === sel ? "border-acento bg-acento-claro" : "border-linea-suave bg-papel hover:border-linea")}>
                   <span className="absolute inset-y-0 left-0 w-1" style={{ background: PRIO[o.prioridad]?.c }} />
-                  <div className="flex items-center justify-between gap-2"><span className="num text-[12px] text-gris">{o.codigo} · {o.equipo}</span><Chip tono={PRIO[o.prioridad]?.tono} punto={false}>{o.prioridad}</Chip></div>
+                  <div className="flex items-center justify-between gap-2"><span className="num text-[12px] text-gris">{o.codigo} · {o.equipo} · {ESP[o.especialidad] ?? o.especialidad}</span><span className="flex gap-1">{o.simulada && <Chip tono="info" punto={false}>simulada</Chip>}<Chip tono={PRIO[o.prioridad]?.tono} punto={false}>{o.prioridad}</Chip></span></div>
                   <p className="mt-1 text-[14px] font-medium leading-snug">{o.titulo}</p>
-                  <p className="mt-1 text-[12px] text-gris">{o.estado === "en_curso" ? `en curso · ${o.asignado}` : o.estado === "cerrada" ? `cerrada ${hace(o.cerrada ?? o.creada)}` : `creada ${hace(o.creada)}`}{o.automatica && " · automática"}</p>
+                  <p className="mt-1 text-[12px] text-gris">{o.estado === "en_curso" ? `en curso · ${o.asignado}` : o.estado === "por_verificar" ? `espera verificación · ${o.asignado}` : o.estado === "cerrada" ? `cerrada ${hace(o.cerrada ?? o.creada)}` : o.asignado ? `asignada a ${o.asignado}${o.programada ? ` · ${new Date(o.programada + "T12:00").toLocaleDateString("es-CL", { weekday: "short", day: "numeric" })}` : ""}` : `creada ${hace(o.creada)}`}{o.automatica && " · automática"}</p>
                 </button>
               </motion.li>
             ))}
@@ -97,9 +110,10 @@ function Flujo({ id }: { id: number }) {
   const [lotoFuera, setLotoFuera] = useState(false);
   const [listo, setListo] = useState<null | { encolado: boolean; cerrada: boolean }>(null);
   const [inicio] = useState(() => new Date().toISOString());
-  const caps = usuario?.capacidades ?? {};
-  const ejecuta = "ordenes.ejecutar" in caps || "ordenes.aprobar" in caps;
-  const mia = ot?.asignadoAId === usuario?.id || "ordenes.aprobar" in caps;
+  const ejecuta = tiene(usuario, "ordenes.ejecutar");
+  const mia = ot?.asignadoAId === usuario?.id;
+  // una OT asignada la toma su técnico; la supervisión puede reasignarla en el plan
+  const deOtro = !!ot?.asignadoAId && !mia && !tiene(usuario, "ordenes.asignar");
 
   useEffect(() => { if (ot) setPaso(ot.estado === "en_curso" && mia ? 2 : 0); }, [ot?.id, ot?.estado]); // eslint-disable-line react-hooks/exhaustive-deps
   const tomar = useMutation({
@@ -123,7 +137,7 @@ function Flujo({ id }: { id: number }) {
   if (!ot) return <div className="p-6"><Esqueleto className="h-80" /></div>;
   if (listo) return <Confirmacion listo={listo} ot={ot.codigo} equipo={ot.equipo.codigo} />;
   const vivo = equipos.find((e) => e.codigo === ot.equipo.codigo);
-  const cerrada = ot.estado === "cerrada";
+  const cerrada = ot.estado === "cerrada" || ot.estado === "por_verificar";
   const puedeAvanzar = [true, loto.every(Boolean), !!causa && diagnostico.trim().length > 4, accion.trim().length > 4, !cerrar || lotoFuera][paso];
 
   return (
@@ -131,7 +145,7 @@ function Flujo({ id }: { id: number }) {
       <div className="flex items-center gap-4 border-b border-linea-suave p-5">
         <Maquina tipo={ot.equipo.tipo} estado={vivo?.estado ?? ot.equipo.estado} className="h-16 w-24 shrink-0" />
         <div className="min-w-0 flex-1"><p className="num text-[12.5px] text-gris">{ot.codigo} · {ot.tipo} · {ot.equipo.area} · {ot.equipo.linea}</p><h2 className="display truncate text-[22px] font-bold leading-tight">{ot.titulo}</h2><p className="text-[13px] text-gris">{ot.equipo.codigo} {ot.equipo.nombre} · {ot.asignado ? `asignada a ${ot.asignado}` : "sin asignar"}</p></div>
-        <Chip tono={PRIO[ot.prioridad]?.tono}>{ot.prioridad}</Chip>
+        <span className="flex flex-col items-end gap-1"><Chip tono={PRIO[ot.prioridad]?.tono}>{ot.prioridad}</Chip>{ot.simulada && <Chip tono="info" punto={false}><FlaskConical className="size-3" />nació de un PLC simulado</Chip>}</span>
       </div>
 
       {!cerrada && (
@@ -149,9 +163,7 @@ function Flujo({ id }: { id: number }) {
       <div className="flex-1 p-5">
         <AnimatePresence mode="wait">
           <motion.div key={cerrada ? "c" : paso} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.22, ease: CURVA }}>
-            {cerrada && (
-              <div className="grid gap-3"><p className="rounded-2xl bg-verde-claro p-4 text-[14px] text-verde">Orden cerrada.</p>{ot.intervenciones.map((i) => <div key={i.id} className="rounded-2xl border border-linea-suave p-4"><p className="font-medium">{i.accion}</p><p className="text-[12.5px] text-gris">{i.tecnicoNombre} · {i.resultado.replace("_", " ")} · {hace(i.fin)}</p></div>)}</div>
-            )}
+            {cerrada && <Verificacion ot={ot} />}
             {!cerrada && paso === 0 && (
               <div className="grid gap-4 xl:grid-cols-2">
                 <div className="grid content-start gap-3">
@@ -182,6 +194,8 @@ function Flujo({ id }: { id: number }) {
                   ))}
                 </ul>
                 {!ejecuta && <p className="mt-4 rounded-xl bg-ambar-claro p-3 text-[13.5px] text-ambar-hondo">Su cargo puede preparar órdenes, pero la ejecución la firma el técnico asignado.</p>}
+                {ejecuta && deOtro && <p className="mt-4 rounded-xl bg-ambar-claro p-3 text-[13.5px] text-ambar-hondo">Esta orden está asignada a {ot.asignado}. Si debe tomarla usted, pida a su supervisor o a planificación que se la reasigne.</p>}
+                <p className="mt-4 text-[12.5px] text-gris">Para iniciar necesita su habilitación de bloqueo y etiquetado (LOTO) vigente. El servidor la verifica.</p>
                 {conexion !== "conectado" && <p className="mt-4 rounded-xl bg-ambar-claro p-3 text-[13.5px] text-ambar-hondo">Tomar una orden necesita conexión con el servidor (dos técnicos no pueden tomar la misma). Reintente al recuperar la red.</p>}
               </div>
             )}
@@ -221,10 +235,11 @@ function Flujo({ id }: { id: number }) {
                 <div><p className="mb-2 text-[13px] font-semibold text-gris">Resultado</p><div className="grid grid-cols-3 gap-2">{[["resuelto", "Resuelto"], ["parcial", "Parcial"], ["requiere_repuesto", "Falta repuesto"]].map(([k, t]) => <button key={k} onClick={() => { setResultado(k); setCerrar(k === "resuelto"); }} className={cx("h-11 cursor-pointer rounded-xl border text-[13.5px] font-medium", resultado === k ? "border-acento bg-acento-claro" : "border-linea-suave hover:border-linea")}>{t}</button>)}</div></div>
                 <AreaTexto value={observaciones} onChange={(e) => setObservaciones(e.target.value)} placeholder="Observaciones para el próximo turno (opcional)" />
                 <div className="rounded-2xl border border-linea-suave p-4">
-                  <label className="flex cursor-pointer items-center gap-3 text-[14px]"><input type="checkbox" checked={cerrar} onChange={(e) => setCerrar(e.target.checked)} className="size-4 accent-[var(--s-acento)]" />Cerrar la orden y devolver el equipo a operación</label>
+                  <label className="flex cursor-pointer items-center gap-3 text-[14px]"><input type="checkbox" checked={cerrar} onChange={(e) => setCerrar(e.target.checked)} className="size-4 accent-[var(--s-acento)]" />Terminé: pedir la verificación de cierre</label>
+                  <p className="ml-7 mt-1 text-[12.5px] text-gris">El equipo sigue en mantención hasta que la supervisión verifique el trabajo y lo libere. Usted no se verifica a sí mismo.</p>
                   <AnimatePresence>{cerrar && <motion.label initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-3 flex cursor-pointer items-center gap-3 overflow-hidden rounded-xl bg-ambar-claro p-3 text-[14px] text-ambar-hondo"><input type="checkbox" checked={lotoFuera} onChange={(e) => setLotoFuera(e.target.checked)} className="size-4 accent-[var(--s-acento)]" /><Unlock className="size-4" />Retiré mi candado y tarjeta, y el área quedó despejada</motion.label>}</AnimatePresence>
                 </div>
-                <div className="rounded-2xl bg-papel-2 p-4 text-[13.5px]"><p className="mb-1 font-semibold">Resumen</p><p>Causa {CAUSAS.find((c) => c[0] === causa)?.[1].toLowerCase()} · {herrSel.length} herramientas · {Object.values(rep).reduce((a, b) => a + b, 0)} repuestos · {cerrar ? "se cierra la orden" : "la orden sigue en curso"}</p></div>
+                <div className="rounded-2xl bg-papel-2 p-4 text-[13.5px]"><p className="mb-1 font-semibold">Resumen</p><p>Causa {CAUSAS.find((c) => c[0] === causa)?.[1].toLowerCase()} · {herrSel.length} herramientas · {Object.values(rep).reduce((a, b) => a + b, 0)} repuestos · {cerrar ? "se pide la verificación" : "la orden sigue en curso"}</p></div>
               </div>
             )}
           </motion.div>
@@ -234,7 +249,7 @@ function Flujo({ id }: { id: number }) {
       {!cerrada && (
         <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-linea-suave bg-papel/90 px-5 py-4 backdrop-blur">
           <Boton variante="texto" disabled={paso === 0 || (paso === 2 && ot.estado === "en_curso")} onClick={() => setPaso((p) => p - 1)}><ArrowLeft className="size-4" />Atrás</Boton>
-          {paso === 1 ? <Boton variante="acento" disabled={!puedeAvanzar || !ejecuta || conexion !== "conectado"} cargando={tomar.isPending} onClick={() => tomar.mutate()}><Lock className="size-4" />Confirmar bloqueo y tomar la orden</Boton>
+          {paso === 1 ? <Boton variante="acento" disabled={!puedeAvanzar || !ejecuta || deOtro || conexion !== "conectado"} cargando={tomar.isPending} onClick={() => tomar.mutate()}><Lock className="size-4" />Confirmar bloqueo y tomar la orden</Boton>
             : paso === 4 ? <Boton variante="acento" disabled={!puedeAvanzar || !mia} cargando={registrar.isPending} onClick={() => registrar.mutate()}><CheckCircle2 className="size-4" />Registrar intervención</Boton>
               : <Boton variante="acento" disabled={!puedeAvanzar || (paso >= 2 && !mia) || (paso === 0 && ot.estado === "en_curso" && !mia)} onClick={() => setPaso((p) => (p === 0 && ot.estado === "en_curso" ? 2 : p + 1))}>Continuar<ArrowRight className="size-4" /></Boton>}
         </div>
@@ -253,10 +268,44 @@ function Confirmacion({ listo, ot, equipo }: { listo: { encolado: boolean; cerra
             <svg viewBox="0 0 24 24" className="size-12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><motion.path d="M5 12.5l4.5 4.5L19 7.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.25, duration: 0.45 }} /></svg>
           </motion.span>
         </div>
-        <p className="display text-[26px] font-bold">{listo.encolado ? "Guardada en este equipo" : listo.cerrada ? "Intervención registrada y orden cerrada" : "Intervención registrada"}</p>
-        <p className="mx-auto mt-2 max-w-[46ch] text-[14px] text-gris">{listo.encolado ? `No hay conexión: se enviará sola cuando vuelva la red, sin duplicarse. ${ot} queda pendiente de sincronizar.` : listo.cerrada ? `${equipo} vuelve a operación. La web, el panel y el historial del equipo ya lo muestran.` : `${ot} sigue en curso con su bloqueo.`}</p>
+        <p className="display text-[26px] font-bold">{listo.encolado ? "Guardada en este equipo" : listo.cerrada ? "Intervención registrada · verificación pedida" : "Intervención registrada"}</p>
+        <p className="mx-auto mt-2 max-w-[46ch] text-[14px] text-gris">{listo.encolado ? `No hay conexión: se enviará sola cuando vuelva la red, sin duplicarse. ${ot} queda pendiente de sincronizar.` : listo.cerrada ? `${equipo} sigue en mantención. La supervisión recibió el aviso: cuando verifique el trabajo, el equipo queda liberado y producción puede ponerlo en marcha.` : `${ot} sigue en curso con su bloqueo.`}</p>
         <div className="mt-6 flex justify-center gap-2"><Boton variante="contorno" onClick={() => ir(`/explorador?equipo=${equipo}`)}>Ver el equipo</Boton><Boton variante="acento" onClick={() => ir("/mantenimiento")}>Volver a las órdenes</Boton></div>
       </div>
     </motion.div>
+  );
+}
+
+/** Orden terminada o cerrada: muestra lo hecho y, a quien corresponde, la verificación (aprobar y liberar, o rechazar). */
+function Verificacion({ ot }: { ot: DetalleOrden }) {
+  const { usuario } = useAuth();
+  const qc = useQueryClient(); const aviso = useAviso();
+  const [nota, setNota] = useState("");
+  const puede = ot.estado === "por_verificar" && tiene(usuario, "ordenes.aprobar") && ot.asignadoAId !== usuario?.id;
+  const decidir = useMutation({
+    mutationFn: (aprobar: boolean) => api.post(`/api/ordenes/${ot.id}/verificar`, { aprobar, nota }),
+    onSuccess: (_, aprobar) => { aviso(aprobar ? `${ot.codigo} verificada: ${ot.equipo.codigo} queda liberado para operación.` : `${ot.codigo} devuelta al técnico.`); setNota(""); for (const k of ["ordenes", "orden", "equipos", "resumen"]) void qc.invalidateQueries({ queryKey: [k] }); },
+    onError: (e) => aviso(mensajeDe(e), "error"),
+  });
+  return (
+    <div className="grid gap-4">
+      {ot.estado === "cerrada"
+        ? <p className="flex items-center gap-2 rounded-2xl bg-verde-claro p-4 text-[14px] text-verde"><BadgeCheck className="size-5" />Orden cerrada{ot.verificadaPor ? ` · verificada por ${ot.verificadaPor}${ot.verificadaEn ? ` ${hace(ot.verificadaEn)}` : ""}` : ""}.</p>
+        : <p className="rounded-2xl border border-cobre/30 bg-cobre/10 p-4 text-[14px]"><b>Espera verificación de cierre.</b> {ot.asignado} terminó{ot.cierreSolicitado ? ` ${hace(ot.cierreSolicitado)}` : ""} y retiró su bloqueo. {ot.equipo.codigo} sigue en mantención hasta que alguien con esa facultad verifique el trabajo y lo libere.</p>}
+      {ot.intervenciones.map((i) => <div key={i.id} className="rounded-2xl border border-linea-suave p-4"><p className="font-medium">{i.accion}</p>{i.diagnostico && <p className="text-[13px] text-gris">{i.diagnostico}</p>}<p className="text-[12.5px] text-gris">{i.tecnicoNombre} · {i.resultado.replace("_", " ")} · {hace(i.fin)}</p></div>)}
+      {ot.descripcion && <p className="whitespace-pre-wrap rounded-2xl bg-papel-2 p-4 text-[13px] text-gris">{ot.descripcion}</p>}
+      {puede && (
+        <div className="rounded-2xl border border-acento/40 bg-acento-claro p-4">
+          <p className="mb-2 font-semibold">Verificación de cierre</p>
+          <p className="mb-3 text-[13px] text-gris">Revise que el trabajo quedó bien, que se retiraron los bloqueos y que el área está despejada. Al aprobar, {ot.equipo.codigo} queda <b>detenido y disponible</b>: la marcha la da operación o el PLC, no este botón.</p>
+          <AreaTexto value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Observación (obligatoria si rechaza: qué falta)" className="min-h-20" />
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <Boton variante="contorno" disabled={decidir.isPending || nota.trim().length < 4} onClick={() => decidir.mutate(false)}><Undo2 className="size-4" />Devolver al técnico</Boton>
+            <Boton variante="acento" cargando={decidir.isPending} onClick={() => decidir.mutate(true)}><BadgeCheck className="size-4" />Aprobar y liberar el equipo</Boton>
+          </div>
+        </div>
+      )}
+      {ot.estado === "por_verificar" && !puede && ot.asignadoAId === usuario?.id && <p className="text-[13px] text-gris">La verificará la supervisión o la jefatura de mantenimiento. Recibirá un aviso con el resultado.</p>}
+    </div>
   );
 }

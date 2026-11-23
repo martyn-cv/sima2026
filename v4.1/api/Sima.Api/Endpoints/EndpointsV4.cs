@@ -113,7 +113,9 @@ public static class EndpointsV4
             if (!s.Tiene("produccion.ver") && !s.Tiene("produccion.registrar")) return Ayudas.Sin();
             var q = db.OrdenesProduccion.AsNoTracking().AsQueryable();
             if (!string.IsNullOrEmpty(estado)) q = estado == "activas" ? q.Where(o => o.Estado != "terminada") : q.Where(o => o.Estado == estado);
-            if (s.Alcance("produccion.ver") is "propio" or null) q = q.Where(o => o.Turno == s.Turno && o.Estado != "terminada");   // el operador ve el trabajo de su turno
+            var alcance = s.Alcance("produccion.ver");
+            if (alcance is "propio" or null) q = q.Where(o => o.Turno == s.Turno && o.Estado != "terminada");   // el operador ve el trabajo de su turno
+            else if (alcance == "equipo") q = q.Where(o => o.Turno == s.Turno);                                  // supervisión y líderes: su turno
             var eq = await db.Equipos.AsNoTracking().Include(e => e.Linea).ToDictionaryAsync(e => e.Id);
             var lista = await q.OrderByDescending(o => o.Estado == "en_curso").ThenByDescending(o => o.Id).Take(120).ToListAsync();
             return Results.Ok(lista.Select(o => new

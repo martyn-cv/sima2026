@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  ArrowRight, Bell, BookUser, Briefcase, CircleAlert, ClipboardCheck, Gauge, LogOut, Network, PlugZap, RefreshCw, Repeat, Server, Siren, TriangleAlert, Wrench, WifiOff, Hammer,
+  ArrowRight, BadgeCheck, Bell, BookUser, Briefcase, CalendarDays, CircleAlert, ClipboardCheck, Cpu, Gauge, HardHat, Home, Lock, LogOut, Network, PlugZap, RefreshCw, Repeat, Route, Server, ShieldCheck, Siren, TriangleAlert, Users, Wrench, WifiOff, Hammer, type LucideIcon,
 } from "lucide-react";
 import { ApiError } from "@sima/cliente";
 import { Avatar, AvisosProvider, Boton, Campo, CURVA, Entrada, Maquina, PantallaSeguridad, cx, mensajeDe, useAviso } from "@sima/ui";
@@ -11,12 +11,13 @@ import { useAuth } from "./lib/auth";
 import { usePlanta } from "./lib/planta";
 import { usePendientes, vaciar } from "./lib/offline";
 import { ir, useRuta } from "./ruta";
-import { Panel } from "./pantallas/Panel";
 import { Explorador } from "./pantallas/Explorador";
 import { Mantenimiento } from "./pantallas/Mantenimiento";
 import { Reportar } from "./pantallas/Reportar";
 import { Alarmas, Directorio, MiCargo } from "./pantallas/Resto";
 import { Panol, Rutinas, Traspaso } from "./pantallas/Operacion";
+import { Automatizacion, Calibraciones, Calidad, Condicion, InicioRol, Plan, Produccion, RUTA, Seguridad, Turno } from "./pantallas/Rol";
+import { SECCIONES, experienciaDe, seccionesDe, type Seccion } from "./roles";
 
 // ------------------------------------------------------------------------------------------------ marca
 function Logo({ tam = 40 }: { tam?: number }) {
@@ -145,18 +146,28 @@ function Ingreso({ sinConexion }: { sinConexion: boolean }) {
 }
 
 // ------------------------------------------------------------------------------------------------ marco
-const NAV = [
-  { r: "/", t: "Panel operativo", i: Gauge, g: "Operación" },
-  { r: "/explorador", t: "Explorador de planta", i: Network, g: "Operación" },
-  { r: "/mantenimiento", t: "Centro de mantenimiento", i: Wrench, g: "Operación" },
-  { r: "/alarmas", t: "Alertas", i: Siren, g: "Operación" },
-  { r: "/reportar", t: "Reportar falla", i: TriangleAlert, g: "Operación" },
-  { r: "/rutinas", t: "Rutinas", i: ClipboardCheck, g: "Turno" },
-  { r: "/panol", t: "Pañol y repuestos", i: Hammer, g: "Turno" },
-  { r: "/traspaso", t: "Traspaso de turno", i: Repeat, g: "Turno", permiso: "traspaso" },
-  { r: "/cargo", t: "Mi cargo", i: Briefcase, g: "Personal" },
-  { r: "/directorio", t: "Directorio", i: BookUser, g: "Personal" },
-];
+/** Icono de cada sección del menú. Qué secciones ve cada persona lo decide roles.ts según su cargo y sus capacidades. */
+const ICONOS: Record<Seccion, LucideIcon> = {
+  inicio: Home, produccion: ClipboardCheck, turno: Users, plan: CalendarDays, mantenimiento: Wrench, explorador: Network, alertas: Siren, reportar: TriangleAlert, seguridad: HardHat,
+  calidad: ShieldCheck, calibraciones: BadgeCheck, condicion: Route, automatizacion: Cpu, rutinas: ClipboardCheck, panol: Hammer, traspaso: Repeat, cargo: Briefcase, directorio: BookUser,
+};
+const PANTALLAS: Record<Seccion, () => ReactNode> = {
+  inicio: InicioRol, produccion: Produccion, turno: Turno, plan: Plan, mantenimiento: Mantenimiento, explorador: Explorador, alertas: Alarmas, reportar: () => <Reportar />, seguridad: Seguridad,
+  calidad: Calidad, calibraciones: Calibraciones, condicion: Condicion, automatizacion: Automatizacion, rutinas: Rutinas, panol: Panol, traspaso: Traspaso, cargo: MiCargo, directorio: Directorio,
+};
+const POR_RUTA = Object.fromEntries(Object.entries(RUTA).map(([s, r]) => [r, s as Seccion])) as Record<string, Seccion>;
+POR_RUTA["/alarmas"] = "alertas";                                   // enlaces antiguos de notificaciones
+
+function SinAcceso({ seccion }: { seccion: Seccion }) {
+  return (
+    <div className="grid min-h-[50vh] place-items-center text-center">
+      <div><span className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-papel-2 text-gris"><Lock className="size-7" /></span>
+        <p className="display text-[22px] font-bold">{SECCIONES[seccion].titulo} no es parte de su cargo</p>
+        <p className="mx-auto mt-1 max-w-[52ch] text-[14px] text-gris">SIMA muestra a cada persona lo que su trabajo necesita. Si cree que debería tener acceso, pídalo a su jefatura: los permisos se ajustan por cargo.</p>
+        <Boton className="mt-5" variante="acento" onClick={() => ir("/")}>Volver a mi inicio</Boton></div>
+    </div>
+  );
+}
 
 function Avisos() {
   const { aviso } = usePlanta();
@@ -199,17 +210,24 @@ function Campana() {
 }
 
 function Marco() {
-  const { usuario, salir, puede } = useAuth();
+  const { usuario, salir } = useAuth();
   const { conexion, equipos, plcEstado } = usePlanta();
   const pendientes = usePendientes();
   const r = useRuta();
   const base = "/" + (r.split("?")[0].split("/")[1] ?? "");
-  const nav = NAV.filter((n) => !n.permiso || puede(n.permiso));
+  // el menú es el de su cargo (roles.ts), filtrado por las capacidades que el servidor le entrega
+  const secciones = seccionesDe(usuario);
+  const exp = experienciaDe(usuario);
+  // si el inicio se llama igual que una sección (p. ej. «Condición de activos»), el inicio se rotula «Inicio»
+  const rotuloInicio = secciones.some((s) => s !== "inicio" && SECCIONES[s].titulo === exp.inicio) ? "Inicio" : exp.inicio;
+  const nav = secciones.map((s) => ({ s, r: RUTA[s], t: s === "inicio" ? rotuloInicio : SECCIONES[s].titulo, i: ICONOS[s], g: SECCIONES[s].grupo }));
   const activa = (x: string) => (x === "/" ? base === "/" : base === x);
   const alarmas = equipos.filter((e) => e.estado === "alarma").length;
   const plcFalla = Object.values(plcEstado).filter((e) => e === "error").length;
   const grupos = [...new Set(nav.map((n) => n.g))];
-  const pantalla = base === "/explorador" ? <Explorador /> : base === "/mantenimiento" ? <Mantenimiento /> : base === "/alarmas" ? <Alarmas /> : base === "/reportar" ? <Reportar /> : base === "/rutinas" ? <Rutinas /> : base === "/panol" ? <Panol /> : base === "/traspaso" ? <Traspaso /> : base === "/cargo" ? <MiCargo /> : base === "/directorio" ? <Directorio /> : <Panel />;
+  const actual = POR_RUTA[base] ?? "inicio";
+  const Pantalla = PANTALLAS[actual];
+  const pantalla = secciones.includes(actual) ? <Pantalla /> : <SinAcceso seccion={actual} />;
   return (
     <AvisosProvider>
       <Avisos />
@@ -225,7 +243,7 @@ function Marco() {
                     {activa(n.r) && <motion.span layoutId="rail" className="absolute inset-0 rounded-xl border border-acento/25 bg-acento-claro" transition={{ type: "spring", stiffness: 480, damping: 40 }} />}
                     {activa(n.r) && <motion.span layoutId="rail-barra" className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-acento shadow-[0_0_12px_var(--s-acento)]" transition={{ type: "spring", stiffness: 480, damping: 40 }} />}
                     <n.i className={cx("relative size-[18px]", activa(n.r) && "text-acento")} strokeWidth={1.8} /><span className="relative truncate">{n.t}</span>
-                    {n.r === "/alarmas" && alarmas > 0 && <span className="num relative ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1.5 text-[11px] font-bold text-white">{alarmas}</span>}
+                    {n.s === "alertas" && alarmas > 0 && <span className="num relative ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1.5 text-[11px] font-bold text-white">{alarmas}</span>}
                   </a>
                 ))}
               </div>
@@ -242,7 +260,7 @@ function Marco() {
               {conexion === "conectado" ? <PlugZap className="size-3.5" /> : <WifiOff className="size-3.5" />}{conexion === "conectado" ? "En vivo con SIMA" : conexion === "reconectando" ? "Reconectando…" : "Sin conexión · datos guardados"}
             </span>
             <AnimatePresence>{pendientes > 0 && <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} onClick={() => void vaciar()} className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-ambar-claro px-3 py-1 text-[12.5px] font-medium text-ambar-hondo" title="Se envían solos al volver la conexión. Toque para reintentar ahora."><RefreshCw className="size-3.5" />{pendientes} por enviar</motion.button>}</AnimatePresence>
-            {alarmas > 0 && <button onClick={() => ir("/alarmas")} className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-rojo"><CircleAlert className="size-4 animate-parpadeo" />{alarmas} {alarmas === 1 ? "equipo con alarma" : "equipos con alarma"}</button>}
+            {alarmas > 0 && secciones.includes("alertas") && <button onClick={() => ir("/alertas")} className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-rojo"><CircleAlert className="size-4 animate-parpadeo" />{alarmas} {alarmas === 1 ? "equipo con alarma" : "equipos con alarma"}</button>}
             {plcFalla > 0 && <span className="text-[13px] font-semibold text-rojo">· {plcFalla} PLC en falla</span>}
             <div className="ml-auto flex items-center gap-2"><Campana /></div>
           </header>

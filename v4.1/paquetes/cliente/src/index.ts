@@ -116,7 +116,9 @@ export interface EventosPlanta {
   lecturas?: (l: { equipo: string; variable: string; valor: number; ts: string }[]) => void;
   equipo?: (e: { codigo: string; estado: string }) => void;
   alarma?: (a: { equipo: string; nivel: string; mensaje: string; abierta: boolean }) => void;
-  orden?: (o: { id: number; codigo: string; equipo: string; titulo: string; prioridad: string }) => void;
+  orden?: (o: { id: number; codigo: string; equipo: string; titulo: string; prioridad: string; estado?: string; simulada?: boolean; asignadoAId?: string | null }) => void;
+  /** Notificación dirigida a la persona o a su cargo (el servidor decide a quién llega). */
+  notificacion?: (n: { texto: string; nivel: "alarma" | "aviso" | "info" | "ok"; destino?: string | null }) => void;
   plc?: (p: { codigo: string; estado: string }) => void;
   plcIO?: (p: { codigo: string; estado: string; io: Record<string, number>; ciclos?: number }) => void;
   cuentaCerrada?: (m: { motivo: string }) => void;
@@ -176,3 +178,4 @@ export const periodoLegible = (p: string) => {
 };
 
 export * from "./plc";
+export * from "./catalogo";

@@ -83,6 +83,21 @@ public class PruebasFase1(Fabrica f)
         Assert.Equal(HttpStatusCode.Forbidden, (await op.GetAsync($"/api/ordenes/{ajena}")).StatusCode);
     }
 
+    [Fact]
+    public async Task EnLaAppElDirectorioMuestraSoloNombreYCargoDeLosDemas()
+    {
+        var op = await f.Entrar("operador", "Operador2026", "app");
+        var yo = (await f.Leer(op, "/api/auth/yo")).GetProperty("id").GetString();
+        var lista = (await f.Leer(op, "/api/directorio")).EnumerateArray().ToList();
+        Assert.True(lista.First(x => x.GetProperty("id").GetString() == yo).GetProperty("correo").GetString() is { Length: > 0 });
+        Assert.All(lista.Where(x => x.GetProperty("id").GetString() != yo), x => Assert.Equal(JsonValueKind.Null, x.GetProperty("correo").ValueKind));
+        // la jefatura de terreno ve los datos de contacto de su equipo; la web, los de todos (hoja Permisos)
+        var sup = await f.Entrar("supervisor.turno", "Supervisor2026", "app");
+        var supId = (await f.Leer(sup, "/api/auth/yo")).GetProperty("id").GetString();
+        Assert.Contains((await f.Leer(sup, "/api/directorio")).EnumerateArray(), x => x.GetProperty("id").GetString() != supId && x.GetProperty("correo").ValueKind == JsonValueKind.String);
+        Assert.All((await f.Leer(await f.Entrar("rrhh", "Rrhh2026", "web"), "/api/directorio")).EnumerateArray(), x => Assert.Equal(JsonValueKind.String, x.GetProperty("correo").ValueKind));
+    }
+
     // ---------------------------------------------------------------------------------------- flujo A
     async Task<(int id, uint version)> NuevaOt(HttpClient quien, string equipo)
     {
@@ -163,6 +178,26 @@ public class PruebasFase1(Fabrica f)
             Assert.Equal("operando", (await f.Leer(tec, "/api/equipos/PH-01")).GetProperty("equipo").GetProperty("estado").GetString());
         // quien no opera ni conduce la producción no puede dar la marcha
         Assert.Equal(HttpStatusCode.Forbidden, (await (await f.Entrar("calidad", "Calidad2026", "app")).PostAsync("/api/equipos/PH-01/reanudar", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task VerificarUnaOtNoLiberaElEquipoSiOtraIntervencionSigueAbierta()
+    {
+        var jm = await f.Entrar("jefe.mantenimiento", "Jefemant2026", "app");
+        var tec = await f.Entrar("tecnico", "Tecnico2026", "app");
+        var ins = await f.Entrar("instrumentacion", "Instrumentacion2026", "app");
+        var (a, _) = await NuevaOt(jm, "CM-01");
+        var (b, _) = await NuevaOt(jm, "CM-01");
+        Assert.Equal(HttpStatusCode.OK, (await tec.PostAsJsonAsync($"/api/ordenes/{a}/tomar", new { lotoConfirmado = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ins.PostAsJsonAsync($"/api/ordenes/{b}/tomar", new { lotoConfirmado = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await tec.PostAsJsonAsync($"/api/ordenes/{a}/cerrar", new { lotoRetirado = true, nota = "Ajuste de correa" })).StatusCode);
+        var r = await (await jm.PostAsJsonAsync($"/api/ordenes/{a}/verificar", new { aprobar = true })).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(r.GetProperty("equipoLiberado").GetBoolean());
+        Assert.Equal("en_mantencion", (await f.Leer(tec, "/api/equipos/CM-01")).GetProperty("equipo").GetProperty("estado").GetString());
+        // al verificar la última intervención abierta, recién ahí se libera
+        Assert.Equal(HttpStatusCode.OK, (await ins.PostAsJsonAsync($"/api/ordenes/{b}/cerrar", new { lotoRetirado = true, nota = "Sensor de temperatura recalibrado" })).StatusCode);
+        Assert.True((await (await jm.PostAsJsonAsync($"/api/ordenes/{b}/verificar", new { aprobar = true })).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("equipoLiberado").GetBoolean());
+        Assert.Equal("detenido", (await f.Leer(tec, "/api/equipos/CM-01")).GetProperty("equipo").GetProperty("estado").GetString());
     }
 
     [Fact]

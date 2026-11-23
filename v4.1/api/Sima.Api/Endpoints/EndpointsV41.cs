@@ -29,6 +29,9 @@ public static class EndpointsV41
         var g = app.MapGroup("/api").RequireAuthorization();
 
         // ================================================================================== estructura de planta
+        // nombres de las áreas, para que cualquiera pueda indicar dónde ocurrió un evento de seguridad (no expone la planta)
+        g.MapGet("/estructura/areas", async (SimaDb db) => Results.Ok(await db.Areas.AsNoTracking().OrderBy(a => a.Nombre).Select(a => new { a.Id, a.Codigo, a.Nombre }).ToListAsync()));
+
         g.MapGet("/estructura", async (ClaimsPrincipal u, SimaDb db) =>
         {
             if (!u.S().Tiene("planta.ver")) return Ayudas.Sin();

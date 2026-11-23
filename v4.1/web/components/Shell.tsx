@@ -30,15 +30,15 @@ export const GRUPOS: { titulo: string; items: Item[] }[] = [
     { href: "/produccion", titulo: "Producción", icono: ClipboardCheck, recurso: "produccion", detalle: "Órdenes y registros" },
     { href: "/calidad", titulo: "Calidad", icono: ShieldCheck, recurso: "calidad", detalle: "No conformidades y lotes" },
     { href: "/seguridad", titulo: "Seguridad y salud", icono: ShieldAlert, recurso: "sst", detalle: "Incidentes y acciones" },
-    { href: "/inventario", titulo: "Inventario", icono: Boxes, detalle: "Repuestos y herramientas" },
+    { href: "/inventario", titulo: "Inventario", icono: Boxes, recurso: "repuestos", detalle: "Repuestos y herramientas" },
     { href: "/logistica", titulo: "Logística", icono: Truck, recurso: "despachos", detalle: "Despachos a clientes" },
   ] },
   { titulo: "Planta", items: [
-    { href: "/planta", titulo: "Planta en vivo", icono: Factory, detalle: "Mapa animado, alarmas y órdenes" },
-    { href: "/estructura", titulo: "Estructura y equipos", icono: Network, detalle: "Planta, áreas, líneas y máquinas" },
+    { href: "/planta", titulo: "Planta en vivo", icono: Factory, recurso: "planta", detalle: "Mapa animado, alarmas y órdenes" },
+    { href: "/estructura", titulo: "Estructura y equipos", icono: Network, recurso: "planta", detalle: "Planta, áreas, líneas y máquinas" },
     { href: "/plc", titulo: "Controladores PLC", icono: Cpu, recurso: "plc", detalle: "Racks, E/S y programas" },
-    { href: "/mantenimiento", titulo: "Mantenimiento", icono: Wrench, detalle: "Órdenes, intervenciones y cambios de PLC" },
-    { href: "/eventos", titulo: "Eventos", icono: Activity, detalle: "Consola de lo que ocurre en planta" },
+    { href: "/mantenimiento", titulo: "Mantenimiento", icono: Wrench, recurso: "ordenes", detalle: "Órdenes, intervenciones y cambios de PLC" },
+    { href: "/eventos", titulo: "Eventos", icono: Activity, recurso: "planta", detalle: "Consola de lo que ocurre en planta" },
   ] },
   { titulo: "Organización", items: [
     { href: "/cargos", titulo: "Cargos y dotación", icono: Briefcase, detalle: "64 cargos del informe" },
@@ -202,7 +202,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <kbd className="ml-auto hidden rounded-md border border-linea px-1.5 py-0.5 text-[11px] sm:block">Ctrl K</kbd>
           </button>
           <div className="ml-auto flex items-center gap-2">
-            <Pulso />
+            {puede("planta") && <Pulso />}
             <button onClick={alternar} aria-label="Cambiar tema" title={tema === "claro" ? "Tema noche" : "Tema día"} className="grid size-10 cursor-pointer place-items-center rounded-xl border border-linea-suave bg-papel/60 text-gris transition-colors hover:text-negro">
               <AnimatePresence mode="wait" initial={false}><motion.span key={tema} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>{tema === "claro" ? <Moon className="size-[18px]" /> : <Sun className="size-[18px]" />}</motion.span></AnimatePresence>
             </button>
