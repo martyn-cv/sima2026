@@ -19,7 +19,7 @@ export function Equipos() {
           const est = ESTADO_EQ[e.estado] ?? ESTADO_EQ.detenido;
           return (
             <li key={e.codigo}>
-              <button onClick={() => ir(`/equipos/${e.codigo}`)} className={cx("block w-full cursor-pointer border-t-[3px] bg-papel p-4 text-left transition-colors hover:bg-chapa/40", e.estado === "alarma" ? "border-rojo" : e.estado === "en_mantencion" ? "border-ambar" : "border-negro")}>
+              <button onClick={() => ir(`/equipos/${e.codigo}`)} className={cx("block w-full cursor-pointer tarjeta border-t-2 p-4 text-left transition-colors hover:bg-chapa/40", e.estado === "alarma" ? "border-rojo" : e.estado === "en_mantencion" ? "border-ambar" : "border-negro")}>
                 <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="display text-[30px] font-bold leading-none">{e.codigo}</p><p className="truncate font-medium">{e.nombre}</p><p className="truncate text-[14px] text-gris">{e.ubicacion}</p></div><Chip tono={est.tono}>{est.texto}</Chip></div>
                 <div className="mt-3 space-y-2.5">{e.sensores.slice(0, 3).map((s) => <Medidor key={s.variable} s={s} />)}</div>
               </button>

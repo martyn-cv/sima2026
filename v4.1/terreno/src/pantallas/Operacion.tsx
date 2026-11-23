@@ -165,7 +165,7 @@ export function Traspaso() {
         <div className="grid content-start gap-5">
           {puede("traspaso", "editar") ? (
             <Seccion titulo="Entregar el turno"><div className="grid gap-3 p-5 pt-3">
-              {d.items.map((t, i) => <label key={t} className="flex cursor-pointer items-start gap-3 border border-linea p-3 has-[:checked]:border-negro has-[:checked]:bg-chapa/60"><input type="checkbox" className="mt-1 size-5 accent-[#d91f26]" checked={!!marcas[i]} onChange={(e) => setMarcas(d.items.map((_, j) => (j === i ? e.target.checked : !!marcas[j])))} /><span>{t}</span></label>)}
+              {d.items.map((t, i) => <label key={t} className="flex cursor-pointer items-start gap-3 rounded-xl border border-linea p-3 has-[:checked]:border-acento has-[:checked]:bg-acento-claro has-[:checked]:bg-chapa/60"><input type="checkbox" className="mt-1 size-5 accent-[#d91f26]" checked={!!marcas[i]} onChange={(e) => setMarcas(d.items.map((_, j) => (j === i ? e.target.checked : !!marcas[j])))} /><span>{t}</span></label>)}
               <Campo etiqueta="Notas para el turno que entra"><AreaTexto value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Por ejemplo: vigilar la temperatura del compresor" /></Campo>
               <div><Boton variante="rojo" cargando={m.isPending} onClick={() => m.mutate()}>Entregar turno</Boton></div>
             </div></Seccion>

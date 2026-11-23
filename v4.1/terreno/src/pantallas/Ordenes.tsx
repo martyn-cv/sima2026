@@ -27,7 +27,7 @@ function DialogoLoto({ orden, onCerrar }: { orden: Orden | null; onCerrar: () =>
       pie={<><Boton variante="contorno" onClick={onCerrar}>Cancelar</Boton><Boton variante="rojo" disabled={!marcas.every(Boolean)} cargando={m.isPending} onClick={() => m.mutate()}>Iniciar la orden</Boton></>}>
       <p className="mb-4 text-gris">Antes de intervenir {orden?.equipo}, confirme cada paso. No se puede iniciar la orden sin los cinco.</p>
       <ul className="space-y-2">{PASOS_LOTO.map((p, i) => (
-        <li key={p}><label className="flex cursor-pointer items-start gap-3 border border-linea p-3 transition-colors hover:border-negro has-[:checked]:border-negro has-[:checked]:bg-chapa/60"><input type="checkbox" className="mt-1 size-5 accent-[#d91f26]" checked={marcas[i]} onChange={(e) => setMarcas(marcas.map((x, j) => (j === i ? e.target.checked : x)))} /><span>{p}</span></label></li>
+        <li key={p}><label className="flex cursor-pointer items-start gap-3 rounded-xl border border-linea p-3 transition-colors hover:border-acento/50 has-[:checked]:border-acento has-[:checked]:bg-acento-claro has-[:checked]:bg-chapa/60"><input type="checkbox" className="mt-1 size-5 accent-[#d91f26]" checked={marcas[i]} onChange={(e) => setMarcas(marcas.map((x, j) => (j === i ? e.target.checked : x)))} /><span>{p}</span></label></li>
       ))}</ul>
     </Dialogo>
   );
@@ -46,7 +46,7 @@ function DialogoCierre({ orden, onCerrar }: { orden: Orden | null; onCerrar: () 
       pie={<><Boton variante="contorno" onClick={onCerrar}>Cancelar</Boton><Boton variante="rojo" disabled={!retirado} cargando={m.isPending} onClick={() => m.mutate()}>Cerrar orden</Boton></>}>
       <div className="space-y-4">
         <Campo etiqueta="Qué se hizo"><AreaTexto value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Por ejemplo: se limpió el intercambiador y se verificó la temperatura." /></Campo>
-        <label className="flex cursor-pointer items-start gap-3 border border-linea p-3 has-[:checked]:border-negro"><input type="checkbox" className="mt-1 size-5 accent-[#d91f26]" checked={retirado} onChange={(e) => setRetirado(e.target.checked)} /><span>Retiré mi candado y mi etiqueta, y el equipo está listo para volver a operar.</span></label>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-linea p-3 has-[:checked]:border-acento has-[:checked]:bg-acento-claro"><input type="checkbox" className="mt-1 size-5 accent-[#d91f26]" checked={retirado} onChange={(e) => setRetirado(e.target.checked)} /><span>Retiré mi candado y mi etiqueta, y el equipo está listo para volver a operar.</span></label>
       </div>
     </Dialogo>
   );

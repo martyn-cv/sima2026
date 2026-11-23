@@ -3,12 +3,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AreaTexto, Boton, Campo, Encabezado, Entrada, Seccion, Seleccion, mensajeDe, useAviso } from "@sima/ui";
 import { enviar } from "../lib/offline";
 import { usePlanta } from "../lib/planta";
-import { ir } from "../ruta";
+import { ir, useParametro } from "../ruta";
 
 export function Reportar({ equipo }: { equipo?: string }) {
   const { equipos } = usePlanta();
+  const desdeRuta = useParametro("equipo");
   const qc = useQueryClient(); const aviso = useAviso();
-  const [f, setF] = useState({ equipo: equipo ?? "", titulo: "", descripcion: "", prioridad: "media" });
+  const [f, setF] = useState({ equipo: equipo ?? desdeRuta ?? "", titulo: "", descripcion: "", prioridad: "media" });
   const m = useMutation({
     mutationFn: () => enviar<{ codigo: string }>("POST", "/api/ordenes", f),
     onSuccess: (r) => { void qc.invalidateQueries({ queryKey: ["ordenes"] }); aviso(r.queued ? "Sin señal: la falla se enviará sola cuando vuelva la conexión." : `Falla reportada. Se creó la orden ${r.data?.codigo}.`); ir("/ordenes"); },

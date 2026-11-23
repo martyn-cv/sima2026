@@ -1,55 +1,142 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, BookUser, Briefcase, ClipboardList, ClipboardCheck, Cog, Home, LogOut, Repeat, Siren, Wrench } from "lucide-react";
+import {
+  ArrowRight, Bell, BookUser, Briefcase, CircleAlert, ClipboardCheck, Gauge, LogOut, Network, PlugZap, RefreshCw, Repeat, Server, Siren, TriangleAlert, Wrench, WifiOff, Hammer,
+} from "lucide-react";
 import { ApiError } from "@sima/cliente";
-import { Boton, Campo, Entrada, AvisosProvider, PantallaSeguridad, cx, mensajeDe, useAviso } from "@sima/ui";
+import { Avatar, AvisosProvider, Boton, Campo, CURVA, Entrada, Maquina, PantallaSeguridad, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api, baseUrl, guardarUrl } from "./lib/api";
 import { useAuth } from "./lib/auth";
 import { usePlanta } from "./lib/planta";
-import { useRuta, ir } from "./ruta";
-import { EquipoDetalle, Equipos } from "./pantallas/Equipos";
-import { Ordenes } from "./pantallas/Ordenes";
-import { Reportar } from "./pantallas/Reportar";
-import { Alarmas, Directorio, Inicio, MiCargo } from "./pantallas/Resto";
-import { Panol, Rutinas, Traspaso } from "./pantallas/Operacion";
 import { usePendientes, vaciar } from "./lib/offline";
+import { ir, useRuta } from "./ruta";
+import { Panel } from "./pantallas/Panel";
+import { Explorador } from "./pantallas/Explorador";
+import { Mantenimiento } from "./pantallas/Mantenimiento";
+import { Reportar } from "./pantallas/Reportar";
+import { Alarmas, Directorio, MiCargo } from "./pantallas/Resto";
+import { Panol, Rutinas, Traspaso } from "./pantallas/Operacion";
 
-function Login() {
-  const { entrar, aviso } = useAuth();
-  const [correo, setCorreo] = useState(""); const [clave, setClave] = useState(""); const [codigo, setCodigo] = useState(""); const [pideCodigo, setPideCodigo] = useState(false); const [url, setUrl] = useState(baseUrl());
-  const [error, setError] = useState<string | null>(null); const [cargando, setCargando] = useState(false); const [ajustes, setAjustes] = useState(false);
-  const demo = useQuery({ queryKey: ["demo", url], queryFn: api.demo, retry: 0 });
-  async function enviar(e?: FormEvent, c = correo, k = clave, cod = codigo) {
-    e?.preventDefault(); guardarUrl(url); setError(null); setCargando(true);
-    try { await entrar(c, k, cod); } catch (x) { if (x instanceof ApiError && x.datos?.requiere2fa) setPideCodigo(true); setError(mensajeDe(x)); } finally { setCargando(false); }
-  }
-  const app = (demo.data ?? []).filter((d) => d.canal === "app");
+// ------------------------------------------------------------------------------------------------ marca
+function Logo({ tam = 40 }: { tam?: number }) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1fr_1fr]">
-      <section className="relative hidden flex-col justify-between bg-negro p-12 text-white lg:flex">
-        <div className="flex items-center gap-3"><span className="grid size-11 place-items-center bg-rojo display text-3xl font-bold leading-none">S</span><span className="text-[15px] text-[#b4b8c0]">SIMA · Terreno</span></div>
-        <h1 className="display text-[clamp(64px,8vw,130px)] font-bold leading-[0.88] tracking-tight">Lo que pasa<br />en la planta,<br />en su mano.</h1>
-        <p className="max-w-[40ch] text-[18px] text-[#b4b8c0]">Equipos, alarmas y órdenes de trabajo al segundo. Si su cuenta se cierra, la sesión termina aquí mismo.</p>
+    <span className="relative grid shrink-0 place-items-center rounded-xl bg-gradient-to-br from-acento to-cobre font-display font-extrabold text-sobre-negro shadow-[0_8px_24px_-8px_var(--s-acento)]" style={{ width: tam, height: tam, fontSize: tam * 0.55 }}>S</span>
+  );
+}
+
+// ------------------------------------------------------------------------------------------------ pantalla de arranque
+type Salud = { estado: string; trabajadores: number; equipos: number };
+function Arranque({ alListo }: { alListo: (sinConexion: boolean) => void }) {
+  const [url, setUrl] = useState(baseUrl());
+  const [editar, setEditar] = useState(false);
+  const [intento, setIntento] = useState(0);
+  const [minimo, setMinimo] = useState(false);
+  const salud = useQuery({
+    queryKey: ["salud", url, intento], retry: 0,
+    queryFn: async () => { const c = new AbortController(); const t = setTimeout(() => c.abort(), 4000); try { const r = await fetch(`${url}/salud`, { signal: c.signal }); if (!r.ok) throw new Error(); return (await r.json()) as Salud; } finally { clearTimeout(t); } },
+  });
+  useEffect(() => { const t = setTimeout(() => setMinimo(true), 1400); return () => clearTimeout(t); }, []);
+  useEffect(() => { if (salud.data && minimo) { const t = setTimeout(() => alListo(false), 500); return () => clearTimeout(t); } }, [salud.data, minimo]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pasos = [
+    { t: "Cargando interfaz", ok: true },
+    { t: `Buscando el servidor de SIMA`, ok: !!salud.data, error: salud.isError },
+    { t: salud.data ? `Base central en línea · ${salud.data.trabajadores} personas, ${salud.data.equipos} equipos` : "Base de datos central", ok: !!salud.data },
+  ];
+  return (
+    <div className="rejilla relative grid h-dvh place-items-center overflow-hidden">
+      <div aria-hidden className="absolute inset-0" style={{ background: "radial-gradient(60% 50% at 50% 40%, transparent, var(--s-fondo) 75%)" }} />
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: CURVA }} className="relative w-[min(460px,92vw)] text-center">
+        <motion.div initial={{ scale: 0.6, rotate: -12, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 160, damping: 14 }} className="mx-auto mb-5 w-fit"><Logo tam={76} /></motion.div>
+        <h1 className="display text-[40px] font-extrabold leading-none">SIMA <span className="texto-degradado">Desktop</span></h1>
+        <p className="mt-2 text-[14px] text-gris">Centro de operaciones y mantenimiento · Manufacturas Andina</p>
+        <ul className="tarjeta mt-8 grid gap-3 p-5 text-left">
+          {pasos.map((p, i) => (
+            <motion.li key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.25 }} className="flex items-center gap-3 text-[14px]">
+              <span className={cx("grid size-6 shrink-0 place-items-center rounded-full", p.ok ? "bg-verde-claro text-verde" : p.error ? "bg-rojo-claro text-rojo" : "bg-acento-claro text-acento")}>
+                {p.ok ? "✓" : p.error ? "!" : <span className="size-3 animate-spin rounded-full border-2 border-acento border-t-transparent" />}
+              </span>
+              <span className={cx(!p.ok && !p.error && "text-gris")}>{p.t}</span>
+            </motion.li>
+          ))}
+          <li className="mt-1 flex items-center gap-2 border-t border-linea-suave pt-3 font-mono text-[12px] text-gris"><Server className="size-3.5" />{url}</li>
+        </ul>
+        <AnimatePresence>
+          {salud.isError && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 overflow-hidden">
+              <p className="mb-3 rounded-xl border border-ambar/30 bg-ambar-claro px-4 py-3 text-left text-[13.5px] text-ambar-hondo">No responde el servidor de SIMA en esa dirección. Verifique que esté encendido (Iniciar SIMA en el equipo servidor) o cambie la dirección.</p>
+              {editar && <form onSubmit={(e) => { e.preventDefault(); guardarUrl(url); setIntento((n) => n + 1); }} className="mb-3 flex gap-2"><Entrada value={url} onChange={(e) => setUrl(e.target.value)} className="font-mono text-[13px]" /><Boton type="submit" variante="acento">Probar</Boton></form>}
+              <div className="flex flex-wrap justify-center gap-2">
+                <Boton variante="acento" onClick={() => setIntento((n) => n + 1)}><RefreshCw className="size-4" />Reintentar</Boton>
+                <Boton variante="contorno" onClick={() => setEditar(!editar)}><Server className="size-4" />Cambiar dirección</Boton>
+                <Boton variante="texto" onClick={() => alListo(true)}><WifiOff className="size-4" />Continuar sin conexión</Boton>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+      <p className="absolute bottom-4 text-[12px] text-gris">v4.1 · los datos viven en la base central de SIMA; este equipo solo guarda lo último consultado</p>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------------------------------------ ingreso
+function Ingreso({ sinConexion }: { sinConexion: boolean }) {
+  const { entrar, aviso } = useAuth();
+  const [correo, setCorreo] = useState(""); const [clave, setClave] = useState(""); const [codigo, setCodigo] = useState(""); const [pideCodigo, setPideCodigo] = useState(false);
+  const [error, setError] = useState<string | null>(null); const [cargando, setCargando] = useState<string | null>(null);
+  const demo = useQuery({ queryKey: ["demo"], queryFn: api.demo, retry: 0, enabled: !sinConexion });
+  async function enviar(e?: FormEvent, c = correo, k = clave, cod = codigo) {
+    e?.preventDefault(); setError(null); setCargando(c || "x");
+    try { await entrar(c, k, cod); } catch (x) { if (x instanceof ApiError && x.datos?.requiere2fa) setPideCodigo(true); setError(mensajeDe(x)); } finally { setCargando(null); }
+  }
+  const cuentas = (demo.data ?? []).filter((d) => d.canal === "app");
+  const maquinas = ["Torno CNC", "Inyectora de plástico", "Cinta transportadora", "Envasadora automática", "Robot industrial articulado", "Prensa hidráulica"];
+  return (
+    <div className="grid h-dvh lg:grid-cols-[1.05fr_1fr]">
+      <section className="rejilla relative hidden flex-col justify-between overflow-hidden border-r border-linea-suave p-10 lg:flex">
+        <div aria-hidden className="absolute inset-0" style={{ background: "radial-gradient(80% 60% at 20% 10%, var(--s-aurora-a), transparent 60%), radial-gradient(60% 50% at 90% 90%, var(--s-aurora-b), transparent 60%)" }} />
+        <div className="relative flex items-center gap-3"><Logo /><div><p className="display text-[22px] font-bold leading-none">SIMA Desktop</p><p className="text-[12.5px] text-gris">Operación y mantenimiento</p></div></div>
+        <div className="relative">
+          <h1 className="display text-[clamp(44px,4.6vw,72px)] font-extrabold leading-[0.95] tracking-tight">La planta,<br /><span className="texto-degradado">máquina por máquina.</span></h1>
+          <p className="mt-4 max-w-[46ch] text-[16px] text-carbon">Estado de cada equipo y PLC, alarmas al segundo y órdenes de trabajo con un flujo guiado: bloqueo, diagnóstico, intervención y cierre.</p>
+          <div className="mt-8 grid max-w-[560px] grid-cols-3 gap-3">
+            {maquinas.map((m, i) => (
+              <motion.div key={m} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.08 }} className="tarjeta p-2">
+                <Maquina tipo={m} estado={i === 4 ? "alarma" : "operando"} className="h-16 w-full" />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+        <p className="relative text-[12.5px] text-gris">Si su cuenta se cierra en Personas, la sesión termina aquí mismo.</p>
       </section>
-      <section className="flex flex-col justify-center bg-papel px-6 py-10 sm:px-14">
-        <form onSubmit={enviar} className="mx-auto w-full max-w-[400px]">
-          <h2 className="display text-[44px] font-bold leading-none">Ingresar</h2>
-          <p className="mb-6 mt-2 text-gris">Con su correo de trabajo y su clave.</p>
-          {aviso && <p role="status" className="mb-4 border-l-[3px] border-ambar bg-ambar-claro px-3 py-2 text-[14px]">{aviso}</p>}
+      <section className="flex flex-col justify-center overflow-y-auto px-6 py-10 sm:px-14">
+        <motion.form initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} onSubmit={enviar} className="mx-auto w-full max-w-[420px]">
+          <h2 className="display text-[36px] font-bold leading-none">Ingresar</h2>
+          <p className="mb-6 mt-2 text-gris">Con su correo de trabajo y su clave de SIMA.</p>
+          {sinConexion && <p className="mb-4 flex gap-2 rounded-xl border border-ambar/30 bg-ambar-claro px-3 py-2 text-[13.5px] text-ambar-hondo"><WifiOff className="mt-0.5 size-4 shrink-0" />Sin conexión con el servidor: para ingresar se necesita la red de la planta.</p>}
+          {aviso && <p role="status" className="mb-4 rounded-xl border border-ambar/30 bg-ambar-claro px-3 py-2 text-[14px] text-ambar-hondo">{aviso}</p>}
           <div className="grid gap-4">
             <Campo etiqueta="Correo corporativo"><Entrada type="email" autoComplete="username" required value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="nombre@manuandina.cl" /></Campo>
             <Campo etiqueta="Clave"><Entrada type="password" autoComplete="current-password" required value={clave} onChange={(e) => setClave(e.target.value)} /></Campo>
-            {pideCodigo && <Campo etiqueta="Código de la aplicación de autenticación" ayuda="Los 6 dígitos que muestra la aplicación en su teléfono."><Entrada inputMode="numeric" autoComplete="one-time-code" maxLength={7} autoFocus required value={codigo} onChange={(e) => setCodigo(e.target.value)} /></Campo>}
-            {error && <p role="alert" className="border-l-[3px] border-rojo bg-rojo-claro px-3 py-2 text-[14px] text-rojo-hondo">{error}</p>}
-            <Boton type="submit" variante="rojo" cargando={cargando} className="h-12">Ingresar</Boton>
-            <button type="button" onClick={() => setAjustes(!ajustes)} className="cursor-pointer text-left text-[14px] text-gris underline decoration-linea underline-offset-2">Dirección del servidor</button>
-            {ajustes && <Campo etiqueta="API de SIMA"><Entrada value={url} onChange={(e) => setUrl(e.target.value)} onBlur={() => guardarUrl(url)} /></Campo>}
+            {pideCodigo && <Campo etiqueta="Código de autenticación" ayuda="Los 6 dígitos de la aplicación en su teléfono."><Entrada inputMode="numeric" maxLength={7} autoFocus required value={codigo} onChange={(e) => setCodigo(e.target.value)} /></Campo>}
+            {error && <p role="alert" className="rounded-xl border border-rojo/30 bg-rojo-claro px-3 py-2 text-[14px] text-rojo-hondo">{error}</p>}
+            <Boton type="submit" variante="acento" tam="l" cargando={cargando === correo && !!correo}>Ingresar<ArrowRight className="size-4" /></Boton>
           </div>
-        </form>
-        {app.length > 0 && (
-          <div className="mx-auto mt-8 w-full max-w-[400px]"><p className="text-[13px] font-medium text-gris">Cuentas de demostración de terreno</p>
-            <ul className="mt-2 max-h-[300px] divide-y divide-linea-suave overflow-auto border-y border-linea-suave">{app.map((d) => <li key={d.correo}><button disabled={cargando} onClick={() => void enviar(undefined, d.correo, d.clave)} className="flex w-full cursor-pointer items-center justify-between gap-3 px-1 py-2 text-left hover:bg-chapa/70"><span className="min-w-0"><span className="block truncate font-medium">{d.nombre}</span><span className="block truncate text-[13px] text-gris">{d.cargo}</span></span><span className="shrink-0 text-[13px] font-medium text-rojo">Entrar</span></button></li>)}</ul>
+        </motion.form>
+        {cuentas.length > 0 && (
+          <div className="mx-auto mt-8 w-full max-w-[420px]">
+            <p className="mb-2 text-[13px] font-medium text-gris">Cuentas de demostración · un clic para entrar</p>
+            <ul className="grid max-h-[290px] gap-1.5 overflow-y-auto pr-1">
+              {cuentas.map((d, i) => (
+                <motion.li key={d.correo} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.03 }}>
+                  <button disabled={!!cargando} onClick={() => void enviar(undefined, d.correo, d.clave)} className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-linea-suave bg-papel px-3 py-2 text-left transition-colors hover:border-acento/50">
+                    <Avatar nombre={d.nombre} tam={32} /><span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-semibold">{d.nombre}</span><span className="block truncate text-[12px] text-gris">{d.cargo}</span></span>
+                    {cargando === d.correo ? <span className="size-4 animate-spin rounded-full border-2 border-acento border-t-transparent" /> : <ArrowRight className="size-4 text-gris transition-transform group-hover:translate-x-0.5 group-hover:text-acento" />}
+                  </button>
+                </motion.li>
+              ))}
+            </ul>
           </div>
         )}
       </section>
@@ -57,7 +144,19 @@ function Login() {
   );
 }
 
-const NAV = [{ r: "/", t: "Inicio", i: Home }, { r: "/equipos", t: "Equipos", i: Cog }, { r: "/alarmas", t: "Alarmas", i: Bell }, { r: "/ordenes", t: "Órdenes", i: ClipboardList }, { r: "/rutinas", t: "Rutinas", i: ClipboardCheck }, { r: "/panol", t: "Pañol", i: Wrench }, { r: "/traspaso", t: "Traspaso", i: Repeat, permiso: "traspaso" }, { r: "/cargo", t: "Mi cargo", i: Briefcase }, { r: "/directorio", t: "Directorio", i: BookUser }];
+// ------------------------------------------------------------------------------------------------ marco
+const NAV = [
+  { r: "/", t: "Panel operativo", i: Gauge, g: "Operación" },
+  { r: "/explorador", t: "Explorador de planta", i: Network, g: "Operación" },
+  { r: "/mantenimiento", t: "Centro de mantenimiento", i: Wrench, g: "Operación" },
+  { r: "/alarmas", t: "Alertas", i: Siren, g: "Operación" },
+  { r: "/reportar", t: "Reportar falla", i: TriangleAlert, g: "Operación" },
+  { r: "/rutinas", t: "Rutinas", i: ClipboardCheck, g: "Turno" },
+  { r: "/panol", t: "Pañol y repuestos", i: Hammer, g: "Turno" },
+  { r: "/traspaso", t: "Traspaso de turno", i: Repeat, g: "Turno", permiso: "traspaso" },
+  { r: "/cargo", t: "Mi cargo", i: Briefcase, g: "Personal" },
+  { r: "/directorio", t: "Directorio", i: BookUser, g: "Personal" },
+];
 
 function Avisos() {
   const { aviso } = usePlanta();
@@ -66,50 +165,100 @@ function Avisos() {
   return null;
 }
 
+const COLOR_NIVEL = { alarma: "var(--s-rojo)", aviso: "var(--s-ambar)", info: "var(--s-azul)", ok: "var(--s-verde)" };
+
+function Campana() {
+  const { notificaciones, noLeidas, marcarLeidas } = usePlanta();
+  const [abierta, setAbierta] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { const f = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setAbierta(false); }; document.addEventListener("mousedown", f); return () => document.removeEventListener("mousedown", f); }, []);
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => { setAbierta(!abierta); marcarLeidas(); }} aria-label="Notificaciones" className="relative grid size-9 cursor-pointer place-items-center rounded-xl border border-linea-suave text-gris transition-colors hover:text-negro">
+        <Bell className="size-[18px]" />
+        <AnimatePresence>{noLeidas > 0 && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="num absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-rojo px-1 text-[10px] font-bold text-white">{noLeidas > 9 ? "9+" : noLeidas}</motion.span>}</AnimatePresence>
+      </button>
+      <AnimatePresence>
+        {abierta && (
+          <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.16 }} className="tarjeta vidrio absolute right-0 top-11 z-40 w-[380px] overflow-hidden">
+            <p className="border-b border-linea-suave px-4 py-3 font-semibold">Notificaciones</p>
+            <ul className="max-h-[420px] overflow-y-auto p-1.5">
+              {notificaciones.length === 0 && <li className="px-3 py-8 text-center text-[13.5px] text-gris">Sin novedades por ahora.</li>}
+              {notificaciones.map((n) => (
+                <li key={n.id}><button onClick={() => { if (n.destino) ir(n.destino); setAbierta(false); }} className="flex w-full cursor-pointer gap-2.5 rounded-xl px-3 py-2 text-left hover:bg-papel-2">
+                  <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ background: COLOR_NIVEL[n.nivel], boxShadow: `0 0 8px ${COLOR_NIVEL[n.nivel]}` }} />
+                  <span className="text-[13px] leading-snug">{n.texto}<span className="block text-[11.5px] text-gris">{new Date(n.ts).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}</span></span>
+                </button></li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function Marco() {
   const { usuario, salir, puede } = useAuth();
-  const { conexion, equipos } = usePlanta();
+  const { conexion, equipos, plcEstado } = usePlanta();
   const pendientes = usePendientes();
-  const nav = NAV.filter((n) => !n.permiso || puede(n.permiso));
   const r = useRuta();
-  const activa = (x: string) => (x === "/" ? r === "/" : r.startsWith(x));
+  const base = "/" + (r.split("?")[0].split("/")[1] ?? "");
+  const nav = NAV.filter((n) => !n.permiso || puede(n.permiso));
+  const activa = (x: string) => (x === "/" ? base === "/" : base === x);
   const alarmas = equipos.filter((e) => e.estado === "alarma").length;
-  const [, p1, p2] = r.split("/");
-  const pantalla = p1 === "equipos" && p2 ? <EquipoDetalle codigo={decodeURIComponent(p2)} /> : p1 === "equipos" ? <Equipos /> : p1 === "alarmas" ? <Alarmas /> : p1 === "ordenes" ? <Ordenes /> : p1 === "reportar" ? <Reportar equipo={p2} /> : p1 === "rutinas" ? <Rutinas /> : p1 === "panol" ? <Panol /> : p1 === "traspaso" ? <Traspaso /> : p1 === "cargo" ? <MiCargo /> : p1 === "directorio" ? <Directorio /> : <Inicio />;
+  const plcFalla = Object.values(plcEstado).filter((e) => e === "error").length;
+  const grupos = [...new Set(nav.map((n) => n.g))];
+  const pantalla = base === "/explorador" ? <Explorador /> : base === "/mantenimiento" ? <Mantenimiento /> : base === "/alarmas" ? <Alarmas /> : base === "/reportar" ? <Reportar /> : base === "/rutinas" ? <Rutinas /> : base === "/panol" ? <Panol /> : base === "/traspaso" ? <Traspaso /> : base === "/cargo" ? <MiCargo /> : base === "/directorio" ? <Directorio /> : <Panel />;
   return (
     <AvisosProvider>
       <Avisos />
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-negro lg:flex">
-        <div className="flex items-center gap-2.5 px-5 pb-5 pt-6"><span className="grid size-9 place-items-center bg-rojo display text-[26px] font-bold leading-none text-white">S</span><div><p className="display text-[28px] font-bold leading-[0.9] text-white">SIMA</p><p className="text-[12px] text-[#9aa0a9]">Terreno</p></div></div>
-        <nav className="flex-1 px-3" aria-label="Secciones">{nav.map((n) => (
-          <a key={n.r} href={`#${n.r}`} aria-current={activa(n.r) ? "page" : undefined} className={cx("relative flex h-11 items-center gap-3 px-3 text-[16px] transition-colors", activa(n.r) ? "text-white" : "text-[#b4b8c0] hover:text-white")}>
-            {activa(n.r) && <motion.span layoutId="rail" className="absolute inset-0 bg-[#1d1e22]" transition={{ type: "spring", stiffness: 520, damping: 42 }} />}
-            {activa(n.r) && <motion.span layoutId="rail-barra" className="absolute inset-y-0 left-0 w-[3px] bg-rojo" transition={{ type: "spring", stiffness: 520, damping: 42 }} />}
-            <n.i className="relative size-5" strokeWidth={1.75} /><span className="relative">{n.t}</span>
-            {n.r === "/alarmas" && alarmas > 0 && <span className="num relative ml-auto grid h-5 min-w-5 place-items-center bg-rojo px-1 text-[12px] font-semibold text-white">{alarmas}</span>}
-          </a>))}
-        </nav>
-        <div className="border-t border-[#26272b] p-4"><div className="flex items-center gap-3"><div className="min-w-0 flex-1"><p className="truncate font-medium text-white">{usuario?.nombre}</p><p className="truncate text-[13px] text-[#9aa0a9]">{usuario?.cargo}</p></div><button onClick={() => salir()} aria-label="Cerrar sesión" className="grid size-9 cursor-pointer place-items-center text-[#9aa0a9] hover:text-white"><LogOut className="size-[18px]" /></button></div></div>
-      </aside>
-      <div className="min-h-dvh pb-20 lg:pb-0 lg:pl-[220px]">
-        <div className="sticky top-0 z-20 flex h-11 items-center gap-3 border-b border-linea bg-papel px-4 lg:px-9">
-          <span className="flex items-center gap-2 text-[14px] font-medium"><span className={cx("size-2 rounded-full", conexion === "conectado" ? "animate-latido bg-verde" : conexion === "reconectando" ? "animate-parpadeo bg-ambar" : "bg-gris")} />{conexion === "conectado" ? "En vivo" : conexion === "reconectando" ? "Reconectando…" : "Sin conexión en vivo"}</span>
-          {pendientes > 0 && <button onClick={() => void vaciar()} className="flex cursor-pointer items-center gap-1.5 bg-ambar-claro px-2 py-0.5 text-[13px] font-medium text-[#8a5a00]" title="Se envían solos al volver la señal. Toque para reintentar ahora.">{pendientes} {pendientes === 1 ? "envío pendiente" : "envíos pendientes"}</button>}
-          {alarmas > 0 && <button onClick={() => ir("/alarmas")} className="flex cursor-pointer items-center gap-1.5 text-[14px] font-semibold text-rojo"><Siren className="size-4" />{alarmas} {alarmas === 1 ? "equipo con alarma" : "equipos con alarma"}</button>}
-          <button onClick={() => salir()} className="ml-auto text-[14px] text-gris underline decoration-linea underline-offset-2 hover:text-negro lg:hidden">Salir</button>
+      <div className="flex h-dvh">
+        <aside className="flex w-[244px] shrink-0 flex-col border-r border-linea-suave bg-[color-mix(in_srgb,var(--s-superficie)_70%,var(--s-fondo))]">
+          <div className="flex items-center gap-3 px-5 pb-4 pt-5"><Logo tam={36} /><div><p className="display text-[19px] font-bold leading-none">SIMA</p><p className="text-[11.5px] text-gris">Desktop · centro de operaciones</p></div></div>
+          <nav className="flex-1 overflow-y-auto px-3" aria-label="Secciones">
+            {grupos.map((g) => (
+              <div key={g} className="mb-3">
+                <p className="px-3 pb-1 pt-2 text-[10.5px] font-semibold uppercase tracking-[.1em] text-gris/80">{g}</p>
+                {nav.filter((n) => n.g === g).map((n) => (
+                  <a key={n.r} href={`#${n.r}`} aria-current={activa(n.r) ? "page" : undefined} className={cx("relative flex h-10 items-center gap-3 rounded-xl px-3 text-[14px] font-medium transition-colors", activa(n.r) ? "text-negro" : "text-gris hover:bg-papel-2 hover:text-negro")}>
+                    {activa(n.r) && <motion.span layoutId="rail" className="absolute inset-0 rounded-xl border border-acento/25 bg-acento-claro" transition={{ type: "spring", stiffness: 480, damping: 40 }} />}
+                    {activa(n.r) && <motion.span layoutId="rail-barra" className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-acento shadow-[0_0_12px_var(--s-acento)]" transition={{ type: "spring", stiffness: 480, damping: 40 }} />}
+                    <n.i className={cx("relative size-[18px]", activa(n.r) && "text-acento")} strokeWidth={1.8} /><span className="relative truncate">{n.t}</span>
+                    {n.r === "/alarmas" && alarmas > 0 && <span className="num relative ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1.5 text-[11px] font-bold text-white">{alarmas}</span>}
+                  </a>
+                ))}
+              </div>
+            ))}
+          </nav>
+          <div className="m-3 rounded-2xl border border-linea-suave bg-papel-2/60 p-3">
+            <div className="flex items-center gap-2.5"><Avatar nombre={usuario?.nombre ?? "?"} tam={34} /><div className="min-w-0 flex-1"><p className="truncate text-[13.5px] font-semibold">{usuario?.nombre}</p><p className="truncate text-[11.5px] text-gris">{usuario?.cargo}</p></div>
+              <button onClick={() => salir()} aria-label="Cerrar sesión" title="Cerrar sesión" className="grid size-8 cursor-pointer place-items-center rounded-lg text-gris hover:bg-linea-suave hover:text-negro"><LogOut className="size-4" /></button></div>
+          </div>
+        </aside>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="flex h-14 shrink-0 items-center gap-3 border-b border-linea-suave px-6">
+            <span className={cx("inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12.5px] font-medium", conexion === "conectado" ? "bg-verde-claro text-verde" : conexion === "reconectando" ? "bg-ambar-claro text-ambar" : "bg-rojo-claro text-rojo")}>
+              {conexion === "conectado" ? <PlugZap className="size-3.5" /> : <WifiOff className="size-3.5" />}{conexion === "conectado" ? "En vivo con SIMA" : conexion === "reconectando" ? "Reconectando…" : "Sin conexión · datos guardados"}
+            </span>
+            <AnimatePresence>{pendientes > 0 && <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} onClick={() => void vaciar()} className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-ambar-claro px-3 py-1 text-[12.5px] font-medium text-ambar-hondo" title="Se envían solos al volver la conexión. Toque para reintentar ahora."><RefreshCw className="size-3.5" />{pendientes} por enviar</motion.button>}</AnimatePresence>
+            {alarmas > 0 && <button onClick={() => ir("/alarmas")} className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-rojo"><CircleAlert className="size-4 animate-parpadeo" />{alarmas} {alarmas === 1 ? "equipo con alarma" : "equipos con alarma"}</button>}
+            {plcFalla > 0 && <span className="text-[13px] font-semibold text-rojo">· {plcFalla} PLC en falla</span>}
+            <div className="ml-auto flex items-center gap-2"><Campana /></div>
+          </header>
+          <main className="min-h-0 flex-1 overflow-y-auto">
+            <AnimatePresence mode="wait"><motion.div key={base} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: CURVA }} className="mx-auto w-full max-w-[1500px] px-6 py-6">{pantalla}</motion.div></AnimatePresence>
+          </main>
         </div>
-        <main className="mx-auto w-full max-w-[1200px] px-4 py-6 lg:px-9"><AnimatePresence mode="wait"><motion.div key={r} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>{pantalla}</motion.div></AnimatePresence></main>
       </div>
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t border-linea bg-papel lg:hidden" aria-label="Secciones">{nav.map((n) => (
-        <a key={n.r} href={`#${n.r}`} aria-current={activa(n.r) ? "page" : undefined} className={cx("flex h-16 min-w-[76px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", activa(n.r) ? "text-rojo" : "text-gris")}><n.i className="size-5" strokeWidth={1.75} />{n.t}</a>))}
-      </nav>
     </AvisosProvider>
   );
 }
 
 export function App() {
   const { usuario, cargando, refrescar, salir } = useAuth();
-  if (cargando) return <div className="grid min-h-dvh place-items-center"><span className="display text-3xl font-bold text-linea">SIMA</span></div>;
+  const [listo, setListo] = useState<null | { sinConexion: boolean }>(null);
+  if (!listo || cargando) return <Arranque alListo={(sinConexion) => setListo({ sinConexion })} />;
   if (usuario?.restringido) return <PantallaSeguridad cliente={api} usuario={usuario} alNuevoToken={(t) => void refrescar(t)} alSalir={() => salir()} />;
-  return usuario ? <Marco /> : <Login />;
+  return usuario ? <Marco /> : <Ingreso sinConexion={listo.sinConexion} />;
 }

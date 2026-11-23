@@ -2,12 +2,31 @@
 @import "../../paquetes/ui/src/tema.css";
 @source "../../paquetes/ui/src";
 
-html, body, #raiz { min-height: 100%; }
-html { background: var(--color-chapa); color: var(--color-negro); }
-body { font-family: var(--font-sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-.num { font-variant-numeric: tabular-nums; }
-.display { font-family: var(--font-display); letter-spacing: 0.005em; }
-:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
-::selection { background: var(--color-rojo); color: #fff; }
-* { scrollbar-width: thin; scrollbar-color: #b8bcc4 transparent; }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; } }
+/* SIMA Desktop: misma familia que la web, con personalidad propia — grafito profundo y cian como acento principal
+   (centro de operaciones), violeta como segundo acento. Los colores de estado son idénticos en las tres aplicaciones. */
+:root {
+  --s-fondo: #0a0c10;
+  --s-superficie: #11141a;
+  --s-superficie-2: #171b23;
+  --s-borde: #272d38;
+  --s-borde-suave: #1d222b;
+  --s-tenue: #8b93a3;
+  --s-texto: #eef1f6;
+  --s-texto-2: #c6ccd8;
+  --s-sobre-texto: #061016;
+  --s-acento: #22d3ee;
+  --s-acento-claro: rgb(34 211 238 / .14);
+  --s-cobre: #8b5cf6;
+  --s-vidrio: rgb(17 20 26 / .78);
+  --s-aurora-a: rgb(34 211 238 / .12);
+  --s-aurora-b: rgb(139 92 246 / .10);
+  --s-curvas: rgb(160 180 210 / .045);
+  --s-brillo-violeta: 0 0 24px -4px rgb(34 211 238 / .5);
+  --s-brillo-cian: 0 0 24px -4px rgb(139 92 246 / .5);
+}
+:root[data-tema="claro"] { --s-acento: #0891b2; --s-acento-claro: #d8f4fa; --s-cobre: #7c3aed; }
+
+html, body, #raiz { height: 100%; }
+body { overflow: hidden; user-select: none; }
+input, textarea, [contenteditable], .seleccionable { user-select: text; }
+.rejilla { background-image: linear-gradient(var(--s-borde-suave) 1px, transparent 1px), linear-gradient(90deg, var(--s-borde-suave) 1px, transparent 1px); background-size: 32px 32px; }

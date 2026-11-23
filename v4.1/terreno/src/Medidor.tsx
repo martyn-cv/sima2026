@@ -4,7 +4,7 @@ import { cx } from "@sima/ui";
 export function Medidor({ s }: { s: Sensor }) {
   const rango = s.max - s.min || 1;
   const pos = (x: number) => `${Math.min(100, Math.max(0, ((x - s.min) / rango) * 100))}%`;
-  const color = s.nivel === "alarma" ? "bg-rojo" : s.nivel === "aviso" ? "bg-ambar" : "bg-negro";
+  const color = s.nivel === "alarma" ? "bg-rojo" : s.nivel === "aviso" ? "bg-ambar" : "bg-acento";
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">

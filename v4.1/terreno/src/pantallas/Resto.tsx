@@ -27,7 +27,7 @@ export function Inicio() {
         acciones={<Boton variante="rojo" onClick={() => ir("/reportar")}>Reportar una falla</Boton>} />
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         {[["Equipos con alarma", conAlarma, conAlarma > 0 ? "text-rojo" : "", "/equipos"], ["Órdenes abiertas", abiertas, "", "/ordenes"], ["Habilitaciones por vencer o vencidas", porVencer, porVencer > 0 ? "text-ambar" : "", "/cargo"]].map(([t, n, c, r]) => (
-          <button key={t as string} onClick={() => ir(r as string)} className="cursor-pointer border-t-[3px] border-negro bg-papel p-5 text-left transition-colors hover:bg-chapa/40"><p className={cx("display text-[56px] font-bold leading-none", c as string)}><Cuenta valor={n as number} /></p><p className="text-[15px] text-gris">{t as string}</p></button>
+          <button key={t as string} onClick={() => ir(r as string)} className="cursor-pointer tarjeta p-5 text-left transition-colors hover:bg-chapa/40"><p className={cx("display text-[56px] font-bold leading-none", c as string)}><Cuenta valor={n as number} /></p><p className="text-[15px] text-gris">{t as string}</p></button>
         ))}
       </div>
       <div className="grid gap-5 lg:grid-cols-2">

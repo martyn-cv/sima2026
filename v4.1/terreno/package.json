@@ -1,6 +1,6 @@
 {
-  "name": "sima-terreno",
-  "version": "3.0.0",
+  "name": "sima-desktop",
+  "version": "4.1.0",
   "private": true,
   "type": "module",
   "scripts": {
