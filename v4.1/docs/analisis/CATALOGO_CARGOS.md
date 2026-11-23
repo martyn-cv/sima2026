@@ -645,7 +645,7 @@
 - Asistencia y ausentismo: consultar, registrar — su equipo
 - Habilitaciones y competencias: consultar — su equipo
 - Planta, áreas, líneas y equipos: consultar — su línea
-- Alarmas y eventos de planta: consultar — su línea
+- Alarmas y eventos de planta: consultar, registrar — su línea
 - Órdenes de trabajo de mantenimiento: consultar, crear — su línea
 - No conformidades y lotes: consultar, registrar — su línea
 - Incidentes y acciones de seguridad: consultar, registrar — su equipo
@@ -730,7 +730,7 @@
 - Órdenes y registros de producción: consultar, registrar, editar — su línea
 - Rutinas y checklist: consultar, registrar — su línea
 - Planta, áreas, líneas y equipos: consultar — su línea
-- Alarmas y eventos de planta: consultar — su línea
+- Alarmas y eventos de planta: consultar, registrar — su línea
 - Órdenes de trabajo de mantenimiento: consultar, crear — su línea
 - No conformidades y lotes: consultar, registrar — su línea
 - Incidentes y acciones de seguridad: registrar — propio
@@ -814,7 +814,7 @@
 
 - Órdenes y registros de producción: consultar, registrar — propio
 - Rutinas y checklist: consultar, registrar — propio
-- Órdenes de trabajo de mantenimiento: crear — propio
+- Órdenes de trabajo de mantenimiento: consultar, crear — propio
 - Incidentes y acciones de seguridad: registrar — propio
 - Planta, áreas, líneas y equipos: consultar — propio
 - Alarmas y eventos de planta: consultar — propio
@@ -896,8 +896,9 @@
 
 - Órdenes y registros de producción: consultar, registrar — propio
 - Inspecciones, ensayos y planes de control *(módulo propuesto)*: registrar — propio
+- Herramientas: consultar, registrar — planta
 - Rutinas y checklist: consultar, registrar — propio
-- Órdenes de trabajo de mantenimiento: crear — propio
+- Órdenes de trabajo de mantenimiento: consultar, crear — propio
 - Incidentes y acciones de seguridad: registrar — propio
 - Planta, áreas, líneas y equipos: consultar — propio
 - Gestión documental *(módulo parcial)*: consultar — propio
@@ -977,10 +978,11 @@
 
 **Permisos propuestos [P]** · aplicaciones: Desktop
 
+- Planta, áreas, líneas y equipos: consultar — propio
 - Órdenes y registros de producción: consultar, registrar — propio
 - Gestión documental *(módulo parcial)*: consultar — propio
 - Materiales y requerimientos (MRP) *(módulo propuesto)*: solicitar — propio
-- Órdenes de trabajo de mantenimiento: crear — propio
+- Órdenes de trabajo de mantenimiento: consultar, crear — propio
 - Incidentes y acciones de seguridad: registrar — propio
 - Rutinas y checklist: consultar, registrar — propio
 - Habilitaciones y competencias: consultar — propio
@@ -1058,10 +1060,11 @@
 
 **Permisos propuestos [P]** · aplicaciones: Desktop
 
+- Planta, áreas, líneas y equipos: consultar — propio
 - Órdenes y registros de producción: consultar, registrar — propio
 - No conformidades y lotes: consultar — propio
 - Despachos y transporte: consultar — propio
-- Órdenes de trabajo de mantenimiento: crear — propio
+- Órdenes de trabajo de mantenimiento: consultar, crear — propio
 - Incidentes y acciones de seguridad: registrar — propio
 - Rutinas y checklist: consultar, registrar — propio
 - Habilitaciones y competencias: consultar — propio
@@ -1220,10 +1223,11 @@
 
 **Permisos propuestos [P]** · aplicaciones: Desktop
 
+- Planta, áreas, líneas y equipos: consultar — propio
 - Bodega: ubicaciones, recepciones y conteos *(módulo propuesto)*: consultar, registrar — propio
 - Rutinas y checklist: consultar, registrar — propio
 - Incidentes y acciones de seguridad: registrar — propio
-- Órdenes de trabajo de mantenimiento: crear — propio
+- Órdenes de trabajo de mantenimiento: consultar, crear — propio
 - Habilitaciones y competencias: consultar — propio
 
 **Por validar con la empresa [V].** Si las tareas de traslado se asignarán en SIMA o seguirán siendo verbales.
@@ -1299,11 +1303,12 @@
 
 **Permisos propuestos [P]** · aplicaciones: Desktop
 
+- Planta, áreas, líneas y equipos: consultar — propio
 - Materiales y requerimientos (MRP) *(módulo propuesto)*: consultar, registrar — su línea
 - Rutinas y checklist: consultar, registrar — su línea
 - Órdenes y registros de producción: consultar — su línea
 - Incidentes y acciones de seguridad: registrar — propio
-- Órdenes de trabajo de mantenimiento: crear — propio
+- Órdenes de trabajo de mantenimiento: consultar, crear — propio
 - Habilitaciones y competencias: consultar — propio
 
 **Por validar con la empresa [V].** Si las solicitudes de reposición serán digitales.
@@ -1557,7 +1562,7 @@
 - Mandos a distancia a PLC: consultar, registrar — planta
 - SIMA PLC Simulator: consultar, registrar — planta
 - Planta, áreas, líneas y equipos: consultar, crear, editar — planta
-- Alarmas y eventos de planta: consultar — planta
+- Alarmas y eventos de planta: consultar, registrar — planta
 - Órdenes de trabajo de mantenimiento: consultar, registrar — planta
 - Gestión documental *(módulo parcial)*: consultar, crear, editar — planta
 - Indicadores: consultar — planta
@@ -1722,7 +1727,7 @@
 
 - Instrumentos y calibraciones *(módulo parcial)*: consultar, registrar, editar — planta
 - Herramientas: consultar, editar — planta
-- Órdenes de trabajo de mantenimiento: consultar, registrar, cerrar — propio
+- Órdenes de trabajo de mantenimiento: consultar — planta · registrar, cerrar — propio
 - Repuestos y pañol: consultar, solicitar — planta
 - Planta, áreas, líneas y equipos: consultar — planta
 - Alarmas y eventos de planta: consultar — planta
@@ -1981,7 +1986,7 @@
 - Mandos a distancia a PLC: consultar, registrar — planta
 - Monitoreo de condición y rutas *(módulo parcial)*: consultar — planta
 - Instrumentos y calibraciones *(módulo parcial)*: consultar — planta
-- Alarmas y eventos de planta: consultar — planta
+- Alarmas y eventos de planta: consultar, registrar — planta
 - Traspaso y bitácora de turno: consultar, crear — su área
 - Indicadores: consultar, exportar — planta
 - Asistencia y ausentismo: consultar — su equipo
@@ -2152,7 +2157,7 @@
 
 **Permisos propuestos [P]** · aplicaciones: Desktop
 
-- Órdenes de trabajo de mantenimiento: consultar, asignar, aprobar o rechazar, cerrar — su equipo
+- Órdenes de trabajo de mantenimiento: consultar, crear, asignar, aprobar o rechazar, cerrar — su equipo
 - Planta, áreas, líneas y equipos: consultar — planta
 - Controladores PLC y cambios de programa: consultar — planta
 - Repuestos y pañol: consultar, editar — planta
@@ -2160,7 +2165,7 @@
 - Habilitaciones y competencias: consultar, editar — su equipo
 - Asistencia y ausentismo: consultar — su equipo
 - Traspaso y bitácora de turno: consultar, crear — su equipo
-- Alarmas y eventos de planta: consultar — planta
+- Alarmas y eventos de planta: consultar, registrar — planta
 - Mandos a distancia a PLC: consultar, registrar — planta
 - Incidentes y acciones de seguridad: consultar, registrar — su área
 - Indicadores: consultar — su área
@@ -2239,9 +2244,9 @@
 
 **Permisos propuestos [P]** · aplicaciones: Desktop
 
-- Órdenes de trabajo de mantenimiento: consultar, registrar, cerrar — propio
+- Órdenes de trabajo de mantenimiento: consultar, crear — planta · registrar, cerrar — propio
 - Repuestos y pañol: consultar, solicitar — planta
-- Herramientas: consultar, registrar — propio
+- Herramientas: consultar, registrar — planta
 - Planta, áreas, líneas y equipos: consultar — planta
 - Controladores PLC y cambios de programa: consultar — planta
 - Alarmas y eventos de planta: consultar — planta
@@ -2323,9 +2328,9 @@
 
 **Permisos propuestos [P]** · aplicaciones: Desktop
 
-- Órdenes de trabajo de mantenimiento: consultar, registrar, cerrar — propio
+- Órdenes de trabajo de mantenimiento: consultar, crear — planta · registrar, cerrar — propio
 - Repuestos y pañol: consultar, solicitar — planta
-- Herramientas: consultar, registrar — propio
+- Herramientas: consultar, registrar — planta
 - Planta, áreas, líneas y equipos: consultar — planta
 - Controladores PLC y cambios de programa: consultar — planta
 - Alarmas y eventos de planta: consultar — planta
@@ -2405,9 +2410,9 @@
 
 **Permisos propuestos [P]** · aplicaciones: Desktop
 
-- Órdenes de trabajo de mantenimiento: consultar, registrar, cerrar — propio
+- Órdenes de trabajo de mantenimiento: consultar, crear — planta · registrar, cerrar — propio
 - Repuestos y pañol: consultar, solicitar — planta
-- Herramientas: consultar, registrar — propio
+- Herramientas: consultar, registrar — planta
 - Planta, áreas, líneas y equipos: consultar — planta
 - Controladores PLC y cambios de programa: consultar — planta
 - Alarmas y eventos de planta: consultar — planta
@@ -2490,7 +2495,7 @@
 
 - Monitoreo de condición y rutas *(módulo parcial)*: consultar, registrar — planta
 - Rutinas y checklist: consultar, registrar — planta
-- Órdenes de trabajo de mantenimiento: consultar, crear — planta
+- Órdenes de trabajo de mantenimiento: consultar, crear — planta · registrar, cerrar — propio
 - Planta, áreas, líneas y equipos: consultar — planta
 - Alarmas y eventos de planta: consultar — planta
 - Repuestos y pañol: consultar, solicitar — planta
@@ -2985,7 +2990,7 @@
 
 - Instrumentos y calibraciones *(módulo parcial)*: consultar, registrar, editar — planta
 - Herramientas: consultar, editar — planta
-- Órdenes de trabajo de mantenimiento: consultar, registrar, cerrar — propio
+- Órdenes de trabajo de mantenimiento: consultar — planta · registrar, cerrar — propio
 - No conformidades y lotes: consultar — planta
 - Planta, áreas, líneas y equipos: consultar — planta
 - Habilitaciones y competencias: consultar — propio

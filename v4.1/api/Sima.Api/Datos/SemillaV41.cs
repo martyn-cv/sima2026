@@ -83,4 +83,39 @@ public static class SemillaV41
         }
         await db.SaveChangesAsync(ct);
     }
+
+    /// <summary>Programa semanal de mantenimiento: preventivas con fecha, especialidad y técnico (idempotente).</summary>
+    public static async Task PlanificacionAsync(SimaDb db, CancellationToken ct = default)
+    {
+        if (await db.Ordenes.AnyAsync(o => o.Programada != null, ct) || !await db.Equipos.AnyAsync(ct)) return;
+        var equipos = await db.Equipos.AsNoTracking().OrderBy(e => e.Codigo).ToListAsync(ct);
+        var tecnicos = await db.Trabajadores.AsNoTracking().Include(t => t.Cargo).Where(t => t.Cargo!.PerfilSima == "tecnico" || t.Cargo.PerfilSima == "instrumentacion").ToListAsync(ct);
+        string Esp(string tipo) => tipo switch
+        {
+            "Torno CNC" or "Centro de mecanizado CNC" or "Prensa hidráulica" or "Bomba centrífuga" or "Compresor de aire industrial" => "mecanica",
+            "Inyectora de plástico" or "Máquina de soldadura MIG/MAG" => "electrica",
+            _ => "electromecanica",
+        };
+        var lunes = Servicios.Reloj.Hoy().AddDays(-(((int)Servicios.Reloj.Hoy().DayOfWeek + 6) % 7));
+        var tareas = new (string titulo, string esp)[] { ("Lubricación y revisión general", ""), ("Inspección de correas y rodamientos", "mecanica"), ("Termografía del tablero eléctrico", "electrica"), ("Calibración de sensores de proceso", "instrumentacion"), ("Respaldo y verificación del programa PLC", "automatizacion"), ("Cambio de filtros y revisión de fugas", "") };
+        var rnd = new Random(411);
+        var k = 0;
+        foreach (var e in equipos.Where((_, i) => i % 2 == 0).Take(9))
+        {
+            var (titulo, esp) = tareas[k % tareas.Length];
+            var especialidad = esp == "" ? Esp(e.Tipo) : esp;
+            var candidatos = tecnicos.Where(t => especialidad == "instrumentacion" ? t.Cargo!.PerfilSima == "instrumentacion" : t.Cargo!.PerfilSima == "tecnico").ToList();
+            var asignado = k % 3 == 2 || candidatos.Count == 0 ? null : candidatos[k % candidatos.Count].Id;
+            db.Ordenes.Add(new OrdenTrabajo
+            {
+                EquipoId = e.Id, Titulo = $"{titulo} · {e.Nombre}", Descripcion = "Mantenimiento preventivo del plan semanal.", Tipo = "preventiva", Prioridad = k % 4 == 0 ? "alta" : "media",
+                Especialidad = especialidad, Programada = lunes.AddDays(k % 5 + (k >= 5 ? 7 : 0)), AsignadoAId = asignado, Creada = DateTime.UtcNow.AddDays(-rnd.Next(1, 5)),
+            });
+            k++;
+        }
+        // las órdenes abiertas existentes toman la especialidad del tipo de equipo
+        var tipos = equipos.ToDictionary(e => e.Id, e => e.Tipo);
+        foreach (var o in await db.Ordenes.Where(o => o.Estado != "cerrada" && o.Especialidad == "general").ToListAsync(ct)) o.Especialidad = Esp(tipos[o.EquipoId]);
+        await db.SaveChangesAsync(ct);
+    }
 }

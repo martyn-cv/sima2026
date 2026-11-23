@@ -296,7 +296,7 @@ public class OrdenTrabajo
     public string Titulo { get; set; } = "";
     public string Descripcion { get; set; } = "";
     public string Prioridad { get; set; } = "media";     // baja | media | alta | critica
-    public string Estado { get; set; } = "abierta";      // abierta | en_curso | cerrada
+    public string Estado { get; set; } = "abierta";      // abierta | en_curso | por_verificar | cerrada
     public string? AsignadoAId { get; set; }
     public string? CreadaPorId { get; set; }
     public bool Automatica { get; set; }
@@ -305,6 +305,12 @@ public class OrdenTrabajo
     public DateTime Creada { get; set; } = DateTime.UtcNow;
     public DateTime? Cerrada { get; set; }
     public string Tipo { get; set; } = "correctiva";     // correctiva | preventiva | predictiva
+    public string Especialidad { get; set; } = "general"; // mecanica | electrica | electromecanica | instrumentacion | automatizacion | general
+    public DateOnly? Programada { get; set; }            // fecha del programa semanal (la fija la planificación)
+    public bool Simulada { get; set; }                   // nació de una alarma de un PLC simulado: nunca se confunde con una falla física
+    public DateTime? CierreSolicitado { get; set; }      // el técnico terminó y retiró el bloqueo; espera la verificación
+    public string? VerificadaPorId { get; set; }         // quien verificó el trabajo y liberó el equipo (no puede ser el ejecutor)
+    public DateTime? VerificadaEn { get; set; }
     public uint Version { get; set; }                    // xmin: dos técnicos no pueden tomar la misma orden
     public string Codigo => $"OT-{Id:0000}";
 }

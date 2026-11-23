@@ -76,7 +76,7 @@ public static class EndpointsPagos
             if (!s.Puede("asistencia", "ver")) return Ayudas.Sin();
             periodo ??= await db.Asistencias.AsNoTracking().MaxAsync(a => a.Periodo);
             var q = db.Asistencias.AsNoTracking().Where(a => a.Periodo == periodo);
-            if (s.Alcance("asistencia.ver") == "equipo") { var eq = await Ayudas.EquipoDeAsync(db, s.Id); q = q.Where(a => eq.Contains(a.TrabajadorId)); }
+            if (await Ayudas.PersonasVisiblesAsync(db, s, "asistencia.ver") is { } visibles) q = q.Where(a => visibles.Contains(a.TrabajadorId));
             var nombres = await db.Trabajadores.AsNoTracking().Include(t => t.Cargo).ToDictionaryAsync(t => t.Id);
             return Results.Ok((await q.OrderBy(a => a.TrabajadorId).ToListAsync()).Select(a => new
             {
@@ -147,7 +147,7 @@ public static class EndpointsPagos
             if (!s.Puede("habilitaciones", "ver")) return Ayudas.Sin();
             var hoy = Reloj.Hoy();
             var q = db.Habilitaciones.AsNoTracking().AsQueryable();
-            if (s.Alcance("habilitaciones.ver") == "equipo") { var eq = await Ayudas.EquipoDeAsync(db, s.Id); q = q.Where(h => eq.Contains(h.TrabajadorId)); }
+            if (await Ayudas.PersonasVisiblesAsync(db, s, "habilitaciones.ver") is { } visibles) q = q.Where(h => visibles.Contains(h.TrabajadorId));
             var est = await Reglas.CalcularTodosAsync(db);
             var nombres = await db.Trabajadores.AsNoTracking().Include(t => t.Cargo).ToDictionaryAsync(t => t.Id);
             var lista = (await q.ToListAsync()).Where(h => est[h.TrabajadorId].EstadoLaboral == "Activo").Select(h => new
@@ -172,7 +172,7 @@ public static class EndpointsPagos
             var s = u.S();
             if (!s.Puede("habilitaciones", "editar")) return Ayudas.Sin();
             if (!await db.Trabajadores.AnyAsync(t => t.Id == e.TrabajadorId)) return Ayudas.Error("No existe ese trabajador.", 404);
-            if (s.Alcance("habilitaciones.ver") == "equipo" && !(await Ayudas.EquipoDeAsync(db, s.Id)).Contains(e.TrabajadorId)) return Ayudas.Sin();
+            if (await Ayudas.PersonasVisiblesAsync(db, s, "habilitaciones.editar") is { } visibles && !visibles.Contains(e.TrabajadorId)) return Ayudas.Sin();
             if (e.VigenciaMeses <= 0) return Ayudas.Error("La vigencia debe ser positiva.");
             var h = new Habilitacion { TrabajadorId = e.TrabajadorId, Nombre = e.Nombre, FechaObtencion = e.FechaObtencion, VigenciaMeses = e.VigenciaMeses };
             db.Habilitaciones.Add(h);

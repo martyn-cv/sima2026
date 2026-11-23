@@ -107,6 +107,12 @@ def parsear_permiso(v: str) -> tuple[list[str], str]:
     return [a.strip() for a in acc.split(",") if a.strip()], alc.strip() or "em"
 
 
+def entradas(v: str | list[str]) -> list[tuple[list[str], str]]:
+    """Un módulo puede tener varias entradas con distinto alcance, p. ej. [«c,cr@pl», «r,ci@pr»]: el técnico ve las OT de
+    toda la planta, pero ejecuta y cierra solo las suyas."""
+    return [parsear_permiso(x) for x in (v if isinstance(v, list) else [v])]
+
+
 def validar(cargos: list[dict], fichas: dict[int, dict]) -> list[str]:
     errores = []
     ids = {int(c["id_cargo"]) for c in cargos}
@@ -122,12 +128,12 @@ def validar(cargos: list[dict], fichas: dict[int, dict]) -> list[str]:
         for m, v in (f.get("permisos") or {}).items():
             if m not in MODULOS:
                 errores.append(f"cargo {i}: módulo desconocido «{m}»")
-            acc, alc = parsear_permiso(v)
-            for a in acc:
-                if a not in ACCIONES:
-                    errores.append(f"cargo {i}: acción desconocida «{a}» en {m}")
-            if alc not in ALCANCES:
-                errores.append(f"cargo {i}: alcance desconocido «{alc}» en {m}")
+            for acc, alc in entradas(v):
+                for a in acc:
+                    if a not in ACCIONES:
+                        errores.append(f"cargo {i}: acción desconocida «{a}» en {m}")
+                if alc not in ALCANCES:
+                    errores.append(f"cargo {i}: alcance desconocido «{alc}» en {m}")
         for ind in f.get("medir", []):
             if len(ind) != 3 or ind[2] not in ESTADO_IND:
                 errores.append(f"cargo {i}: indicador mal formado {ind}")
@@ -141,10 +147,9 @@ def lista(xs) -> str:
 def texto_permisos(p: dict) -> list[str]:
     filas = []
     for m, v in p.items():
-        acc, alc = parsear_permiso(v)
         nombre, _, estado = MODULOS[m]
         marca = "" if estado == "existe" else " *(módulo propuesto)*" if estado == "propuesto" else " *(módulo parcial)*"
-        filas.append(f"{nombre}{marca}: {', '.join(ACCIONES[a] for a in acc)} — {ALCANCES[alc]}")
+        filas.append(f"{nombre}{marca}: " + " · ".join(f"{', '.join(ACCIONES[a] for a in acc)} — {ALCANCES[alc]}" for acc, alc in entradas(v)))
     return filas
 
 
@@ -263,24 +268,23 @@ def ancla(c: dict) -> str:
 CORTO = {"c": "C", "cr": "Cr", "r": "R", "e": "E", "as": "As", "ap": "Ap", "ci": "Ci", "x": "X", "s": "S"}
 
 
-def celda(v: str | None) -> str:
+def celda(v: str | list[str] | None) -> str:
     if not v:
         return "·"
-    acc, alc = parsear_permiso(v)
-    return "".join(CORTO[a] for a in acc) + ("" if alc == "em" else f"<sub>{alc}</sub>")
+    return " ".join("".join(CORTO[a] for a in acc) + ("" if alc == "em" else f"<sub>{alc}</sub>") for acc, alc in entradas(v))
 
 
 def matriz_md(cargos: list[dict], fichas: dict[int, dict], actual: dict[int, set[str]] | None) -> str:
     out = [
         "# Matriz de permisos por cargo",
         "",
-        "> Generado por `docs/analisis/generar.py`. Es la matriz **propuesta** (entregable 3). La matriz vigente del servidor está en `api/Sima.Api/Servicios/Permisos.cs` y se puede editar por cargo en la web (Permisos por cargo).",
+        "> Generado por `docs/analisis/generar.py`. Es la matriz del entregable 3 y, compilada a capacidades del servidor, la matriz de fábrica v7 (`api/Sima.Api/Servicios/PermisosCatalogo.g.cs`). La matriz vigente vive en la tabla `rol_permisos` y se puede ajustar por cargo en la web (Permisos por cargo).",
         "",
         "**Acciones:** " + " · ".join(f"**{CORTO[k]}** {v}" for k, v in ACCIONES.items()),
         "",
         "**Alcance** (subíndice; sin subíndice = empresa): " + " · ".join(f"**{k}** {v}" for k, v in ALCANCES.items() if k != "em"),
         "",
-        "Reglas que aplican a todos los cargos y no se repiten en la tabla: cada persona consulta su propia ficha, sus habilitaciones y su cuenta; cualquier cuenta activa puede **reportar** una condición insegura o una falla; el directorio muestra solo nombre, cargo, turno y correo corporativo (en SIMA Desktop, solo nombre y cargo, como fija la hoja Permisos).",
+        "Reglas que aplican a todos los cargos y no se repiten en la tabla: cada persona consulta su propia ficha, sus habilitaciones y su cuenta; cualquier cuenta activa puede **reportar** una condición insegura (los avisos de falla los crean quienes trabajan en planta); el directorio muestra solo nombre, cargo, turno y correo corporativo (en SIMA Desktop, solo nombre y cargo, como fija la hoja Permisos).",
         "",
     ]
     grupos = defaultdict(list)
@@ -315,24 +319,24 @@ def matriz_md(cargos: list[dict], fichas: dict[int, dict], actual: dict[int, set
 
 
 # Permisos que la propuesta da a todos y que el servidor resuelve con reglas generales (no se comparan cargo a cargo).
-UNIVERSALES = {("habilitaciones", "c@pr"), ("sst", "r@pr"), ("ot", "cr@pr")}
+UNIVERSALES = {("habilitaciones", "c@pr"), ("sst", "r@pr"), ("ot", "c,cr@pr")}
 NO_CONTROLADOS = {"eventos", "rutinas", "simulador"}      # el servidor no los controla por cargo (ver hallazgo H1)
 
 
 def diferencias_md(cargos: list[dict], fichas: dict[int, dict], actual: dict[int, set[str]]) -> list[str]:
     """Compara por recurso existente: «falta» = la propuesta lo da y el servidor no; «sobra» = el servidor lo da sin que el
     trabajo del cargo lo justifique. «Equipos» solo se compara en edición, porque el servidor no controla su consulta."""
-    out = ["", "## Diferencias con la matriz vigente del servidor", "",
-           "Calculadas por `matriz_vigente.py` leyendo las reglas de `Permisos.cs`. Se comparan recursos (no alcances). «Falta»: la propuesta lo da y el servidor no. «Sobra»: el servidor lo da y la ficha del cargo no lo justifica.", ""]
+    out = ["", "## Diferencias con la matriz anterior del servidor (v6)", "",
+           "La matriz de fábrica v7 se genera de este catálogo (`PermisosCatalogo.g.cs`), así que coincide con la propuesta. Esta sección conserva, como registro, lo que cambió respecto de la v6 (reglas por perfil de `Permisos.cs`, foto en `datos/matriz_v6.json`). Se comparan recursos (no alcances). «Falta»: la propuesta lo da y el servidor no. «Sobra»: el servidor lo da y la ficha del cargo no lo justifica.", ""]
     nombres = {"ordenes": "OT", "equipos": "edición de equipos"}
     total_f = total_s = 0
     for c in cargos:
         i = int(c["id_cargo"])
         prop = set()
         for m, v in fichas[i]["permisos"].items():
-            if MODULOS[m][2] != "existe" or m in NO_CONTROLADOS or (m, v) in UNIVERSALES:
+            if MODULOS[m][2] != "existe" or m in NO_CONTROLADOS or (isinstance(v, str) and (m, v) in UNIVERSALES):
                 continue
-            acc, _ = parsear_permiso(v)
+            acc = [a for x, _ in entradas(v) for a in x]
             if m == "equipos":
                 if {"cr", "e"} & set(acc):
                     prop.add("equipos")
@@ -348,6 +352,87 @@ def diferencias_md(cargos: list[dict], fichas: dict[int, dict], actual: dict[int
     return out
 
 
+# --------------------------------------------------------------------------------------------- compilación al servidor
+# Traduce cada permiso propuesto (módulo + acción) a las capacidades que el servidor ya sabe validar. Los módulos propuestos
+# que todavía no existen no generan capacidades. El resultado es la matriz de fábrica de rol_permisos (VersionMatriz).
+A_CAPACIDAD: dict[str, dict[str, list[str]]] = {
+    "personal": {"c": ["personal.ver"], "cr": ["personal.editar"], "e": ["personal.editar"]},
+    "contratos": {"c": ["contratos.ver"], "cr": ["contratos.editar"], "e": ["contratos.editar"]},
+    "terminos": {"c": ["terminos.ver"], "cr": ["terminos.editar"], "e": ["terminos.editar"]},
+    "cuentas": {"c": ["cuentas.ver"], "e": ["cuentas.editar"]},
+    "asistencia": {"c": ["asistencia.ver"], "e": ["asistencia.editar"]},          # «r» es la asistencia diaria (fase 2)
+    "habilitaciones": {"c": ["habilitaciones.ver"], "cr": ["habilitaciones.editar"], "e": ["habilitaciones.editar"]},
+    "remuneraciones": {"c": ["remuneraciones.ver"], "cr": ["remuneraciones.preparar"], "ap": ["remuneraciones.aprobar"]},
+    "conceptos": {"c": ["conceptos.ver"], "cr": ["conceptos.editar"], "e": ["conceptos.editar"]},
+    "parametros": {"c": ["parametros.ver"], "e": ["parametros.editar"], "ap": ["parametros.validar"]},
+    "produccion": {"c": ["produccion.ver"], "r": ["produccion.registrar"], "cr": ["produccion.editar"], "e": ["produccion.editar"]},
+    "calidad": {"c": ["calidad.ver"], "r": ["calidad.registrar"], "cr": ["calidad.registrar"], "e": ["calidad.analizar"], "ci": ["calidad.analizar"], "ap": ["calidad.liberar"]},
+    "sst": {"c": ["sst.ver"], "r": ["sst.reportar"], "ap": ["sst.gestionar"], "ci": ["sst.gestionar"]},
+    "kpis": {"c": ["kpis.ver"]},
+    "despachos": {"c": ["despachos.ver"], "cr": ["despachos.editar"], "e": ["despachos.editar"]},
+    "repuestos": {"c": ["repuestos.ver"], "s": ["repuestos.retirar"], "r": ["repuestos.editar", "repuestos.retirar"], "e": ["repuestos.editar"], "ap": ["repuestos.editar"]},
+    "herramientas": {"c": ["herramientas.ver"], "e": ["herramientas.editar"]},
+    "calibraciones": {"r": ["herramientas.editar"], "e": ["herramientas.editar"]},
+    "ot": {"c": ["ordenes.ver"], "cr": ["ordenes.crear"], "r": ["ordenes.ejecutar"], "as": ["ordenes.asignar"], "ap": ["ordenes.aprobar"]},
+    "traspaso": {"c": ["traspaso.ver"], "cr": ["traspaso.editar"], "ci": ["traspaso.editar"]},
+    "equipos": {"c": ["planta.ver"], "cr": ["equipos.editar"], "e": ["equipos.editar"]},
+    "eventos": {"c": ["planta.ver"], "r": ["planta.registrar"]},
+    "plc": {"c": ["plc.ver"], "s": ["plc.editar"], "e": ["plc.editar"], "ap": ["plc.aprobar"]},
+    "plc_comandos": {"r": ["plc_comandos.editar"]},
+    "auditoria": {"c": ["auditoria.ver"]},
+    "permisos": {"c": ["permisos.ver"], "e": ["permisos.editar"]},
+}
+# El servidor solo distingue estos alcances; «línea» se trata como «equipo» (lo más restrictivo para datos de personas).
+A_ALCANCE = {"pr": "propio", "eq": "equipo", "ln": "equipo", "ar": "area", "pl": "planta", "em": "empresa", "ag": "agregado"}
+ORDEN_ALC = ["propio", "equipo", "area", "agregado", "planta", "empresa"]
+# Capacidades que no salen de una ficha porque protegen un tipo de dato y no una tarea (hoja Permisos del Excel).
+EXPLICITAS = {"personal.sensibles": [44, 46, 49, 55, 58]}
+
+
+def compilar(fichas: dict[int, dict]) -> dict[int, dict[str, str]]:
+    salida: dict[int, dict[str, str]] = {}
+    for i, f in sorted(fichas.items()):
+        caps: dict[str, str] = {"sst.reportar": "propio"}                  # cualquier cuenta activa reporta una condición insegura
+        for m, v in f["permisos"].items():
+          for acc, alc in entradas(v):
+            for a in acc:
+                for cap in A_CAPACIDAD.get(m, {}).get(a, []):
+                    nuevo = "agregado" if cap == "remuneraciones.ver" and alc == "ag" else A_ALCANCE[alc]
+                    if cap == "remuneraciones.ver" and alc == "ag":
+                        cap = "remuneraciones.agregado"
+                    viejo = caps.get(cap)
+                    caps[cap] = nuevo if viejo is None or ORDEN_ALC.index(nuevo) > ORDEN_ALC.index(viejo) else viejo
+        for cap, cargos in EXPLICITAS.items():
+            if i in cargos:
+                caps[cap] = "empresa"
+        salida[i] = caps
+    return salida
+
+
+def csharp(matriz: dict[int, dict[str, str]]) -> str:
+    filas = []
+    for i, caps in matriz.items():
+        pares = ", ".join(f'("{c}", "{a}")' for c, a in sorted(caps.items()))
+        filas.append(f"        [{i}] = new[] {{ {pares} }},")
+    return "\n".join([
+        "// <auto-generated> por docs/analisis/generar.py a partir del catálogo funcional de cargos. No editar a mano:",
+        "// cambie la ficha del cargo en docs/analisis/cargos/*.yaml y vuelva a generar. Esta es la matriz de FÁBRICA;",
+        "// la matriz vigente vive en la tabla rol_permisos y se puede ajustar por cargo desde la web (Permisos por cargo).",
+        "// </auto-generated>",
+        "namespace Sima.Api.Servicios;",
+        "",
+        "public static class PermisosCatalogo",
+        "{",
+        "    /// <summary>Capacidad → alcance de fábrica para cada id_cargo (1 a 64).</summary>",
+        "    public static readonly Dictionary<int, (string Capacidad, string Alcance)[]> PorCargo = new()",
+        "    {",
+        *filas,
+        "    };",
+        "}",
+        "",
+    ])
+
+
 def main() -> None:
     cargos = leer_excel()
     fichas = leer_fichas()
@@ -358,7 +443,7 @@ def main() -> None:
             sys.exit(1)
         cargos = [c for c in cargos if int(c["id_cargo"]) in fichas]
     actual = None
-    ruta_actual = RAIZ / "datos" / "matriz_vigente.json"
+    ruta_actual = RAIZ / "datos" / "matriz_v6.json"
     if ruta_actual.exists():
         actual = {int(k): set(v) for k, v in json.loads(ruta_actual.read_text(encoding="utf-8")).items()}
     (RAIZ / "CATALOGO_CARGOS.md").write_text(catalogo_md(cargos, fichas), encoding="utf-8")
@@ -373,7 +458,12 @@ def main() -> None:
         for c in cargos
     }
     (RAIZ / "catalogo.json").write_text(json.dumps(datos, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"{len(fichas)} fichas · CATALOGO_CARGOS.md, MATRIZ_PERMISOS.md y catalogo.json generados")
+    if len(fichas) == 64:
+        destino = RAIZ.parent.parent / "api" / "Sima.Api" / "Servicios" / "PermisosCatalogo.g.cs"
+        destino.write_text(csharp(compilar(fichas)), encoding="utf-8")
+        # las apps leen el catálogo para mostrar «Mi jornada»
+        (RAIZ.parent.parent / "paquetes" / "cliente" / "src" / "catalogo.json").write_text(json.dumps(datos, ensure_ascii=False), encoding="utf-8")
+    print(f"{len(fichas)} fichas · CATALOGO_CARGOS.md, MATRIZ_PERMISOS.md, catalogo.json y PermisosCatalogo.g.cs generados")
 
 
 if __name__ == "__main__":

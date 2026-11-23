@@ -11,6 +11,7 @@ public record EquipoEntrada(string Codigo, string Nombre, string Tipo, int Linea
 public record AreaEntrada(string Codigo, string Nombre, string Tipo);
 public record LineaEntrada(int AreaId, string Codigo, string Nombre);
 public record ConsumoEntrada(int RepuestoId, int Cantidad);
+public record PlanificarEntrada(uint Version, string? AsignadoAId, DateOnly? Programada, string? Prioridad, string? Especialidad, bool QuitarAsignacion = false, bool QuitarFecha = false);
 public record IntervencionEntrada(string? Uid, DateTime? Inicio, DateTime? Fin, string Causa, string Diagnostico, string Accion, string Resultado, string? Observaciones,
     List<ConsumoEntrada>? Repuestos, List<int>? Herramientas, bool Cerrar, bool LotoRetirado);
 
@@ -19,6 +20,8 @@ public static class EndpointsV41
 {
     static readonly string[] Causas = { "mecanica", "electrica", "hidraulica", "neumatica", "electronica", "operacional", "desgaste" };
     static readonly string[] Resultados = { "resuelto", "parcial", "requiere_repuesto" };
+    public static readonly string[] Especialidades = { "mecanica", "electrica", "electromecanica", "instrumentacion", "automatizacion", "general" };
+    static readonly string[] PerfilesTecnicos = { "tecnico", "supervisor_mant", "confiabilidad", "instrumentacion", "ing_automatizacion" };
     static string EstadoPlc(Plc p) => p.UltimoContacto is null || p.UltimoContacto < DateTime.UtcNow.AddSeconds(-10) ? "sin_conexion" : p.Estado;
 
     public static void MapV41(this IEndpointRouteBuilder app)
@@ -26,8 +29,9 @@ public static class EndpointsV41
         var g = app.MapGroup("/api").RequireAuthorization();
 
         // ================================================================================== estructura de planta
-        g.MapGet("/estructura", async (SimaDb db) =>
+        g.MapGet("/estructura", async (ClaimsPrincipal u, SimaDb db) =>
         {
+            if (!u.S().Tiene("planta.ver")) return Ayudas.Sin();
             var plantas = await db.Plantas.AsNoTracking().Include(p => p.Areas).ThenInclude(a => a.Lineas).ThenInclude(l => l.Equipos).ThenInclude(e => e.Plc).ToListAsync();
             var plcs = await db.Plcs.AsNoTracking().ToListAsync();
             var alarmas = (await db.Alarmas.AsNoTracking().Where(a => a.Fin == null).ToListAsync()).GroupBy(a => a.EquipoId).ToDictionary(x => x.Key, x => x.Count());
@@ -78,8 +82,9 @@ public static class EndpointsV41
         });
 
         // ================================================================================== ficha completa de un equipo
-        g.MapGet("/equipos/{codigo}", async (string codigo, SimaDb db) =>
+        g.MapGet("/equipos/{codigo}", async (string codigo, ClaimsPrincipal u, SimaDb db) =>
         {
+            if (!u.S().Tiene("planta.ver")) return Ayudas.Sin();
             var e = await db.Equipos.AsNoTracking().Include(x => x.Sensores).Include(x => x.Plc).ThenInclude(p => p!.Puntos).Include(x => x.Linea).ThenInclude(l => l!.Area).ThenInclude(a => a!.Planta)
                 .FirstOrDefaultAsync(x => x.Codigo == codigo);
             if (e is null) return Ayudas.Error("No existe ese equipo.", 404);
@@ -165,8 +170,9 @@ public static class EndpointsV41
         });
 
         // ================================================================================== historial de eventos
-        g.MapGet("/eventos", async (string? equipo, string? plc, string? tipo, bool? simulado, long? despues, int? limite, SimaDb db) =>
+        g.MapGet("/eventos", async (string? equipo, string? plc, string? tipo, bool? simulado, long? despues, int? limite, ClaimsPrincipal u, SimaDb db) =>
         {
+            if (!u.S().Tiene("planta.ver")) return Ayudas.Sin();
             var q = db.Eventos.AsNoTracking().AsQueryable();
             if (!string.IsNullOrEmpty(equipo)) q = q.Where(e => db.Equipos.Any(x => x.Id == e.EquipoId && x.Codigo == equipo));
             if (!string.IsNullOrEmpty(plc)) q = q.Where(e => db.Plcs.Any(x => x.Id == e.PlcId && x.Codigo == plc));
@@ -183,6 +189,7 @@ public static class EndpointsV41
         g.MapGet("/operacion/resumen", async (ClaimsPrincipal u, SimaDb db) =>
         {
             var s = u.S();
+            if (!s.Tiene("planta.ver")) return Ayudas.Sin();
             var equipos = await db.Equipos.AsNoTracking().ToListAsync();
             var plcs = await db.Plcs.AsNoTracking().ToListAsync();
             var abiertas = await db.Alarmas.AsNoTracking().Where(a => a.Fin == null).ToListAsync();
@@ -216,10 +223,13 @@ public static class EndpointsV41
         });
 
         // ================================================================================== órdenes de trabajo: detalle e intervenciones
-        g.MapGet("/ordenes/{id:int}", async (int id, SimaDb db) =>
+        g.MapGet("/ordenes/{id:int}", async (int id, ClaimsPrincipal u, SimaDb db) =>
         {
+            var s = u.S();
+            if (!s.Tiene("ordenes.ver")) return Ayudas.Sin();
             var o = await db.Ordenes.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
             if (o is null) return Ayudas.Error("No existe esa orden.", 404);
+            if (s.Alcance("ordenes.ver") == "propio" && o.CreadaPorId != s.Id && o.AsignadoAId != s.Id) return Ayudas.Sin();
             var eq = await db.Equipos.AsNoTracking().Include(e => e.Linea).ThenInclude(l => l!.Area).FirstAsync(e => e.Id == o.EquipoId);
             var nombres = await db.Trabajadores.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Nombres + " " + t.ApellidoPaterno);
             var inter = await db.Intervenciones.AsNoTracking().Include(i => i.Herramientas).Where(i => i.OrdenId == id).OrderBy(i => i.Inicio).ToListAsync();
@@ -229,11 +239,45 @@ public static class EndpointsV41
             return Results.Ok(new
             {
                 o.Id, o.Codigo, o.Titulo, o.Descripcion, o.Tipo, o.Prioridad, o.Estado, o.Automatica, o.LotoConfirmado, o.Creada, o.Cerrada, o.Version, o.AsignadoAId,
+                o.Especialidad, o.Programada, o.Simulada, o.CierreSolicitado, o.VerificadaEn, o.CreadaPorId,
                 asignado = o.AsignadoAId is null ? null : nombres.GetValueOrDefault(o.AsignadoAId),
+                verificadaPor = o.VerificadaPorId is null ? null : nombres.GetValueOrDefault(o.VerificadaPorId),
                 equipo = new { eq.Codigo, eq.Nombre, eq.Tipo, eq.Estado, area = eq.Linea!.Area!.Nombre, linea = eq.Linea.Nombre },
                 intervenciones = inter.Select(i => new { i.Id, i.TecnicoNombre, i.Inicio, i.Fin, i.Causa, i.Diagnostico, i.Accion, i.Resultado, i.Observaciones, herramientas = i.Herramientas.Select(h => herr.GetValueOrDefault(h.HerramientaId)) }),
                 repuestos = movs.Select(m => new { rep[m.RepuestoId].Codigo, rep[m.RepuestoId].Nombre, cantidad = -m.Cantidad, m.Fecha, m.PorNombre }),
             });
+        });
+
+        // planificación: fecha del programa semanal, técnico asignado, prioridad y especialidad (jefatura, planificador, supervisor)
+        g.MapPost("/ordenes/{id:int}/planificar", async (int id, PlanificarEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
+        {
+            var s = u.S();
+            if (!s.Tiene("ordenes.asignar")) return Ayudas.Error("Planificar y asignar órdenes es de la jefatura, la planificación o la supervisión de mantenimiento.", 403);
+            var o = await db.Ordenes.FindAsync(id);
+            if (o is null) return Ayudas.Error("No existe esa orden.", 404);
+            if (o.Estado == "cerrada") return Ayudas.Error("La orden ya está cerrada.", 409);
+            db.Entry(o).Property(x => x.Version).OriginalValue = e.Version;      // si otro la cambió, 409
+            var cambios = new List<string>(); var asignadaAhora = false;
+            if (e.QuitarAsignacion && o.Estado == "abierta") { o.AsignadoAId = null; cambios.Add("sin asignar"); }
+            else if (!string.IsNullOrEmpty(e.AsignadoAId) && e.AsignadoAId != o.AsignadoAId)
+            {
+                if (o.Estado != "abierta") return Ayudas.Error("La orden ya está en curso: no se puede reasignar.", 409);
+                var t = await db.Trabajadores.Include(x => x.Cargo).FirstOrDefaultAsync(x => x.Id == e.AsignadoAId);
+                if (t is null || !PerfilesTecnicos.Contains(t.Cargo!.PerfilSima)) return Ayudas.Error("Solo se asignan órdenes a personal técnico de mantenimiento.");
+                if (!(await Reglas.CalcularUnoAsync(db, t.Id)).Activa) return Ayudas.Error("Esa persona no tiene la cuenta activa.");
+                o.AsignadoAId = t.Id; asignadaAhora = true; cambios.Add($"asignada a {t.Nombres} {t.ApellidoPaterno}");
+            }
+            if (e.QuitarFecha) { o.Programada = null; cambios.Add("sin fecha"); }
+            else if (e.Programada is { } f && f != o.Programada) { o.Programada = f; cambios.Add($"programada el {f:dd-MM}"); }
+            if (e.Prioridad is "baja" or "media" or "alta" or "critica" && e.Prioridad != o.Prioridad) { o.Prioridad = e.Prioridad; cambios.Add($"prioridad {e.Prioridad}"); }
+            if (Especialidades.Contains(e.Especialidad) && e.Especialidad != o.Especialidad) { o.Especialidad = e.Especialidad!; cambios.Add($"especialidad {e.Especialidad}"); }
+            if (cambios.Count == 0) return Results.Ok(new { o.Version });
+            db.Auditar(s, "planificó una orden de trabajo", "orden", o.Codigo, string.Join(", ", cambios));
+            await db.SaveChangesAsync();
+            var eq = await db.Equipos.AsNoTracking().FirstAsync(x => x.Id == o.EquipoId);
+            await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado, asignadoAId = o.AsignadoAId });
+            if (asignadaAhora) await Avisos.AUsuarioAsync(hub, o.AsignadoAId, $"Se le asignó {o.Codigo} · {eq.Codigo}: {o.Titulo}{(o.Programada is { } d ? $" (programada el {d:dd-MM})" : "")}", o.Prioridad == "critica" ? "alarma" : "aviso", $"/mantenimiento?orden={o.Id}");
+            return Results.Ok(new { o.Version, cambios });
         });
 
         g.MapPost("/ordenes/{id:int}/intervenciones", async (int id, IntervencionEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>
@@ -248,7 +292,8 @@ public static class EndpointsV41
             if (o.Estado != "en_curso") return Ayudas.Error("La orden debe estar en curso (con bloqueo confirmado) para registrar una intervención.", 409);
             if (!Causas.Contains(e.Causa) || !Resultados.Contains(e.Resultado)) return Ayudas.Error("Causa o resultado no válidos.");
             if (string.IsNullOrWhiteSpace(e.Diagnostico) || string.IsNullOrWhiteSpace(e.Accion)) return Ayudas.Error("Describa el diagnóstico y la acción realizada.");
-            if (e.Cerrar && !e.LotoRetirado) return Ayudas.Error("Para cerrar la orden debe confirmar que retiró el bloqueo y etiquetado.");
+            if (e.Cerrar && !e.LotoRetirado) return Ayudas.Error("Para terminar la orden debe confirmar que retiró el bloqueo y etiquetado.");
+            if (e.Cerrar && o.AsignadoAId != s.Id) return Ayudas.Error("Solo el técnico que ejecutó la orden pide su verificación de cierre.", 403);
             var consumos = (e.Repuestos ?? new()).Where(c => c.Cantidad > 0).GroupBy(c => c.RepuestoId).Select(gr => new ConsumoEntrada(gr.Key, gr.Sum(c => c.Cantidad))).ToList();
             if (consumos.Count > 0 && !s.Tiene("repuestos.retirar")) return Ayudas.Error("Su cargo no puede retirar repuestos.", 403);
 
@@ -279,20 +324,16 @@ public static class EndpointsV41
             }
             var eq = await db.Equipos.Include(x => x.Sensores).Include(x => x.Plc).FirstAsync(x => x.Id == o.EquipoId);
             var avisos = new List<(string, object)>();
-            if (e.Cerrar)
-            {
-                o.Estado = "cerrada"; o.Cerrada = ahora;
-                EstadosEquipo.Cambiar(db, eq, "operando", "desktop", false, $"{o.Codigo} cerrada por {s.Nombre}", ahora, avisos);
-                foreach (var sen in eq.Sensores) sen.Deriva = 0;
-                if (eq.Plc is { Origen: "simulado" }) db.PlcComandos.Add(new PlcComando { PlcId = eq.Plc.Id, Tag = eq.Codigo.Replace("-", "") + "_REPARAR", Valor = 1, SolicitadoPor = s.Nombre });
-            }
+            // terminar no libera el equipo: queda en mantención hasta que la supervisión verifique (POST /ordenes/{id}/verificar)
+            if (e.Cerrar) { o.Estado = "por_verificar"; o.CierreSolicitado = ahora; }
             Eventos.Agregar(db, "mantenimiento", e.Cerrar ? "ok" : "info", $"{o.Codigo}: {i.Accion}", "desktop", false, eq.Id, eq.PlcId, ahora, new { orden = o.Codigo, i.Causa, i.Resultado, repuestos = consumos.Count, cerrada = e.Cerrar }, usuarioId: s.Id);
-            db.Auditar(s, e.Cerrar ? "registró la intervención y cerró la orden" : "registró una intervención", "orden", o.Codigo, $"{eq.Codigo} · {i.Causa} · {consumos.Sum(c => c.Cantidad)} repuestos");
+            db.Auditar(s, e.Cerrar ? "registró la intervención y pidió la verificación de cierre" : "registró una intervención", "orden", o.Codigo, $"{eq.Codigo} · {i.Causa} · {consumos.Sum(c => c.Cantidad)} repuestos");
             await db.SaveChangesAsync();          // si otra persona movió el mismo repuesto u orden, la versión no coincide: 409 y no queda nada a medias
             await tx.CommitAsync();
             foreach (var (n, d) in avisos) await hub.Clients.Group("planta").SendAsync(n, d);
             await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
             await hub.Clients.Group("planta").SendAsync("intervencion", new { id = i.Id, orden = o.Codigo, equipo = eq.Codigo, tecnico = s.Nombre, cerrada = e.Cerrar });
+            if (e.Cerrar) await Avisos.ACargosAsync(hub, Avisos.Verificadores, $"{o.Codigo} en {eq.Codigo} espera su verificación de cierre ({s.Nombre})", "aviso", $"/mantenimiento?orden={o.Id}");
             return Results.Created($"/api/ordenes/{o.Id}", new { i.Id, ordenEstado = o.Estado, stock });
         });
     }

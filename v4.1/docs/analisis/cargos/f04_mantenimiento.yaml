@@ -40,7 +40,7 @@
     salida: Backlog priorizado, OT asignadas, aprobaciones.
     destinatarios: Planificador, supervisor, técnicos, producción, compras.
     consecuencia: Los técnicos reciben sus OT; producción conoce cuándo vuelve el equipo.
-  permisos: {ot: "c,cr,as,ap,ci,x@pl", equipos: "c,cr,e@pl", repuestos: "c,e,ap@pl", herramientas: "c,e@pl", plc: "c,ap@pl", plc_comandos: "c,r@pl", condicion: "c@pl", calibraciones: "c@pl", eventos: "c@pl", traspaso: "c,cr@ar", kpis: "c,x@pl", asistencia: "c@eq", habilitaciones: "c,e@eq", sst: "c@ar", compras: "c,s@pl", costos: "c@ar", produccion: "c@pl"}
+  permisos: {ot: "c,cr,as,ap,ci,x@pl", equipos: "c,cr,e@pl", repuestos: "c,e,ap@pl", herramientas: "c,e@pl", plc: "c,ap@pl", plc_comandos: "c,r@pl", condicion: "c@pl", calibraciones: "c@pl", eventos: "c,r@pl", traspaso: "c,cr@ar", kpis: "c,x@pl", asistencia: "c@eq", habilitaciones: "c,e@eq", sst: "c@ar", compras: "c,s@pl", costos: "c@ar", produccion: "c@pl"}
   apps: [desktop, web]
   validar: [Límite de monto de repuestos que aprueba sin compras, Si la jefatura de mantenimiento o la gerencia de planta tiene la última palabra en cambios de PLC]
   hoy: Inicio de gestión en Desktop, aprueba cambios de PLC y cierres, edita equipos. No hay costos de mano de obra ni aprobación de solicitudes de repuesto.
@@ -128,7 +128,7 @@
     salida: Cierres verificados y equipos liberados.
     destinatarios: Operación, jefatura de mantenimiento, producción.
     consecuencia: El equipo vuelve a operando solo con su liberación.
-  permisos: {ot: "c,as,ap,ci@eq", equipos: "c@pl", plc: "c@pl", repuestos: "c,e@pl", herramientas: "c,e@pl", habilitaciones: "c,e@eq", asistencia: "c@eq", traspaso: "c,cr@eq", eventos: "c@pl", plc_comandos: "c,r@pl", sst: "c,r@ar", kpis: "c@ar"}
+  permisos: {ot: "c,cr,as,ap,ci@eq", equipos: "c@pl", plc: "c@pl", repuestos: "c,e@pl", herramientas: "c,e@pl", habilitaciones: "c,e@eq", asistencia: "c@eq", traspaso: "c,cr@eq", eventos: "c,r@pl", plc_comandos: "c,r@pl", sst: "c,r@ar", kpis: "c@ar"}
   apps: [desktop]
   validar: [Quién libera el equipo a operación cuando no hay supervisor de mantenimiento en el turno]
   hoy: Puede firmar cierres de cualquier OT, pero el cierre deja el equipo operando sin verificación. No hay verificación ni liberación separadas.
@@ -171,7 +171,7 @@
     salida: Intervención documentada, movimiento de repuestos, solicitud de verificación.
     destinatarios: Supervisor, pañol, jefatura, producción.
     consecuencia: El supervisor verifica y libera el equipo; el stock se descuenta.
-  permisos: {ot: "c,r,ci@pr", repuestos: "c,s@pl", herramientas: "c,r@pr", equipos: "c@pl", plc: "c@pl", eventos: "c@pl", documentos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  permisos: {ot: ["c,cr@pl", "r,ci@pr"], repuestos: "c,s@pl", herramientas: "c,r@pl", equipos: "c@pl", plc: "c@pl", eventos: "c@pl", documentos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Si un técnico puede tomar una OT asignada a otro técnico]
   hoy: Flujo guiado de OT con LOTO e intervenciones. Puede tomar cualquier OT abierta aunque esté asignada a otra persona, y el retiro de repuestos es directo, sin solicitud.
@@ -214,7 +214,7 @@
     salida: Mediciones e intervención documentadas.
     destinatarios: Supervisor, automatización, jefatura.
     consecuencia: El historial eléctrico del equipo queda completo.
-  permisos: {ot: "c,r,ci@pr", repuestos: "c,s@pl", herramientas: "c,r@pr", equipos: "c@pl", plc: "c@pl", eventos: "c@pl", documentos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  permisos: {ot: ["c,cr@pl", "r,ci@pr"], repuestos: "c,s@pl", herramientas: "c,r@pl", equipos: "c@pl", plc: "c@pl", eventos: "c@pl", documentos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Si iniciar una OT eléctrica debe bloquearse cuando la habilitación eléctrica está vencida]
   hoy: Mismo inicio técnico filtrado por especialidad eléctrica. No se verifica la habilitación al iniciar.
@@ -255,7 +255,7 @@
     salida: Diagnóstico e intervención.
     destinatarios: Supervisor, otras especialidades.
     consecuencia: Menos traspasos entre especialidades.
-  permisos: {ot: "c,r,ci@pr", repuestos: "c,s@pl", herramientas: "c,r@pr", equipos: "c@pl", plc: "c@pl", eventos: "c@pl", documentos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  permisos: {ot: ["c,cr@pl", "r,ci@pr"], repuestos: "c,s@pl", herramientas: "c,r@pl", equipos: "c@pl", plc: "c@pl", eventos: "c@pl", documentos: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Qué tareas eléctricas puede hacer sin un técnico eléctrico]
   hoy: Inicio técnico con varias especialidades. Sin solicitud de apoyo entre especialidades.
@@ -297,7 +297,7 @@
     salida: Rutas cumplidas, hallazgos y avisos.
     destinatarios: Planificador, jefatura de mantenimiento.
     consecuencia: Se programan intervenciones antes de la falla.
-  permisos: {condicion: "c,r@pl", rutinas: "c,r@pl", ot: "c,cr@pl", equipos: "c@pl", eventos: "c@pl", repuestos: "c,s@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  permisos: {condicion: "c,r@pl", rutinas: "c,r@pl", ot: ["c,cr@pl", "r,ci@pr"], equipos: "c@pl", eventos: "c@pl", repuestos: "c,s@pl", sst: "r@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Umbral de aviso predictivo por tipo de equipo]
   hoy: Inicio de condición en Desktop con ranking por cercanía al límite y rutinas. No hay rutas con puntos ni hallazgos estructurados.

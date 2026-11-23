@@ -17,15 +17,20 @@ para SIMA Web, SIMA Desktop y SIMA PLC Simulator. Todos los datos de la empresa 
 ## Cómo se construye
 
 ```
-datos/SIMA_base_de_datos.xlsx ──(hoja Cargos, texto literal [E])──┐
-docs/analisis/cargos/f01…f10.yaml ──(lo deducido [D] y lo propuesto [P])──┼─► generar.py ─► CATALOGO_CARGOS.md
-api/Sima.Api/Servicios/Permisos.cs ──► matriz_vigente.py ─► datos/matriz_vigente.json ─┘            MATRIZ_PERMISOS.md
-                                                                                                    catalogo.json (lo usan las apps)
+datos/SIMA_base_de_datos.xlsx ──(hoja Cargos, texto literal [E])──────────┐
+docs/analisis/cargos/f01…f10.yaml ──(lo deducido [D] y lo propuesto [P])──┼─► generar.py ─► CATALOGO_CARGOS.md, MATRIZ_PERMISOS.md
+                                                                          │                catalogo.json (lo usan las apps: «Mi jornada»)
+                                                                          └──────────────► api/Sima.Api/Servicios/PermisosCatalogo.g.cs
+                                                                                           (matriz de fábrica v7 del servidor)
 ```
 
 ```bash
-cd v4.1 && python3 docs/analisis/matriz_vigente.py && python3 docs/analisis/generar.py
+cd v4.1 && python3 docs/analisis/generar.py
 ```
+
+La matriz de permisos del servidor **se compila desde este catálogo**: cada capacidad que tiene un cargo está justificada
+en su ficha, y lo que la ficha no justifica, el servidor lo niega. `datos/matriz_v6.json` guarda la matriz anterior (por
+perfil) para documentar qué cambió.
 
 El generador valida que estén los 64 cargos, que cada ficha tenga todos sus campos y que cada módulo citado exista en el
 catálogo de módulos (marcado como *existe*, *parcial* o *propuesto*). Así el documento no puede afirmar que algo existe

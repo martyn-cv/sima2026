@@ -86,7 +86,7 @@
     salida: Asignaciones, incidentes, avisos de falla y bitácora.
     destinatarios: Operadores, mantenimiento, jefatura de producción, turno siguiente.
     consecuencia: Mantenimiento recibe avisos ya priorizados; el turno siguiente parte con los pendientes claros.
-  permisos: {produccion: "c,r,e@eq", traspaso: "c,cr,ci@eq", asistencia: "c,r@eq", habilitaciones: "c@eq", equipos: "c@ln", eventos: "c@ln", ot: "c,cr@ln", calidad: "c,r@ln", sst: "c,r@eq", rutinas: "c,r@ln", plc_comandos: "c@ln", kpis: "c@eq"}
+  permisos: {produccion: "c,r,e@eq", traspaso: "c,cr,ci@eq", asistencia: "c,r@eq", habilitaciones: "c@eq", equipos: "c@ln", eventos: "c,r@ln", ot: "c,cr@ln", calidad: "c,r@ln", sst: "c,r@eq", rutinas: "c,r@ln", plc_comandos: "c@ln", kpis: "c@eq"}
   apps: [desktop]
   validar: [Si el supervisor registra la asistencia diaria o solo la confirma (hoy RR. HH. carga el resumen mensual), Qué puestos se consideran críticos para alertar ausencias]
   hoy: Desktop con traspaso, producción, alertas y reportes. No hay asignación de puestos ni asistencia diaria; la habilitación no se verifica al asignar.
@@ -129,7 +129,7 @@
     salida: Checklist de arranque, pérdidas registradas, avisos de falla.
     destinatarios: Supervisor, mantenimiento, calidad, ingeniería de procesos.
     consecuencia: Las pérdidas quedan clasificadas para el OEE y el análisis de mejora.
-  permisos: {produccion: "c,r,e@ln", rutinas: "c,r@ln", equipos: "c@ln", eventos: "c@ln", ot: "c,cr@ln", calidad: "c,r@ln", sst: "r@pr", traspaso: "c@ln", plc_comandos: "c@ln", habilitaciones: "c@ln"}
+  permisos: {produccion: "c,r,e@ln", rutinas: "c,r@ln", equipos: "c@ln", eventos: "c,r@ln", ot: "c,cr@ln", calidad: "c,r@ln", sst: "r@pr", traspaso: "c@ln", plc_comandos: "c@ln", habilitaciones: "c@ln"}
   apps: [desktop]
   validar: [Catálogo de causas de pérdida que usa la planta, Si el líder puede detener la línea sin autorización del supervisor]
   hoy: Comparte el perfil del supervisor de turno, así que hoy ve lo mismo que él. No hay checklist de arranque por línea ni registro de pérdidas por causa.
@@ -172,7 +172,7 @@
     salida: Registro de producción, checklist, reportes de anomalía.
     destinatarios: Líder de línea, supervisor, mantenimiento, calidad.
     consecuencia: El avance de la orden y el OEE se actualizan; mantenimiento recibe el aviso.
-  permisos: {produccion: "c,r@pr", rutinas: "c,r@pr", ot: "cr@pr", sst: "r@pr", equipos: "c@pr", eventos: "c@pr", habilitaciones: "c@pr"}
+  permisos: {produccion: "c,r@pr", rutinas: "c,r@pr", ot: "c,cr@pr", sst: "r@pr", equipos: "c@pr", eventos: "c@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Si el operador queda asignado a un equipo fijo o por orden, Si debe bloquearse el registro cuando su habilitación está vencida]
   hoy: Ve las órdenes de su turno y registra producción. No hay vínculo operador-equipo autorizado, ni checklist preuso por equipo, ni registro de detención por el operador.
@@ -215,7 +215,7 @@
     salida: Piezas identificadas, hoja de preparación y mediciones.
     destinatarios: Calidad, programador CNC, líder de línea.
     consecuencia: La serie avanza con trazabilidad dimensional.
-  permisos: {produccion: "c,r@pr", inspecciones: "r@pr", rutinas: "c,r@pr", ot: "cr@pr", sst: "r@pr", equipos: "c@pr", documentos: "c@pr", habilitaciones: "c@pr"}
+  permisos: {produccion: "c,r@pr", inspecciones: "r@pr", herramientas: "c,r@pl", rutinas: "c,r@pr", ot: "c,cr@pr", sst: "r@pr", equipos: "c@pr", documentos: "c@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Frecuencia de control dimensional por producto, Quién libera la primera pieza (operador o calidad)]
   hoy: Mismo inicio que el operador genérico. No hay programa autorizado por orden ni registro de mediciones.
@@ -258,7 +258,7 @@
     salida: Producto ensamblado y registro de lote.
     destinatarios: Líder de línea, calidad, embalaje.
     consecuencia: El lote avanza a calidad o embalaje con trazabilidad.
-  permisos: {produccion: "c,r@pr", documentos: "c@pr", materiales: "s@pr", ot: "cr@pr", sst: "r@pr", rutinas: "c,r@pr", habilitaciones: "c@pr"}
+  permisos: {equipos: "c@pr", produccion: "c,r@pr", documentos: "c@pr", materiales: "s@pr", ot: "c,cr@pr", sst: "r@pr", rutinas: "c,r@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Si existen instrucciones visuales digitalizadas por producto]
   hoy: Inicio de operador genérico. No hay instrucciones por producto ni solicitud de reposición.
@@ -300,7 +300,7 @@
     salida: Producto liberado para expedición con trazabilidad.
     destinatarios: Bodega, despacho, calidad.
     consecuencia: Despacho puede programar el envío del lote.
-  permisos: {produccion: "c,r@pr", calidad: "c@pr", despachos: "c@pr", ot: "cr@pr", sst: "r@pr", rutinas: "c,r@pr", habilitaciones: "c@pr"}
+  permisos: {equipos: "c@pr", produccion: "c,r@pr", calidad: "c@pr", despachos: "c@pr", ot: "c,cr@pr", sst: "r@pr", rutinas: "c,r@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Si se usará lectura de código de barras para verificar etiquetas]
   hoy: Inicio de operador genérico. No hay verificación de etiqueta ni registro de pallets.
@@ -383,7 +383,7 @@
     salida: Movimientos registrados y checklist.
     destinatarios: Bodega, despacho, prevención.
     consecuencia: El inventario por ubicación queda actualizado.
-  permisos: {inventario: "c,r@pr", rutinas: "c,r@pr", sst: "r@pr", ot: "cr@pr", habilitaciones: "c@pr"}
+  permisos: {equipos: "c@pr", inventario: "c,r@pr", rutinas: "c,r@pr", sst: "r@pr", ot: "c,cr@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Si las tareas de traslado se asignarán en SIMA o seguirán siendo verbales]
   hoy: Ajuste por cargo en Desktop (rutinas y seguridad). No hay tareas de traslado ni movimientos por ubicación.
@@ -425,7 +425,7 @@
     salida: Estaciones abastecidas, registros simples.
     destinatarios: Operadores y líder de línea.
     consecuencia: La línea sigue sin detenciones por material.
-  permisos: {materiales: "c,r@ln", rutinas: "c,r@ln", produccion: "c@ln", sst: "r@pr", ot: "cr@pr", habilitaciones: "c@pr"}
+  permisos: {equipos: "c@pr", materiales: "c,r@ln", rutinas: "c,r@ln", produccion: "c@ln", sst: "r@pr", ot: "c,cr@pr", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Si las solicitudes de reposición serán digitales]
   hoy: Ajuste por cargo en Desktop (rutinas y reporte). No hay solicitudes de reposición.

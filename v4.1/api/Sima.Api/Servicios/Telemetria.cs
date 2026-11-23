@@ -11,9 +11,14 @@ public class PlantaHub : Hub
 {
     public override async Task OnConnectedAsync()
     {
-        var id = Context.User?.ComoSesion()?.Id;
-        await Groups.AddToGroupAsync(Context.ConnectionId, "planta");
-        if (id is not null) await Groups.AddToGroupAsync(Context.ConnectionId, $"u:{id}");
+        var s = Context.User?.ComoSesion();
+        if (s is not null)
+        {
+            // el flujo en vivo de la planta (lecturas, alarmas, OT) solo llega a quien puede verla
+            if (s.Tiene("planta.ver")) await Groups.AddToGroupAsync(Context.ConnectionId, "planta");
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"u:{s.Id}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"c:{s.CargoId}");
+        }
         await base.OnConnectedAsync();
     }
 }
@@ -88,10 +93,10 @@ public class ProcesadorTelemetria(IHubContext<PlantaHub> hub)
             if (hayAlarma && !await db.Ordenes.AnyAsync(o => o.EquipoId == eq.Id && o.Automatica && o.Estado != "cerrada", ct))
             {
                 var al = abiertas.First(a => a.EquipoId == eq.Id && a.Nivel == "alarma");
-                var ot = new OrdenTrabajo { EquipoId = eq.Id, Titulo = $"Falla en {eq.Nombre}", Descripcion = al.Mensaje, Prioridad = eq.Criticidad == "alta" ? "critica" : "alta", Automatica = true };
+                var ot = new OrdenTrabajo { EquipoId = eq.Id, Titulo = $"Falla en {eq.Nombre}", Descripcion = al.Mensaje, Prioridad = eq.Criticidad == "alta" ? "critica" : "alta", Automatica = true, Simulada = simulado };
                 db.Ordenes.Add(ot);
                 await db.SaveChangesAsync(ct);
-                avisos.Add(("orden", new { id = ot.Id, codigo = ot.Codigo, equipo = eq.Codigo, titulo = ot.Titulo, prioridad = ot.Prioridad }));
+                avisos.Add(("orden", new { id = ot.Id, codigo = ot.Codigo, equipo = eq.Codigo, titulo = ot.Titulo, prioridad = ot.Prioridad, simulada = simulado }));
             }
         }
         await db.SaveChangesAsync(ct);

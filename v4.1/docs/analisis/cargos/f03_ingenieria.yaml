@@ -128,7 +128,7 @@
     salida: Solicitudes de cambio, respaldos, documentación.
     destinatarios: Aprobador (jefatura de mantenimiento o planta), técnicos, sala de control.
     consecuencia: Al aprobarse, el PLC recibe la nueva versión y queda trazado quién solicitó y quién aprobó.
-  permisos: {plc: "c,s,e@pl", plc_comandos: "c,r@pl", simulador: "c,r@pl", equipos: "c,cr,e@pl", eventos: "c@pl", ot: "c,r@pl", documentos: "c,cr,e@pl", kpis: "c@pl", repuestos: "c,s@pl", herramientas: "c@pl", habilitaciones: "c@pr"}
+  permisos: {plc: "c,s,e@pl", plc_comandos: "c,r@pl", simulador: "c,r@pl", equipos: "c,cr,e@pl", eventos: "c,r@pl", ot: "c,r@pl", documentos: "c,cr,e@pl", kpis: "c@pl", repuestos: "c,s@pl", herramientas: "c@pl", habilitaciones: "c@pr"}
   apps: [desktop, web]
   validar: [Si la arquitectura de red y la lista de señales deben quedar en SIMA o en un repositorio de ingeniería]
   hoy: Solicita cambios de PLC (control de cuatro ojos), crea equipos, envía mandos y usa el simulador. No hay registro de pruebas ni respaldos vinculados al cambio.
@@ -212,7 +212,7 @@
     salida: Registro de calibración y estado del instrumento.
     destinatarios: Calidad, metrología, automatización, pañol.
     consecuencia: Un instrumento vencido no se puede retirar del pañol.
-  permisos: {calibraciones: "c,r,e@pl", herramientas: "c,e@pl", ot: "c,r,ci@pr", repuestos: "c,s@pl", equipos: "c@pl", eventos: "c@pl", plc: "c@pl", habilitaciones: "c@pr"}
+  permisos: {calibraciones: "c,r,e@pl", herramientas: "c,e@pl", ot: ["c@pl", "r,ci@pr"], repuestos: "c,s@pl", equipos: "c@pl", eventos: "c@pl", plc: "c@pl", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Si los sensores de proceso deben tener calendario de calibración propio además de las herramientas]
   hoy: Calibrar herramientas y ver vencimientos. El registro solo guarda la fecha, no la lectura ni el resultado.

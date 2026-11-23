@@ -29,6 +29,18 @@ public static class Ayudas
         return res;
     }
 
+    /// <summary>
+    /// Personas cuyos datos puede ver alguien según el alcance de una capacidad: null = todas (planta, empresa); «propio» =
+    /// solo él; «equipo» o «area» = su equipo (jefatura directa e indirecta). Lo que no sea un alcance amplio se restringe.
+    /// </summary>
+    public static async Task<HashSet<string>?> PersonasVisiblesAsync(SimaDb db, Sesion s, string capacidad)
+        => s.Alcance(capacidad) switch
+        {
+            "planta" or "empresa" => null,
+            "propio" => new HashSet<string> { s.Id },
+            _ => await EquipoDeAsync(db, s.Id),
+        };
+
     /// <summary>¿Puede ver montos de sueldo? Remuneraciones y quien gestiona contratos; gerencia, TI y demás perfiles no.</summary>
     public static bool VeSueldos(this Sesion s) => s.Tiene("remuneraciones.ver") || s.Tiene("contratos.editar");
 

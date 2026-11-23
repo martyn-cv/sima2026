@@ -1309,6 +1309,9 @@ namespace Sima.Api.Datos.Migraciones
                     b.Property<DateTime?>("Cerrada")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("CierreSolicitado")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("Creada")
                         .HasColumnType("timestamp with time zone");
 
@@ -1322,6 +1325,10 @@ namespace Sima.Api.Datos.Migraciones
                     b.Property<int>("EquipoId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Especialidad")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1333,6 +1340,12 @@ namespace Sima.Api.Datos.Migraciones
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateOnly?>("Programada")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("Simulada")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1342,6 +1355,12 @@ namespace Sima.Api.Datos.Migraciones
                         .HasColumnType("text");
 
                     b.Property<string>("Uid")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VerificadaEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VerificadaPorId")
                         .HasColumnType("text");
 
                     b.Property<uint>("Version")

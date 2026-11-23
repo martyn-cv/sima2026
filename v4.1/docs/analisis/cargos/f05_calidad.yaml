@@ -208,7 +208,7 @@
     salida: Plan y trazabilidad metrológica.
     destinatarios: Calidad, laboratorio, mantenimiento, pañol.
     consecuencia: Un instrumento bloqueado no se puede retirar.
-  permisos: {calibraciones: "c,r,e@pl", herramientas: "c,e@pl", ot: "c,r,ci@pr", calidad: "c@pl", equipos: "c@pl", habilitaciones: "c@pr"}
+  permisos: {calibraciones: "c,r,e@pl", herramientas: "c,e@pl", ot: ["c@pl", "r,ci@pr"], calidad: "c@pl", equipos: "c@pl", habilitaciones: "c@pr"}
   apps: [desktop]
   validar: [Si se gestionarán certificados digitales de calibración externa]
   hoy: Calibra herramientas y ve vencimientos. Sin incertidumbre, certificados ni bloqueo por tolerancia.

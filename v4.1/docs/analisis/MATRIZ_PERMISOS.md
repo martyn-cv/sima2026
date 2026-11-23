@@ -1,12 +1,12 @@
 # Matriz de permisos por cargo
 
-> Generado por `docs/analisis/generar.py`. Es la matriz **propuesta** (entregable 3). La matriz vigente del servidor está en `api/Sima.Api/Servicios/Permisos.cs` y se puede editar por cargo en la web (Permisos por cargo).
+> Generado por `docs/analisis/generar.py`. Es la matriz del entregable 3 y, compilada a capacidades del servidor, la matriz de fábrica v7 (`api/Sima.Api/Servicios/PermisosCatalogo.g.cs`). La matriz vigente vive en la tabla `rol_permisos` y se puede ajustar por cargo en la web (Permisos por cargo).
 
 **Acciones:** **C** consultar · **Cr** crear · **R** registrar · **E** editar · **As** asignar · **Ap** aprobar o rechazar · **Ci** cerrar · **X** exportar · **S** solicitar
 
 **Alcance** (subíndice; sin subíndice = empresa): **pr** propio · **eq** su equipo · **ln** su línea · **ar** su área · **pl** planta · **ag** solo totales
 
-Reglas que aplican a todos los cargos y no se repiten en la tabla: cada persona consulta su propia ficha, sus habilitaciones y su cuenta; cualquier cuenta activa puede **reportar** una condición insegura o una falla; el directorio muestra solo nombre, cargo, turno y correo corporativo (en SIMA Desktop, solo nombre y cargo, como fija la hoja Permisos).
+Reglas que aplican a todos los cargos y no se repiten en la tabla: cada persona consulta su propia ficha, sus habilitaciones y su cuenta; cualquier cuenta activa puede **reportar** una condición insegura (los avisos de falla los crean quienes trabajan en planta); el directorio muestra solo nombre, cargo, turno y correo corporativo (en SIMA Desktop, solo nombre y cargo, como fija la hoja Permisos).
 
 ## Personas
 
@@ -166,20 +166,24 @@ Reglas que aplican a todos los cargos y no se repiten en la tabla: cada persona 
 | 02 Gerente/a de operaciones | C | · |
 | 03 Gerente/a o jefe/a de planta | CCrE<sub>pl</sub> | · |
 | 06 Jefe/a de producción | C<sub>pl</sub> | C<sub>pl</sub> |
-| 07 Supervisor/a de turno | C<sub>ln</sub> | C<sub>ln</sub> |
-| 08 Líder o encargado/a de línea | C<sub>ln</sub> | C<sub>ln</sub> |
+| 07 Supervisor/a de turno | C<sub>ln</sub> | CR<sub>ln</sub> |
+| 08 Líder o encargado/a de línea | C<sub>ln</sub> | CR<sub>ln</sub> |
 | 09 Operador/a de máquina o proceso | C<sub>pr</sub> | C<sub>pr</sub> |
 | 10 Operador/a de CNC | C<sub>pr</sub> | · |
+| 11 Armador/a o ensamblador/a | C<sub>pr</sub> | · |
+| 12 Operador/a de envasado, etiquetado y embalaje | C<sub>pr</sub> | · |
 | 13 Operador/a de sala de control | C<sub>pl</sub> | CR<sub>pl</sub> |
+| 14 Operador/a de montacargas o grúa horquilla | C<sub>pr</sub> | · |
+| 15 Auxiliar de producción / apoyo de línea | C<sub>pr</sub> | · |
 | 16 Ingeniero/a de procesos | C<sub>pl</sub> | C<sub>pl</sub> |
-| 18 Ingeniero/a de automatización y control | CCrE<sub>pl</sub> | C<sub>pl</sub> |
+| 18 Ingeniero/a de automatización y control | CCrE<sub>pl</sub> | CR<sub>pl</sub> |
 | 19 Programador/a de PLC/HMI | C<sub>pl</sub> | C<sub>pl</sub> |
 | 20 Técnico/a de instrumentación y calibración | C<sub>pl</sub> | C<sub>pl</sub> |
 | 21 Ingeniero/a de proyectos industriales | CCr<sub>pl</sub> | · |
 | 22 Especialista de sistemas industriales (OT/MES) | CCrE<sub>pl</sub> | C<sub>pl</sub> |
-| 23 Jefe/a de mantenimiento | CCrE<sub>pl</sub> | C<sub>pl</sub> |
+| 23 Jefe/a de mantenimiento | CCrE<sub>pl</sub> | CR<sub>pl</sub> |
 | 24 Planificador/a o programador/a de mantenimiento | CCrE<sub>pl</sub> | C<sub>pl</sub> |
-| 25 Supervisor/a de mantenimiento | C<sub>pl</sub> | C<sub>pl</sub> |
+| 25 Supervisor/a de mantenimiento | C<sub>pl</sub> | CR<sub>pl</sub> |
 | 26 Técnico/a mecánico/a industrial | C<sub>pl</sub> | C<sub>pl</sub> |
 | 27 Técnico/a eléctrico/a industrial | C<sub>pl</sub> | C<sub>pl</sub> |
 | 28 Técnico/a electromecánico/a | C<sub>pl</sub> | C<sub>pl</sub> |
@@ -199,28 +203,28 @@ Reglas que aplican a todos los cargos y no se repiten en la tabla: cada persona 
 | 06 Jefe/a de producción | CCr<sub>pl</sub> | · | · | · | · |
 | 07 Supervisor/a de turno | CCr<sub>ln</sub> | · | · | · | · |
 | 08 Líder o encargado/a de línea | CCr<sub>ln</sub> | · | · | · | · |
-| 09 Operador/a de máquina o proceso | Cr<sub>pr</sub> | · | · | · | · |
-| 10 Operador/a de CNC | Cr<sub>pr</sub> | · | · | · | · |
-| 11 Armador/a o ensamblador/a | Cr<sub>pr</sub> | · | · | · | · |
-| 12 Operador/a de envasado, etiquetado y embalaje | Cr<sub>pr</sub> | · | · | · | · |
+| 09 Operador/a de máquina o proceso | CCr<sub>pr</sub> | · | · | · | · |
+| 10 Operador/a de CNC | CCr<sub>pr</sub> | · | CR<sub>pl</sub> | · | · |
+| 11 Armador/a o ensamblador/a | CCr<sub>pr</sub> | · | · | · | · |
+| 12 Operador/a de envasado, etiquetado y embalaje | CCr<sub>pr</sub> | · | · | · | · |
 | 13 Operador/a de sala de control | CCr<sub>pl</sub> | · | · | · | · |
-| 14 Operador/a de montacargas o grúa horquilla | Cr<sub>pr</sub> | · | · | · | · |
-| 15 Auxiliar de producción / apoyo de línea | Cr<sub>pr</sub> | · | · | · | · |
+| 14 Operador/a de montacargas o grúa horquilla | CCr<sub>pr</sub> | · | · | · | · |
+| 15 Auxiliar de producción / apoyo de línea | CCr<sub>pr</sub> | · | · | · | · |
 | 18 Ingeniero/a de automatización y control | CR<sub>pl</sub> | CS<sub>pl</sub> | C<sub>pl</sub> | · | · |
 | 19 Programador/a de PLC/HMI | CR<sub>pl</sub> | · | · | · | · |
-| 20 Técnico/a de instrumentación y calibración | CRCi<sub>pr</sub> | CS<sub>pl</sub> | CE<sub>pl</sub> | CRE<sub>pl</sub> | · |
+| 20 Técnico/a de instrumentación y calibración | C<sub>pl</sub> RCi<sub>pr</sub> | CS<sub>pl</sub> | CE<sub>pl</sub> | CRE<sub>pl</sub> | · |
 | 23 Jefe/a de mantenimiento | CCrAsApCiX<sub>pl</sub> | CEAp<sub>pl</sub> | CE<sub>pl</sub> | C<sub>pl</sub> | C<sub>pl</sub> |
 | 24 Planificador/a o programador/a de mantenimiento | CCrAsE<sub>pl</sub> | CS<sub>pl</sub> | C<sub>pl</sub> | · | · |
-| 25 Supervisor/a de mantenimiento | CAsApCi<sub>eq</sub> | CE<sub>pl</sub> | CE<sub>pl</sub> | · | · |
-| 26 Técnico/a mecánico/a industrial | CRCi<sub>pr</sub> | CS<sub>pl</sub> | CR<sub>pr</sub> | · | · |
-| 27 Técnico/a eléctrico/a industrial | CRCi<sub>pr</sub> | CS<sub>pl</sub> | CR<sub>pr</sub> | · | · |
-| 28 Técnico/a electromecánico/a | CRCi<sub>pr</sub> | CS<sub>pl</sub> | CR<sub>pr</sub> | · | · |
-| 29 Técnico/a de lubricación o confiabilidad | CCr<sub>pl</sub> | CS<sub>pl</sub> | · | · | CR<sub>pl</sub> |
+| 25 Supervisor/a de mantenimiento | CCrAsApCi<sub>eq</sub> | CE<sub>pl</sub> | CE<sub>pl</sub> | · | · |
+| 26 Técnico/a mecánico/a industrial | CCr<sub>pl</sub> RCi<sub>pr</sub> | CS<sub>pl</sub> | CR<sub>pl</sub> | · | · |
+| 27 Técnico/a eléctrico/a industrial | CCr<sub>pl</sub> RCi<sub>pr</sub> | CS<sub>pl</sub> | CR<sub>pl</sub> | · | · |
+| 28 Técnico/a electromecánico/a | CCr<sub>pl</sub> RCi<sub>pr</sub> | CS<sub>pl</sub> | CR<sub>pl</sub> | · | · |
+| 29 Técnico/a de lubricación o confiabilidad | CCr<sub>pl</sub> RCi<sub>pr</sub> | CS<sub>pl</sub> | · | · | CR<sub>pl</sub> |
 | 30 Encargado/a de repuestos y pañol | C<sub>pl</sub> | CREAp<sub>pl</sub> | CRE<sub>pl</sub> | · | · |
 | 31 Jefe/a o gerente de calidad | · | · | · | C<sub>pl</sub> | · |
 | 33 Inspector/a o técnico/a de control de calidad | · | · | C<sub>pl</sub> | C<sub>pl</sub> | · |
 | 34 Laboratorista / analista de ensayos | · | · | · | C<sub>pl</sub> | · |
-| 35 Especialista en metrología | CRCi<sub>pr</sub> | · | CE<sub>pl</sub> | CRE<sub>pl</sub> | · |
+| 35 Especialista en metrología | C<sub>pl</sub> RCi<sub>pr</sub> | · | CE<sub>pl</sub> | CRE<sub>pl</sub> | · |
 | 36 Planificador/a de producción (PPC) | C<sub>pl</sub> | · | · | · | · |
 | 38 Comprador/a de materias primas y suministros | · | C<sub>pl</sub> | · | · | · |
 | 43 Analista de inventarios / logística | · | CX<sub>pl</sub> | · | · | · |
@@ -502,9 +506,9 @@ Reglas que aplican a todos los cargos y no se repiten en la tabla: cada persona 
 - **63 Diseñador/a de producto o ingeniería de producto:** Costos detallados, remuneraciones, datos personales.
 - **64 Responsable de desarrollo de proveedores:** Datos personales, remuneraciones.
 
-## Diferencias con la matriz vigente del servidor
+## Diferencias con la matriz anterior del servidor (v6)
 
-Calculadas por `matriz_vigente.py` leyendo las reglas de `Permisos.cs`. Se comparan recursos (no alcances). «Falta»: la propuesta lo da y el servidor no. «Sobra»: el servidor lo da y la ficha del cargo no lo justifica.
+La matriz de fábrica v7 se genera de este catálogo (`PermisosCatalogo.g.cs`), así que coincide con la propuesta. Esta sección conserva, como registro, lo que cambió respecto de la v6 (reglas por perfil de `Permisos.cs`, foto en `datos/matriz_v6.json`). Se comparan recursos (no alcances). «Falta»: la propuesta lo da y el servidor no. «Sobra»: el servidor lo da y la ficha del cargo no lo justifica.
 
 - **01 Director/a general o gerente general:** sobra herramientas, OT, plc, repuestos, terminos, traspaso
 - **02 Gerente/a de operaciones:** sobra herramientas, plc, repuestos, terminos, traspaso
@@ -515,7 +519,7 @@ Calculadas por `matriz_vigente.py` leyendo las reglas de `Permisos.cs`. Se compa
 - **07 Supervisor/a de turno:** sobra herramientas, plc, repuestos
 - **08 Líder o encargado/a de línea:** sobra asistencia, herramientas, kpis, plc, repuestos, sst
 - **09 Operador/a de máquina o proceso:** sobra herramientas, OT, plc, repuestos
-- **10 Operador/a de CNC:** sobra herramientas, OT, plc, repuestos
+- **10 Operador/a de CNC:** sobra OT, plc, repuestos
 - **11 Armador/a o ensamblador/a:** sobra herramientas, OT, plc, repuestos
 - **12 Operador/a de envasado, etiquetado y embalaje:** falta calidad, despachos; sobra herramientas, OT, plc, repuestos
 - **13 Operador/a de sala de control:** falta traspaso; sobra herramientas, produccion, repuestos
@@ -564,4 +568,4 @@ Calculadas por `matriz_vigente.py` leyendo las reglas de `Permisos.cs`. Se compa
 - **63 Diseñador/a de producto o ingeniería de producto:** sobra despachos, herramientas, OT, produccion, repuestos
 - **64 Responsable de desarrollo de proveedores:** sobra despachos, herramientas, OT, produccion, repuestos
 
-Total: 22 accesos que faltan y 212 que sobran. La mayoría de los «sobra» vienen de reglas por perfil (por ejemplo, `repuestos.ver`, `herramientas.ver` y `ordenes.ver` se dan a los 18 perfiles, incluidos RR. HH., finanzas y comercial).
+Total: 22 accesos que faltan y 211 que sobran. La mayoría de los «sobra» vienen de reglas por perfil (por ejemplo, `repuestos.ver`, `herramientas.ver` y `ordenes.ver` se dan a los 18 perfiles, incluidos RR. HH., finanzas y comercial).

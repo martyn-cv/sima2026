@@ -96,12 +96,12 @@ public class PruebasV41(Fabrica f)
         var r = await tec.PostAsJsonAsync($"/api/ordenes/{ot}/intervenciones", cuerpo);
         Assert.Equal(HttpStatusCode.Created, r.StatusCode);
         var despues = await f.Leer(tec, "/api/equipos/BC-01");
-        Assert.Equal("operando", despues.GetProperty("equipo").GetProperty("estado").GetString());
+        Assert.Equal("en_mantencion", despues.GetProperty("equipo").GetProperty("estado").GetString());   // espera la verificación
         Assert.Equal(stock - 1, despues.GetProperty("repuestos").EnumerateArray().First(x => x.GetProperty("id").GetInt32() == rp.GetProperty("id").GetInt32()).GetProperty("stock").GetInt32());
         var inter = despues.GetProperty("intervenciones")[0];
         Assert.Equal("Cambio de rodamiento y alineación láser", inter.GetProperty("accion").GetString());
         Assert.Equal(1, inter.GetProperty("repuestos").GetArrayLength());
-        Assert.Equal("cerrada", (await f.Leer(tec, $"/api/ordenes/{ot}")).GetProperty("estado").GetString());
+        Assert.Equal("por_verificar", (await f.Leer(tec, $"/api/ordenes/{ot}")).GetProperty("estado").GetString());
 
         // la web ve la misma intervención
         var web = await f.Leer(await f.Entrar("gerencia", "Gerencia2026", "web"), "/api/equipos/BC-01");

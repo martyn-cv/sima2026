@@ -32,8 +32,9 @@ public static class EndpointsOperacion
         var g = app.MapGroup("/api").RequireAuthorization();
 
         // ------------------------------------------------------------------------------------ herramientas
-        g.MapGet("/herramientas", async (SimaDb db) =>
+        g.MapGet("/herramientas", async (ClaimsPrincipal u, SimaDb db) =>
         {
+            if (!u.S().Tiene("herramientas.ver")) return Ayudas.Sin();
             var hoy = Reloj.Hoy();
             return Results.Ok((await db.Herramientas.AsNoTracking().OrderBy(h => h.Codigo).ToListAsync()).Select(h => new
             { h.Id, h.Codigo, h.Nombre, h.Estado, h.RequiereCalibracion, h.CalibracionDias, proxima = h.ProximaCalibracion, dias = h.ProximaCalibracion is { } p ? p.DayNumber - hoy.DayNumber : (int?)null, calibracion = EstadoCal(h, hoy), retiradaPor = h.RetiradaPorNombre, h.RetiradaPorId, h.RetiradaEn }));
@@ -79,10 +80,10 @@ public static class EndpointsOperacion
         });
 
         // ------------------------------------------------------------------------------------ repuestos
-        g.MapGet("/repuestos", async (SimaDb db) => Results.Ok((await db.Repuestos.AsNoTracking().OrderBy(r => r.Codigo).ToListAsync()).Select(r => new
+        g.MapGet("/repuestos", async (ClaimsPrincipal u, SimaDb db) => !u.S().Tiene("repuestos.ver") ? Ayudas.Sin() : Results.Ok((await db.Repuestos.AsNoTracking().OrderBy(r => r.Codigo).ToListAsync()).Select(r => new
         { r.Id, r.Codigo, r.Nombre, r.Tipo, r.Bodega, r.Ubicacion, r.Stock, r.StockMinimo, r.CostoUnitario, r.Critico, bajoMinimo = r.Stock <= r.StockMinimo, valor = (long)r.Stock * r.CostoUnitario })));
 
-        g.MapGet("/repuestos/{id:int}/movimientos", async (int id, SimaDb db) =>
+        g.MapGet("/repuestos/{id:int}/movimientos", async (int id, ClaimsPrincipal u, SimaDb db) => !u.S().Tiene("repuestos.ver") ? Ayudas.Sin() :
             Results.Ok(await db.MovimientosRepuesto.AsNoTracking().Where(m => m.RepuestoId == id).OrderByDescending(m => m.Id).Take(30).ToListAsync()));
 
         g.MapPost("/repuestos/{id:int}/movimiento", async (int id, MovimientoEntrada e, ClaimsPrincipal u, SimaDb db) =>

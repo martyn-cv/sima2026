@@ -95,7 +95,7 @@ public class IngestaEventos(IHubContext<PlantaHub> hub)
                 case "recuperacion" when eq is not null && !bloqueado: EstadosEquipo.Cambiar(db, eq, "operando", origen, simulado, "falla despejada", ts, avisos); break;
                 case "falla" when eq is not null:
                     if (!bloqueado) EstadosEquipo.Cambiar(db, eq, "alarma", origen, simulado, e.Mensaje ?? "falla", ts, avisos);
-                    await OrdenAutomaticaAsync(db, eq, $"Falla en {eq.Nombre}", e.Mensaje ?? "Falla informada por el PLC.", avisos, ct);
+                    await OrdenAutomaticaAsync(db, eq, $"Falla en {eq.Nombre}", e.Mensaje ?? "Falla informada por el PLC.", simulado, avisos, ct);
                     break;
                 case "estado_plc":
                     var estado = Dato("estado");
@@ -135,15 +135,15 @@ public class IngestaEventos(IHubContext<PlantaHub> hub)
         foreach (var x in equipos.Where(x => x.Estado != "en_mantencion"))
             EstadosEquipo.Cambiar(db, x, "alarma", origen, simulado, $"falla del {plc.Codigo}", ts, avisos);
         if (equipos.OrderByDescending(x => x.Criticidad == "alta").FirstOrDefault() is { } critico)
-            await OrdenAutomaticaAsync(db, critico, $"Falla del controlador {plc.Codigo}", mensaje ?? "El PLC informó un error de CPU.", avisos, ct);
+            await OrdenAutomaticaAsync(db, critico, $"Falla del controlador {plc.Codigo}", mensaje ?? "El PLC informó un error de CPU.", simulado, avisos, ct);
     }
 
-    static async Task OrdenAutomaticaAsync(SimaDb db, Equipo eq, string titulo, string detalle, List<(string, object)> avisos, CancellationToken ct)
+    static async Task OrdenAutomaticaAsync(SimaDb db, Equipo eq, string titulo, string detalle, bool simulado, List<(string, object)> avisos, CancellationToken ct)
     {
         if (await db.Ordenes.AnyAsync(o => o.EquipoId == eq.Id && o.Automatica && o.Estado != "cerrada", ct)) return;
-        var ot = new OrdenTrabajo { EquipoId = eq.Id, Titulo = titulo, Descripcion = detalle, Prioridad = eq.Criticidad == "alta" ? "critica" : "alta", Automatica = true };
+        var ot = new OrdenTrabajo { EquipoId = eq.Id, Titulo = titulo, Descripcion = detalle, Prioridad = eq.Criticidad == "alta" ? "critica" : "alta", Automatica = true, Simulada = simulado };
         db.Ordenes.Add(ot);
         await db.SaveChangesAsync(ct);
-        avisos.Add(("orden", new { id = ot.Id, codigo = ot.Codigo, equipo = eq.Codigo, titulo = ot.Titulo, prioridad = ot.Prioridad }));
+        avisos.Add(("orden", new { id = ot.Id, codigo = ot.Codigo, equipo = eq.Codigo, titulo = ot.Titulo, prioridad = ot.Prioridad, simulada = simulado }));
     }
 }
