@@ -45,9 +45,9 @@ public static class EndpointsSimulacion
             var plcs = await db.Plcs.AsNoTracking().ToDictionaryAsync(p => p.Id);
             var fallas = await db.FallasSimuladas.AsNoTracking().Where(f => Simulacion.Activas.Contains(f.EstadoFisico) || f.EstadoFisico == "programada").ToListAsync();
             var ots = await db.Ordenes.AsNoTracking().Where(o => o.Estado != "cerrada").Select(o => new { o.EquipoId, o.Codigo, o.Estado }).ToListAsync();
-            return Results.Ok(areas.GroupBy(a => a.Planta!).Select(gp => new
+            return Results.Ok(areas.GroupBy(a => a.PlantaId).Select(gp => new
             {
-                planta = gp.Key.Nombre,
+                planta = gp.First().Planta!.Nombre,
                 areas = gp.Select(a => new
                 {
                     a.Id, a.Codigo, a.Nombre,

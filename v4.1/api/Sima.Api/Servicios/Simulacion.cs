@@ -263,6 +263,7 @@ public static class Simulacion
                 await db.SaveChangesAsync(ct);
                 avisos.Add(("orden", new { id = abierta.Id, codigo = abierta.Codigo, equipo = eq.Codigo, titulo = abierta.Titulo, prioridad = abierta.Prioridad, simulada = true }));
             }
+            else if (!abierta.Descripcion.Contains(f.Sintomas)) abierta.Descripcion += $"\nNuevos síntomas observados: {f.Sintomas}";
             f.OrdenId = abierta.Id;
         }
         await db.SaveChangesAsync(ct);

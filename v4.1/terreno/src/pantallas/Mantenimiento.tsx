@@ -5,7 +5,7 @@ import {
   ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardList, Clock, FlaskConical, Lock, Minus, Plus, Search, Stethoscope, Trash2, Unlock, Wrench, XCircle,
 } from "lucide-react";
 import type { FichaEquipo, LiberacionOt } from "@sima/cliente";
-import { AreaTexto, Boton, Chip, CURVA, ETAPAS_LIBERACION, Entrada, Esqueleto, EstadoEquipo, EstadoVista, LiberacionOrden, MarcaSimulado, Maquina, TIEMPO, cx, mensajeDe, useAviso } from "@sima/ui";
+import { AreaTexto, Boton, Chip, CURVA, ETAPAS_LIBERACION, Entrada, Seleccion, Esqueleto, EstadoEquipo, EstadoVista, LiberacionOrden, MarcaSimulado, Maquina, TIEMPO, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { enviar, uidNuevo } from "../lib/offline";
@@ -24,6 +24,10 @@ type Filtro = "mias" | "abierta" | "en_curso" | "por_verificar" | "cerrada";
 const FILTROS: [Filtro, string][] = [["mias", "Mías"], ["abierta", "Por tomar"], ["en_curso", "En curso"], ["por_verificar", "Por liberar"], ["cerrada", "Cerradas"]];
 interface Herramienta { id: number; codigo: string; nombre: string; estado: string }
 interface Repuesto { id: number; codigo: string; nombre: string; stock: number; stockMinimo: number; ubicacion: string }
+interface Diagnostico {
+  componentes: { id: number; tipo: string; codigo: string; nombre: string; especificacion: string; tipoTexto: string }[]; sistemas: { tipo: string; nombre: string }[];
+  acciones: { clave: string; texto: string }[]; inspecciones: { id: number; componente: string; hallazgo: string; tecnicoNombre: string; fecha: string }[]; repuestosCompatibles: number[];
+}
 interface Prueba { uid: string; descripcion: string; resultado: "conforme" | "no_conforme"; valores: string }
 
 const PRIO: Record<string, { c: string; tono: "peligro" | "aviso" | "info" | "neutro" }> = { critica: { c: "var(--s-rojo)", tono: "peligro" }, alta: { c: "var(--s-ambar)", tono: "aviso" }, media: { c: "var(--s-azul)", tono: "info" }, baja: { c: "var(--s-tenue)", tono: "neutro" } };
@@ -101,6 +105,13 @@ function Flujo({ id }: { id: number }) {
   const aviso = useAviso();
   const { data: ot, isError } = useQuery({ queryKey: ["orden", id], queryFn: () => api.get<DetalleOrden>(`/api/ordenes/${id}`) });
   const ficha = useQuery({ queryKey: ["equipo", ot?.equipo.codigo], queryFn: () => api.get<FichaEquipo>(`/api/equipos/${ot!.equipo.codigo}`), enabled: !!ot });
+  // componentes del equipo e inspecciones: con esto se diagnostica (la causa real nunca llega a la pantalla)
+  const diag = useQuery({ queryKey: ["orden", id, "diagnostico"], queryFn: () => api.get<Diagnostico>(`/api/ordenes/${id}/diagnostico`), enabled: !!ot && ot.estado !== "cerrada" });
+  const inspeccionar = useMutation({
+    mutationFn: (v: { componenteId?: number; componenteTipo?: string }) => api.post<{ componente: string; hallazgo: string }>(`/api/ordenes/${id}/inspecciones`, v),
+    onSuccess: (r) => { aviso(`${r.componente}: ${r.hallazgo}`, r.hallazgo.startsWith("Sin anomalías") ? "info" : "aviso"); void qc.invalidateQueries({ queryKey: ["orden", id, "diagnostico"] }); },
+    onError: (e) => aviso(mensajeDe(e), "error"),
+  });
   // herramientas y repuestos solo los consulta quien ejecuta (quien firma una liberación no los necesita ni siempre puede verlos)
   const herramientas = useQuery({ queryKey: ["herramientas"], queryFn: () => api.get<Herramienta[]>("/api/herramientas"), enabled: tiene(usuario, "herramientas.ver") && tiene(usuario, "ordenes.ejecutar") });
   const catalogo = useQuery({ queryKey: ["repuestos"], queryFn: () => api.get<Repuesto[]>("/api/repuestos"), enabled: tiene(usuario, "repuestos.ver") && tiene(usuario, "ordenes.ejecutar") });
@@ -109,6 +120,8 @@ function Flujo({ id }: { id: number }) {
   const [causa, setCausa] = useState<string>("");
   const [diagnostico, setDiagnostico] = useState("");
   const [accion, setAccion] = useState("");
+  const [intervenido, setIntervenido] = useState("");      // "c:<id>" componente de la ficha · "t:<tipo>" sistema sin ficha
+  const [tipoAccion, setTipoAccion] = useState("");
   const [herrSel, setHerrSel] = useState<number[]>([]);
   const [rep, setRep] = useState<Record<number, number>>({});
   const [buscarRep, setBuscarRep] = useState("");
@@ -147,8 +160,11 @@ function Flujo({ id }: { id: number }) {
       inicio, fin: new Date().toISOString(), causa, diagnostico, accion, resultado, observaciones,
       repuestos: Object.entries(rep).filter(([, c]) => c > 0).map(([r, c]) => ({ repuestoId: Number(r), cantidad: c })), herramientas: herrSel, cerrar, lotoRetirado: lotoFuera,
       pruebas: pruebas.map((p) => ({ descripcion: p.descripcion, resultado: p.resultado, valores: p.valores, uid: p.uid })), afectaSeguridad: afecta.seguridad, afectaCalidad: afecta.calidad,
+      componenteId: intervenido.startsWith("c:") ? Number(intervenido.slice(2)) : null, componenteTipo: intervenido.startsWith("t:") ? intervenido.slice(2) : null, tipoAccion: tipoAccion || null,
     }),
     onSuccess: (r) => {
+      const sim = (r.data as { simulacion?: { persiste: boolean; mensaje: string } } | undefined)?.simulacion;
+      if (sim?.persiste) aviso(`Intervención registrada. ${sim.mensaje}`, "aviso");
       try { localStorage.removeItem(claveBorrador); } catch { /* sin almacenamiento */ }
       setListo({ encolado: r.queued, cerrada: cerrar, etapas: ["tecnica", ...(afecta.seguridad ? ["seguridad"] : []), ...(afecta.calidad ? ["calidad"] : []), "produccion"] }); refrescar();
     },
@@ -164,7 +180,7 @@ function Flujo({ id }: { id: number }) {
   if (listo) return <Confirmacion listo={listo} ot={ot.codigo} equipo={ot.equipo.codigo} />;
   const vivo = equipos.find((e) => e.codigo === ot.equipo.codigo);
   const terminada = ot.estado === "cerrada" || ot.estado === "por_verificar";
-  const puedeAvanzar = [true, loto.every(Boolean), !!causa && diagnostico.trim().length > 4, accion.trim().length > 4, !cerrar || (lotoFuera && ultimaConforme)][paso];
+  const puedeAvanzar = [true, loto.every(Boolean), !!causa && diagnostico.trim().length > 4, accion.trim().length > 4 && !!intervenido && !!tipoAccion, !cerrar || (lotoFuera && ultimaConforme)][paso];
   const agregarPrueba = () => { if (nueva.descripcion.trim().length < 4) return; setPruebas((l) => [...l, { ...nueva, descripcion: nueva.descripcion.trim(), uid: uidNuevo() }]); setNueva({ descripcion: "", resultado: "conforme", valores: "" }); };
 
   return (
@@ -235,13 +251,50 @@ function Flujo({ id }: { id: number }) {
               <div className="grid gap-4">
                 <div><p className="t-etiqueta mb-2">Tipo de causa</p><div className="flex flex-wrap gap-1.5" role="radiogroup">{CAUSAS.map(([k, t]) => <button key={k} role="radio" aria-checked={causa === k} onClick={() => setCausa(k)} className={cx("h-8 cursor-pointer rounded-md border px-3 text-[13px] font-medium transition-colors duration-[140ms]", causa === k ? "border-acento bg-acento text-sobre-negro" : "border-linea-suave bg-papel hover:border-linea")}>{t}</button>)}</div></div>
                 <div><p className="t-etiqueta mb-2">Diagnóstico</p><AreaTexto value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} placeholder="Qué encontró: síntoma, medición y causa probable" className="min-h-28" /></div>
+                {diag.data && (
+                  <section className="rounded-md border border-linea-suave bg-papel">
+                    <header className="flex items-center gap-2 border-b border-linea-suave px-3.5 py-2.5"><Search className="size-4 text-gris" /><p className="t-seccion flex-1">Inspección de componentes</p><span className="text-[11.5px] text-gris">cada inspección queda registrada en la orden</span></header>
+                    <ul className="divide-y divide-linea-suave">
+                      {diag.data.componentes.map((c) => (
+                        <li key={c.id} className="flex items-center gap-3 px-3.5 py-2">
+                          <span className="min-w-0 flex-1"><span className="block truncate text-[13px]">{c.nombre} <span className="t-dato text-gris">{c.codigo}</span></span><span className="text-[11.5px] text-gris">{c.tipoTexto} · {c.especificacion}</span></span>
+                          <Boton tam="s" variante="secundario" disabled={!mia || inspeccionar.isPending} onClick={() => inspeccionar.mutate({ componenteId: c.id })}>Inspeccionar</Boton>
+                        </li>
+                      ))}
+                      {diag.data.sistemas.length > 0 && (
+                        <li className="px-3.5 py-2.5">
+                          <p className="mb-1.5 text-[11.5px] text-gris">Otros sistemas del equipo (sin ficha propia)</p>
+                          <div className="flex flex-wrap gap-1.5">{diag.data.sistemas.map((x) => <Boton key={x.tipo} tam="s" variante="secundario" disabled={!mia || inspeccionar.isPending} onClick={() => inspeccionar.mutate({ componenteTipo: x.tipo })} title={`Inspeccionar: ${x.nombre}`}><Search className="size-3" />{x.nombre}</Boton>)}</div>
+                        </li>
+                      )}
+                    </ul>
+                    {diag.data.inspecciones.length > 0 && (
+                      <div className="border-t border-linea-suave px-3.5 py-2.5">
+                        <p className="t-etiqueta mb-1.5">Hallazgos</p>
+                        <ul className="grid gap-1">{diag.data.inspecciones.map((x) => <li key={x.id} className="text-[12.5px]"><b className="font-medium">{x.componente}:</b> <span className={x.hallazgo.startsWith("Sin anomalías") ? "text-gris" : "text-ambar-hondo"}>{x.hallazgo}</span></li>)}</ul>
+                      </div>
+                    )}
+                  </section>
+                )}
                 {ficha.data && ficha.data.alarmas.length > 0 && <div><p className="t-etiqueta mb-2">Fallas recientes del equipo</p><ul className="grid gap-1.5">{ficha.data.alarmas.slice(0, 4).map((a) => <li key={a.id} className="rounded-md border border-linea-suave bg-papel px-3 py-2 text-[12.5px]">{a.mensaje} <span className="text-gris">· {hace(a.inicio)}</span></li>)}</ul></div>}
               </div>
             )}
             {!terminada && paso === 3 && (
               <div className="grid gap-5 xl:grid-cols-2">
                 <div className="grid content-start gap-4">
-                  <div><p className="t-etiqueta mb-2">Acción realizada</p><AreaTexto value={accion} onChange={(e) => setAccion(e.target.value)} placeholder="Qué hizo: cambio, ajuste, limpieza, calibración…" className="min-h-28" /></div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-1.5"><span className="t-etiqueta">Componente intervenido</span>
+                      <Seleccion value={intervenido} onChange={(e) => setIntervenido(e.target.value)} aria-label="Componente intervenido">
+                        <option value="">Elija el componente…</option>
+                        {(diag.data?.componentes ?? []).map((c) => <option key={c.id} value={`c:${c.id}`}>{c.nombre}</option>)}
+                        {(diag.data?.sistemas ?? []).map((x) => <option key={x.tipo} value={`t:${x.tipo}`}>{x.nombre}</option>)}
+                      </Seleccion></label>
+                    <label className="grid gap-1.5"><span className="t-etiqueta">Tipo de acción</span>
+                      <Seleccion value={tipoAccion} onChange={(e) => setTipoAccion(e.target.value)} aria-label="Tipo de acción">
+                        <option value="">Elija la acción…</option>{(diag.data?.acciones ?? []).map((a) => <option key={a.clave} value={a.clave}>{a.texto}</option>)}
+                      </Seleccion></label>
+                  </div>
+                  <div><p className="t-etiqueta mb-2">Acción realizada</p><AreaTexto value={accion} onChange={(e) => setAccion(e.target.value)} placeholder="Qué hizo y cómo: detalle de la reparación, ajuste o reemplazo" className="min-h-24" /></div>
                   <div><p className="t-etiqueta mb-2">Herramientas usadas</p>
                     <div className="flex flex-wrap gap-1.5">{(herramientas.data ?? []).slice(0, 18).map((h) => { const s = herrSel.includes(h.id); return <button key={h.id} aria-pressed={s} onClick={() => setHerrSel((l) => (s ? l.filter((x) => x !== h.id) : [...l, h.id]))} className={cx("cursor-pointer rounded border px-2 py-1 text-[12px] transition-colors duration-[140ms]", s ? "border-acento/60 bg-acento-claro text-negro" : "border-linea-suave text-gris hover:border-linea")}>{h.nombre}</button>; })}</div></div>
                 </div>

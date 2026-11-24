@@ -56,7 +56,7 @@ export function PlantaProvider({ children }: { children: ReactNode }) {
       })); },
       equipo: (x) => { vivo(); qc.setQueryData<Equipo[]>(["equipos"], (prev) => prev?.map((e) => (e.codigo === x.codigo ? { ...e, estado: x.estado } : e))); refrescar("resumen", "equipo", "estructura"); },
       alarma: (a) => { vivo(); refrescar("alarmas", "resumen"); if (a.abierta) alertar({ texto: `${a.equipo}: ${a.mensaje}`, nivel: a.nivel === "alarma" ? "alarma" : "aviso", destino: `/explorador?equipo=${a.equipo}` }, a.nivel === "alarma"); },
-      orden: () => refrescar("ordenes", "resumen", "orden", "aprobaciones"),
+      orden: () => refrescar("ordenes", "resumen", "orden", "aprobaciones", "notificaciones"),
       plc: (p) => { setPlcEstado((s) => ({ ...s, [p.codigo]: p.estado })); refrescar("resumen"); if (p.estado === "error") alertar({ texto: `${p.codigo} informa una falla de CPU`, nivel: "alarma", destino: "/automatizacion" }, true); },
       plcIO: (p) => { vivo(); setIo((s) => ({ ...s, [p.codigo]: p.io })); setPlcEstado((s) => ({ ...s, [p.codigo]: p.estado })); },
       evento: (e: EventoPlanta) => { qc.setQueryData<EventoPlanta[]>(["eventos", "vivo"], (prev) => [e, ...(prev ?? [])].slice(0, 200)); },
