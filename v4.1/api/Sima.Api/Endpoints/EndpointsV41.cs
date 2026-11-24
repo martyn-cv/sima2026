@@ -339,11 +339,9 @@ public static class EndpointsV41
             var stock = new List<object>();
             foreach (var c in consumos)
             {
-                var r = await db.Repuestos.FindAsync(c.RepuestoId);
-                if (r is null) return Ayudas.Error($"El repuesto {c.RepuestoId} no existe.", 404);
-                if (r.Stock < c.Cantidad) return Ayudas.Error($"No hay stock suficiente de {r.Nombre}: quedan {r.Stock}.", 409);
-                r.Stock -= c.Cantidad;
-                db.MovimientosRepuesto.Add(new MovimientoRepuesto { RepuestoId = r.Id, Cantidad = -c.Cantidad, OrdenId = o.Id, IntervencionId = i.Id, PorId = s.Id, PorNombre = s.Nombre, Nota = $"Intervención en {o.Codigo}" });
+                // lo ya entregado por el pañol para esta orden no se descuenta dos veces; lo reservado por otros no se toca
+                if (await Panol.ConsumirAsync(db, s, o, c.RepuestoId, c.Cantidad, i.Id) is { } falta) return Ayudas.Error(falta, 409);
+                var r = (await db.Repuestos.FindAsync(c.RepuestoId))!;
                 stock.Add(new { r.Id, r.Codigo, r.Stock, bajoMinimo = r.Stock <= r.StockMinimo });
             }
             var eq = await db.Equipos.Include(x => x.Sensores).Include(x => x.Plc).FirstAsync(x => x.Id == o.EquipoId);

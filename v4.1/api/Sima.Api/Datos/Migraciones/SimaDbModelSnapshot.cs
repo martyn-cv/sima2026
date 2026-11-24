@@ -352,6 +352,62 @@ namespace Sima.Api.Datos.Migraciones
                     b.ToTable("auditoria", (string)null);
                 });
 
+            modelBuilder.Entity("Sima.Api.Dominio.BitacoraPanol", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int?>("Cantidad")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Detalle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Evento")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("OrdenId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PorNombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("SolicitudId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("StockAntes")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("StockDespues")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Tipo", "ItemId");
+
+                    b.ToTable("bitacora_panol", (string)null);
+                });
+
             modelBuilder.Entity("Sima.Api.Dominio.CambioEstadoEquipo", b =>
                 {
                     b.Property<long>("Id")
@@ -915,6 +971,55 @@ namespace Sima.Api.Datos.Migraciones
                     b.HasIndex("RutinaId", "EquipoId", "Fecha");
 
                     b.ToTable("ejecuciones_rutina", (string)null);
+                });
+
+            modelBuilder.Entity("Sima.Api.Dominio.EntregaTurnoPanol", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("EntregaId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntregaNombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Observaciones")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Pendientes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecibeId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecibeNombre")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RecibidaEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Turno")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("entregas_turno_panol", (string)null);
                 });
 
             modelBuilder.Entity("Sima.Api.Dominio.Equipo", b =>
@@ -2660,6 +2765,95 @@ namespace Sima.Api.Datos.Migraciones
                         .IsUnique();
 
                     b.ToTable("sensores", (string)null);
+                });
+
+            modelBuilder.Entity("Sima.Api.Dominio.SolicitudPanol", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CerradaEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Creada")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Devuelta")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("EntregadaEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EntregadaPor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Incompatible")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NotaRevision")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("OrdenId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RevisadaEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RevisadaPor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RevisadaPorId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SolicitanteId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SolicitanteNombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Usada")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<DateTime?>("Vigencia")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrdenId");
+
+                    b.HasIndex("Tipo", "ItemId", "Estado");
+
+                    b.ToTable("solicitudes_panol", (string)null);
                 });
 
             modelBuilder.Entity("Sima.Api.Dominio.TerminoContrato", b =>

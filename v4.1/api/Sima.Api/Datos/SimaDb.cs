@@ -66,6 +66,9 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
     public DbSet<Actividad> Actividades => Set<Actividad>();
     public DbSet<ParticipanteActividad> ParticipantesActividad => Set<ParticipanteActividad>();
     public DbSet<ComentarioOrden> ComentariosOrden => Set<ComentarioOrden>();
+    public DbSet<SolicitudPanol> SolicitudesPanol => Set<SolicitudPanol>();
+    public DbSet<BitacoraPanol> BitacoraPanol => Set<BitacoraPanol>();
+    public DbSet<EntregaTurnoPanol> EntregasTurnoPanol => Set<EntregaTurnoPanol>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -196,6 +199,9 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
         });
         mb.Entity<IntervencionHerramienta>(e => { e.ToTable("intervencion_herramientas"); e.HasKey(x => new { x.IntervencionId, x.HerramientaId }); e.HasOne<Herramienta>().WithMany().HasForeignKey(x => x.HerramientaId).OnDelete(DeleteBehavior.Restrict); });
         mb.Entity<Documento>(e => { e.ToTable("documentos"); e.HasIndex(x => x.TipoEquipo); e.HasOne<Equipo>().WithMany().HasForeignKey(x => x.EquipoId).OnDelete(DeleteBehavior.Cascade); });
+        mb.Entity<SolicitudPanol>(e => { e.ToTable("solicitudes_panol"); e.HasIndex(x => new { x.Tipo, x.ItemId, x.Estado }); e.HasIndex(x => x.OrdenId); e.Property(x => x.Version).IsRowVersion(); });
+        mb.Entity<BitacoraPanol>(e => { e.ToTable("bitacora_panol"); e.HasIndex(x => new { x.Tipo, x.ItemId }); });
+        mb.Entity<EntregaTurnoPanol>(e => e.ToTable("entregas_turno_panol"));
         mb.Entity<Actividad>(e => { e.ToTable("actividades"); e.HasIndex(x => new { x.Inicio, x.Fin }); e.HasIndex(x => x.OrdenId); e.Property(x => x.Version).IsRowVersion();
             e.HasMany(x => x.Participantes).WithOne().HasForeignKey(x => x.ActividadId).OnDelete(DeleteBehavior.Cascade); });
         mb.Entity<ParticipanteActividad>(e => { e.ToTable("participantes_actividad"); e.HasIndex(x => new { x.TrabajadorId, x.ActividadId }).IsUnique(); });

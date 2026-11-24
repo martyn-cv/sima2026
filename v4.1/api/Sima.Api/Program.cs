@@ -121,6 +121,7 @@ app.MapV41();
 app.MapFase2();
 app.MapSimulacion(cfg);
 app.MapCalendario();
+app.MapPanol();
 app.MapHub<PlantaHub>("/hubs/planta");
 
 // ---- arranque automático: crea el esquema, importa el Excel y carga la planta con sus PLC

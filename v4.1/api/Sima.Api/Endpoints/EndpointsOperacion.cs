@@ -47,7 +47,12 @@ public static class EndpointsOperacion
             if (h.Estado != "disponible") return Ayudas.Error($"Ya la tiene {h.RetiradaPorNombre}.", 409);
             if (EstadoCal(h, Reloj.Hoy()) == "VENCIDA") return Ayudas.Error("Su calibración está vencida: no se puede retirar. Pida a instrumentación que la calibre.", 409);
             var s = u.S();
+            await Panol.VencerAsync(db);
+            var reserva = await db.SolicitudesPanol.FirstOrDefaultAsync(x => x.Tipo == "herramienta" && x.ItemId == id && x.Estado == "reservada");
+            if (reserva is not null && reserva.SolicitanteId != s.Id) return Ayudas.Error($"Está reservada para {reserva.SolicitanteNombre} hasta {Calendario.Texto(reserva.Vigencia ?? DateTime.UtcNow)}.", 409);
+            if (reserva is not null) { reserva.Estado = "entregada"; reserva.EntregadaEn = DateTime.UtcNow; reserva.EntregadaPor = s.Nombre; }
             h.Estado = "retirada"; h.RetiradaPorId = s.Id; h.RetiradaPorNombre = s.Nombre; h.RetiradaEn = DateTime.UtcNow;
+            Panol.Anotar(db, "herramienta", h.Id, "retiro", $"Retirada por {s.Nombre}{(reserva is not null ? $" (su reserva SP-{reserva.Id:0000})" : "")}.", s, 1, orden: reserva?.OrdenId, solicitud: reserva?.Id);
             db.Auditar(s, "retiró una herramienta", "herramienta", h.Codigo, h.Nombre);
             await db.SaveChangesAsync();
             return Results.Ok(new { ok = true });
@@ -60,7 +65,10 @@ public static class EndpointsOperacion
             if (h is null) return Ayudas.Error("No existe esa herramienta.", 404);
             if (h.Estado != "retirada") return Ayudas.Error("La herramienta ya está en el pañol.", 409);
             if (h.RetiradaPorId != s.Id && !s.Puede("herramientas", "editar")) return Ayudas.Error("Solo quien la retiró o el pañol puede devolverla.", 403);
+            var quien = h.RetiradaPorNombre;
             h.Estado = "disponible"; h.RetiradaPorId = null; h.RetiradaPorNombre = null; h.RetiradaEn = null;
+            foreach (var x in await db.SolicitudesPanol.Where(x => x.Tipo == "herramienta" && x.ItemId == id && x.Estado == "entregada").ToListAsync()) { x.Estado = "cerrada"; x.Usada = 1; x.CerradaEn = DateTime.UtcNow; }
+            Panol.Anotar(db, "herramienta", h.Id, "devolucion", $"Devuelta{(quien != s.Nombre ? $" (la tenía {quien}; registró {s.Nombre})" : "")}.", s, 1);
             db.Auditar(s, "devolvió una herramienta", "herramienta", h.Codigo, h.Nombre);
             await db.SaveChangesAsync();
             return Results.Ok(new { ok = true });
@@ -74,6 +82,7 @@ public static class EndpointsOperacion
             if (h is null) return Ayudas.Error("No existe esa herramienta.", 404);
             if (!h.RequiereCalibracion) return Ayudas.Error("Esta herramienta no requiere calibración.", 409);
             h.ProximaCalibracion = Reloj.Hoy().AddDays(h.CalibracionDias);
+            Panol.Anotar(db, "herramienta", h.Id, "calibracion", $"Calibración registrada; próxima el {h.ProximaCalibracion:dd-MM-yyyy}.", s);
             db.Auditar(s, "registró una calibración", "herramienta", h.Codigo, $"{h.Nombre}: próxima el {h.ProximaCalibracion}");
             await db.SaveChangesAsync();
             return Results.Ok(new { proxima = h.ProximaCalibracion });
@@ -97,7 +106,16 @@ public static class EndpointsOperacion
             if (r is null) return Ayudas.Error("No existe ese repuesto.", 404);
             if (r.Stock + e.Cantidad < 0) return Ayudas.Error($"No hay stock suficiente: quedan {r.Stock}.", 409);
             if (e.OrdenId is { } oid && !await db.Ordenes.AnyAsync(o => o.Id == oid)) return Ayudas.Error("La orden de trabajo no existe.", 404);
+            if (e.Cantidad < 0)
+            {
+                // lo reservado para otras órdenes está físicamente en el estante, pero no disponible
+                await Panol.VencerAsync(db);
+                var reservadoOtros = await Panol.ReservadoAsync(db, "repuesto", id, excluirOrden: e.OrdenId);
+                if (r.Stock - reservadoOtros + e.Cantidad < 0) return Ayudas.Error($"Hay {r.Stock} en estante, pero {reservadoOtros} está(n) reservado(s) para otras órdenes. Disponible: {Math.Max(0, r.Stock - reservadoOtros)}.", 409);
+            }
+            var antes = r.Stock;
             r.Stock += e.Cantidad;
+            Panol.Anotar(db, "repuesto", r.Id, e.Cantidad < 0 ? "retiro" : (e.Nota ?? "").StartsWith("Ajuste", StringComparison.OrdinalIgnoreCase) ? "ajuste" : "ingreso", (e.Nota ?? "").Length > 0 ? e.Nota! : e.Cantidad < 0 ? "Retiro directo" : "Ingreso", s, e.Cantidad, antes, r.Stock, e.OrdenId);
             db.MovimientosRepuesto.Add(new MovimientoRepuesto { RepuestoId = id, Cantidad = e.Cantidad, OrdenId = e.OrdenId, PorId = s.Id, PorNombre = s.Nombre, Nota = e.Nota ?? "" });
             db.Auditar(s, e.Cantidad < 0 ? "retiró repuestos" : "ingresó repuestos", "repuesto", r.Codigo, $"{r.Nombre}: {e.Cantidad:+#;-#}");
             await db.SaveChangesAsync();

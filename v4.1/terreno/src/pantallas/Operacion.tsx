@@ -71,67 +71,6 @@ export function Rutinas() {
   );
 }
 
-// ------------------------------------------------------------------------------------------ pañol: herramientas y repuestos
-interface Herramienta { id: number; codigo: string; nombre: string; estado: string; requiereCalibracion: boolean; proxima?: string | null; calibracion: string; retiradaPor?: string | null; retiradaPorId?: string | null; retiradaEn?: string | null }
-interface Repuesto { id: number; codigo: string; nombre: string; tipo: string; ubicacion: string; stock: number; stockMinimo: number; costoUnitario: number; critico: boolean; bajoMinimo: boolean }
-
-export function Panol() {
-  const { usuario, puede } = useAuth();
-  const qc = useQueryClient(); const aviso = useAviso();
-  const [tab, setTab] = useState<"herramientas" | "repuestos">("herramientas");
-  const [q, setQ] = useState("");
-  const [mov, setMov] = useState<{ r: Repuesto; signo: 1 | -1 } | null>(null); const [cant, setCant] = useState("1"); const [nota, setNota] = useState("");
-  const her = useQuery({ queryKey: ["herramientas"], queryFn: () => api.get<Herramienta[]>("/api/herramientas"), refetchInterval: 20_000 });
-  const rep = useQuery({ queryKey: ["repuestos"], queryFn: () => api.get<Repuesto[]>("/api/repuestos"), refetchInterval: 20_000 });
-  const accion = useMutation({
-    mutationFn: ({ id, que }: { id: number; que: "retirar" | "devolver" | "calibrar" }) => api.post(`/api/herramientas/${id}/${que}`),
-    onSuccess: (_r, v) => { void qc.invalidateQueries({ queryKey: ["herramientas"] }); aviso(v.que === "retirar" ? "Herramienta retirada." : v.que === "devolver" ? "Herramienta devuelta al pañol." : "Calibración registrada."); },
-    onError: (e) => aviso(mensajeDe(e), "error"),
-  });
-  const mover = useMutation({
-    mutationFn: () => api.post<{ stock: number }>(`/api/repuestos/${mov!.r.id}/movimiento`, { cantidad: mov!.signo * Number(cant), nota }),
-    onSuccess: (r) => { void qc.invalidateQueries({ queryKey: ["repuestos"] }); aviso(`Listo. Quedan ${r.stock}.`); setMov(null); setCant("1"); setNota(""); }, onError: (e) => aviso(mensajeDe(e), "error"),
-  });
-  const rf = useMemo(() => (rep.data ?? []).filter((r) => !q || `${r.nombre} ${r.codigo} ${r.tipo}`.toLowerCase().includes(q.toLowerCase())), [rep.data, q]);
-  const tono = { VIGENTE: "ok", "POR VENCER": "aviso", VENCIDA: "peligro", "SIN CALIBRACIÓN": "neutro" } as const;
-  return (
-    <>
-      <Encabezado titulo="Pañol" descripcion="Retire y devuelva herramientas, y registre los repuestos que usa. Una herramienta con la calibración vencida no se puede retirar." />
-      <Pestanas id="pan" activa={tab} onCambio={setTab} items={[{ clave: "herramientas", titulo: "Herramientas", n: her.data?.length }, { clave: "repuestos", titulo: "Repuestos", n: (rep.data ?? []).filter((r) => r.bajoMinimo).length || undefined }]} />
-      <div className="mt-5">
-        {tab === "herramientas" && (her.error ? <ErrorCarga error={her.error} /> : (
-          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {(her.data ?? []).map((h) => (
-              <li key={h.id}><Seccion sinBorde className={cx("border-l-[4px]", h.calibracion === "VENCIDA" ? "border-rojo" : h.estado === "retirada" ? "border-ambar" : "border-linea")}><div className="p-4">
-                <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="font-medium">{h.nombre}</p><p className="num text-[13px] text-gris">{h.codigo}</p></div><Chip tono={tono[h.calibracion as keyof typeof tono]}>{h.calibracion === "SIN CALIBRACIÓN" ? "No requiere calibración" : h.calibracion === "VIGENTE" ? "Calibrada" : h.calibracion === "POR VENCER" ? "Calibración por vencer" : "Calibración vencida"}</Chip></div>
-                {h.proxima && <p className="mt-1 text-[13px] text-gris">Calibración vence el {fecha(h.proxima)}</p>}
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {h.estado === "disponible" ? <Boton tam="s" variante="negro" disabled={h.calibracion === "VENCIDA"} cargando={accion.isPending && accion.variables?.id === h.id} onClick={() => accion.mutate({ id: h.id, que: "retirar" })}>Retirar</Boton>
-                    : <><span className="text-[14px] text-gris">La tiene {h.retiradaPorId === usuario?.id ? "usted" : h.retiradaPor}, {hace(h.retiradaEn)}</span>{(h.retiradaPorId === usuario?.id || puede("herramientas", "editar")) && <Boton tam="s" variante="contorno" onClick={() => accion.mutate({ id: h.id, que: "devolver" })}>Devolver</Boton>}</>}
-                  {h.requiereCalibracion && puede("herramientas", "editar") && <Boton tam="s" variante="contorno" onClick={() => accion.mutate({ id: h.id, que: "calibrar" })}>Registrar calibración</Boton>}
-                </div></div></Seccion></li>
-            ))}
-          </ul>))}
-        {tab === "repuestos" && (rep.error ? <ErrorCarga error={rep.error} /> : (
-          <Seccion>
-            <div className="border-b border-linea-suave p-4"><Entrada className="max-w-[360px]" placeholder="Buscar repuesto" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar repuesto" /></div>
-            {rf.length === 0 ? <Vacio titulo="Sin resultados" /> : <ul className="divide-y divide-linea-suave">{rf.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
-                <div className="min-w-0 flex-1"><p className="font-medium">{r.nombre}</p><p className="text-[13px] text-gris"><span className="num">{r.codigo}</span> · {r.ubicacion} · {clp(r.costoUnitario)}</p></div>
-                <div className="flex items-center gap-1.5">{r.critico && <Chip tono="aviso" punto={false}>Crítico</Chip>}{r.bajoMinimo && <Chip tono="peligro">Bajo el mínimo</Chip>}</div>
-                <span className="num w-24 text-right"><b className="text-[20px]">{r.stock}</b> <span className="text-[13px] text-gris">mín. {r.stockMinimo}</span></span>
-                <div className="flex gap-1.5"><Boton tam="s" variante="negro" disabled={r.stock === 0} onClick={() => { setCant("1"); setMov({ r, signo: -1 }); }}>Retirar</Boton>{puede("repuestos", "editar") && <Boton tam="s" variante="contorno" onClick={() => { setCant("1"); setMov({ r, signo: 1 }); }}>Ingresar</Boton>}</div>
-              </li>))}</ul>}
-          </Seccion>))}
-      </div>
-      <Dialogo abierto={mov != null} onCerrar={() => setMov(null)} titulo={mov?.signo === -1 ? "Retirar repuesto" : "Ingresar repuesto"} ancho={460}
-        pie={<><Boton variante="contorno" onClick={() => setMov(null)}>Cancelar</Boton><Boton variante="rojo" cargando={mover.isPending} disabled={Number(cant) < 1} onClick={() => mover.mutate()}>{mov?.signo === -1 ? "Retirar" : "Ingresar"}</Boton></>}>
-        <p className="mb-3 text-gris">{mov?.r.nombre} · hay {mov?.r.stock}</p>
-        <div className="grid gap-3"><Campo etiqueta="Cantidad"><Entrada type="number" min={1} value={cant} onChange={(e) => setCant(e.target.value)} /></Campo><Campo etiqueta="Para qué (opcional)"><Entrada value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Por ejemplo: OT-0003" /></Campo></div>
-      </Dialogo>
-    </>
-  );
-}
 
 // ------------------------------------------------------------------------------------------ traspaso de turno
 interface Borrador { turno: string; items: string[]; rutinasVencidas: number; ordenesAbiertas: { codigo: string; equipo: string; titulo: string; prioridad: string }[]; ordenesEnCurso: { codigo: string; equipo: string; titulo: string; asignado?: string | null }[]; equiposFuera: { codigo: string; nombre: string; estado: string }[]; alarmasAbiertas: { equipo: string; nivel: string; mensaje: string }[]; repuestosCriticos: { codigo: string; nombre: string; stock: number; minimo: number }[] }
