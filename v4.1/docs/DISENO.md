@@ -90,7 +90,9 @@ Tema oscuro por defecto (se puede cambiar a claro desde el perfil), mayor densid
 - **Barra lateral** (`shell.tsx`): logo, identificación del espacio (familia del cargo), buscador, módulos del cargo
   agrupados (Mi trabajo, Planta, Turno, Personal) con grupos plegables, indicador de pantalla activa, contadores de
   pendientes (órdenes asignadas o por firmar, órdenes sin asignar para planificación, equipos en falla), accesos rápidos
-  (reportar falla, condición insegura) y botón para contraer o expandir (se recuerda en el equipo).
+  (reportar falla, condición insegura) y botón para contraer o expandir (se recuerda en el equipo). El ancho se ajusta
+  arrastrando el borde (200–380 px, doble clic restablece, flechas del teclado) y cada entrada muestra su nombre
+  completo como ayuda emergente.
 - **Barra superior:** ruta (miga de pan), buscador global `Ctrl K` (pantallas, equipos y órdenes), aviso de equipos en
   falla, conexión con el servidor, turno, fecha y hora, centro de notificaciones y menú de perfil (tema, mi cargo,
   cerrar sesión).
@@ -113,6 +115,21 @@ Tema oscuro por defecto (se puede cambiar a claro desde el perfil), mayor densid
   liberación. El paso de pruebas registra cada prueba (conforme o no) y exige que la última sea conforme para pedir la
   liberación; se marca si la intervención afecta la seguridad o la calidad (agrega esas firmas). Lo escrito se guarda
   como borrador en el equipo y se avisa antes de cerrar la ventana con trabajo sin registrar.
+- **Planificación de mantenimiento** (`pantallas/Calendario.tsx`): calendario semanal, por técnico (día), mensual y de
+  carga; arrastrar una orden desde «Por programar» abre la asignación (responsable con turno, LOTO y horas,
+  colaboradores, horario, duración, fecha límite, prioridad, especialidad, instrucciones, herramientas, repuestos
+  compatibles, procedimientos, resultados y pruebas) con disponibilidad revisada en vivo; mover o estirar un bloque
+  reprograma (el servidor revisa cruces y sugiere horarios). Colores: correctivo, preventivo, en ejecución, completado,
+  capacitación y «ocupado» (otra área, sin detalle).
+- **Tarea asignada y bitácora** (`pantallas/Bitacora.tsx`): el técnico ve lo que dejó la jefatura y confirma la
+  recepción; la bitácora jefe–técnico (avance, problema, ayuda, recursos, tiempo, revisión) queda en la orden y avisa.
+- **Seguimiento del departamento** (`pantallas/Seguimiento.tsx`): órdenes sin asignar, sin confirmar, atrasadas, en
+  ejecución, por liberar, preventivas y cerradas, con acciones en la fila; avisos de técnicos, equipos detenidos y fallas
+  recurrentes.
+- **Pañol** (`pantallas/PanolV2.tsx`): físico, reservado y disponible; solicitudes con revisión, reserva con vigencia,
+  entrega, uso y devolución; bitácora de solo agregar por ítem; entrega de turno.
+- **Charlas y capacitaciones** (`pantallas/Capacitaciones.tsx`, prevención) y **Mi agenda** (todos): convocatoria con
+  revisión de la agenda de cada persona, respuesta del convocado, asistencia y certificación por separado.
 - **Ingreso** (`App.tsx`): identidad de la estación de planta, estado del servidor, mostrar clave, aviso de Bloq Mayús,
   recuperación por Soporte TI, cuentas de demostración marcadas como datos simulados y filtrables, versión.
 
@@ -131,6 +148,10 @@ Tema claro por defecto (se puede cambiar a oscuro), identidad de gestión, disti
 - **Auditoría:** cargo, plataforma, valor anterior y nuevo, motivo y búsqueda.
 - **Mantenimiento e inicio:** bandeja «Requieren su firma o aprobación» con las liberaciones; la jefatura de calidad
   firma desde la web aunque su cargo no vea órdenes de trabajo (el servidor le muestra solo la orden que espera su firma).
+- **Contratos:** indicadores compactos que filtran (vigentes, vencen en 30 y en 31–60 días, vencidos por regularizar,
+  terminados), tabla con búsqueda, filtros, orden, paginación, columnas configurables y exportación CSV, y ficha
+  lateral con el contrato actual, el historial, el estado de la cuenta y las acciones de regularización. Los sueldos
+  solo llegan a quien tiene permiso de remuneraciones o de edición de contratos (lo decide el servidor).
 
 ## 6. Supuestos de diseño
 
@@ -142,7 +163,7 @@ Tema claro por defecto (se puede cambiar a oscuro), identidad de gestión, disti
 
 ## 7. Verificación
 
-- Pruebas de la API: 53 de 53 (incluye que calidad lea solo la orden que espera su firma).
+- Pruebas de la API: 62 de 62 (incluye los escenarios de aceptación A–F y H; ver `docs/PERFECCIONAMIENTO.md`).
 - Tipos: `terreno`, `web` y `plc-sim` sin errores.
 - Navegador (Playwright, 1366×768 en Desktop y 1440×900 en Web): ocho cargos de Desktop sin errores de consola; flujo
   completo técnico → firma técnica → seguridad → producción → puesta en marcha; jefatura de calidad firmando desde la web;
