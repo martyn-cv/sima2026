@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fecha, hace, type Usuario } from "@sima/cliente";
-import { Boton, Chip, Cuenta, Dato, Encabezado, Entrada, ErrorCarga, Esqueleto, Estado, Seccion, Vacio, cx, mensajeDe, useAviso } from "@sima/ui";
+import { Boton, Cajon, Chip, Cuenta, Dato, Encabezado, Entrada, ErrorCarga, Esqueleto, Estado, PanelSeguridad, Seccion, Vacio, cx, mensajeDe, useAviso } from "@sima/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { usePlanta } from "../lib/planta";
@@ -64,7 +64,8 @@ export function Alarmas() {
 }
 
 export function MiCargo() {
-  const { usuario } = useAuth();
+  const { usuario, refrescar } = useAuth();
+  const [seguridad, setSeguridad] = useState(false);
   const cargos = useQuery({ queryKey: ["cargos"], queryFn: () => api.get<{ id: number; nombre: string; familia: string; paraQueExiste: string; queHace: string; queEntrega: string; seCoordinaCon: string; comoMedir: string; conocimientos: string }[]>("/api/cargos") });
   const habil = useQuery({ queryKey: ["habilitaciones"], queryFn: () => api.get<Habil[]>("/api/yo/habilitaciones") });
   const c = cargos.data?.find((x) => x.id === (usuario as Usuario).cargoId);
@@ -76,12 +77,13 @@ export function MiCargo() {
           <dl className="grid gap-4 p-5">{([["Para qué existe", c.paraQueExiste], ["Qué hace", c.queHace], ["Qué entrega", c.queEntrega], ["Con quién se coordina", c.seCoordinaCon], ["Cómo se mide", c.comoMedir], ["Qué debe saber", c.conocimientos]] as const).map(([t, v]) => <Dato key={t} etiqueta={t}><span className="font-normal">{v}</span></Dato>)}</dl>
         )}</Seccion>
         <div className="grid content-start gap-5">
-          <Seccion titulo="Mi ficha"><dl className="grid grid-cols-2 gap-4 p-5"><Dato etiqueta="Área">{usuario?.familia}</Dato><Dato etiqueta="Perfil">{usuario?.perfil}</Dato><Dato etiqueta="Jefe directo">{usuario?.jefe}</Dato><Dato etiqueta="Usuario">{usuario?.correo}</Dato></dl></Seccion>
+          <Seccion titulo="Mi ficha"><dl className="grid grid-cols-2 gap-4 p-5"><Dato etiqueta="Área">{usuario?.familia}</Dato><Dato etiqueta="Perfil">{usuario?.perfil}</Dato><Dato etiqueta="Jefe directo">{usuario?.jefe}</Dato><Dato etiqueta="Usuario">{usuario?.correo}</Dato></dl><div className="px-5 pb-5"><Boton variante="contorno" onClick={() => setSeguridad(true)}>Seguridad de la cuenta</Boton></div></Seccion>
           <Seccion titulo="Mis habilitaciones">{(habil.data ?? []).length === 0 ? <p className="p-5 text-gris">Su cargo no exige habilitaciones registradas.</p> : (
             <ul className="divide-y divide-linea-suave px-5 pb-2 pt-1">{habil.data!.map((h) => <li key={h.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-medium">{h.nombre}</p><p className="text-[14px] text-gris">vence el {fecha(h.vence)}{h.dias >= 0 ? `, en ${h.dias} días` : `, hace ${-h.dias} días`}</p></div><Estado v={h.estado} /></li>)}</ul>
           )}</Seccion>
         </div>
       </div>
+      <Cajon abierto={seguridad} onCerrar={() => setSeguridad(false)} titulo="Seguridad de la cuenta" ancho={560}>{usuario && <PanelSeguridad cliente={api} usuario={usuario} alNuevoToken={(t) => void refrescar(t)} alTerminar={() => setSeguridad(false)} />}</Cajon>
     </>
   );
 }

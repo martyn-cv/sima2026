@@ -9,7 +9,7 @@ using Sima.Api.Servicios;
 
 namespace Sima.Api.Endpoints;
 
-public record OrdenEntrada(string Equipo, string Titulo, string? Descripcion, string? Prioridad);
+public record OrdenEntrada(string Equipo, string Titulo, string? Descripcion, string? Prioridad, string? Uid = null);
 public record TomarOrdenEntrada(bool LotoConfirmado);
 public record CerrarOrdenEntrada(string? Nota, bool LotoRetirado);
 public record ComandoEntrada(string Tag, double Valor);
@@ -90,7 +90,8 @@ public static class EndpointsPlanta
             var eq = await db.Equipos.FirstOrDefaultAsync(x => x.Codigo == e.Equipo);
             if (eq is null) return Ayudas.Error("No existe ese equipo.", 404);
             if (string.IsNullOrWhiteSpace(e.Titulo)) return Ayudas.Error("Escriba un título.");
-            var o = new OrdenTrabajo { EquipoId = eq.Id, Titulo = e.Titulo.Trim(), Descripcion = e.Descripcion ?? "", Prioridad = e.Prioridad is "baja" or "media" or "alta" or "critica" ? e.Prioridad : "media", CreadaPorId = u.S().Id };
+            if (e.Uid is { Length: > 0 } && await db.Ordenes.FirstOrDefaultAsync(x => x.Uid == e.Uid) is { } previa) return Results.Ok(new { previa.Id, previa.Codigo, repetida = true });
+            var o = new OrdenTrabajo { Uid = e.Uid, EquipoId = eq.Id, Titulo = e.Titulo.Trim(), Descripcion = e.Descripcion ?? "", Prioridad = e.Prioridad is "baja" or "media" or "alta" or "critica" ? e.Prioridad : "media", CreadaPorId = u.S().Id };
             db.Ordenes.Add(o);
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad });
@@ -106,7 +107,7 @@ public static class EndpointsPlanta
             if (o.Estado != "abierta") return Ayudas.Error("La orden ya fue tomada o cerrada.", 409);
             if (!e.LotoConfirmado) return Ayudas.Error("Antes de iniciar debe confirmar el bloqueo y etiquetado (LOTO) del equipo.");
             var eq = await db.Equipos.FirstAsync(x => x.Id == o.EquipoId);
-            o.Estado = "en_curso"; o.AsignadoAId = s.Id; o.LotoConfirmado = true; eq.Estado = "en_mantencion";
+            var antes = eq.Estado; o.Estado = "en_curso"; o.AsignadoAId = s.Id; o.LotoConfirmado = true; eq.Estado = "en_mantencion"; Paradas.Cambio(db, eq, antes, DateTime.UtcNow);
             db.Auditar(s, "inició una orden con bloqueo confirmado", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}");
             await db.SaveChangesAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
@@ -124,7 +125,7 @@ public static class EndpointsPlanta
             var eq = await db.Equipos.Include(x => x.Sensores).FirstAsync(x => x.Id == o.EquipoId);
             o.Estado = "cerrada"; o.Cerrada = DateTime.UtcNow;
             if (!string.IsNullOrWhiteSpace(e.Nota)) o.Descripcion = (o.Descripcion + "\nCierre: " + e.Nota.Trim()).Trim();
-            eq.Estado = "operando";
+            var previo = eq.Estado; eq.Estado = "operando"; Paradas.Cambio(db, eq, previo, DateTime.UtcNow);
             foreach (var sen in eq.Sensores) sen.Deriva = 0;
             if (eq.PlcId is { } plcId) db.PlcComandos.Add(new PlcComando { PlcId = plcId, Tag = CodigoNum(eq.Codigo) + "_REPARAR", Valor = 1, SolicitadoPor = s.Nombre });
             db.Auditar(s, "cerró una orden y retiró el bloqueo", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}");

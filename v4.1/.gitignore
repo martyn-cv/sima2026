@@ -1,0 +1,16 @@
+bin/
+obj/
+node_modules/
+.next/
+dist/
+out/
+target/
+*.user
+.env
+.vs/
+*.log
+.turbo/
+gen/
+*.tsbuildinfo
+next-env.d.ts
+.logs/

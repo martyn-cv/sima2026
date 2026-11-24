@@ -1,0 +1,304 @@
+# Familia 3 · Ingeniería, procesos y automatización
+- id: 16
+  dashboard: Ingeniería de procesos
+  proposito: Diseña cómo se fabrica cada producto (método, tiempos, parámetros) y valida los cambios técnicos. Sin estándares documentados, cada turno trabaja a su manera y la variabilidad sube.
+  jornada:
+    inicio: Revisa pérdidas y rechazos del día anterior por línea y producto.
+    durante: Documenta hojas de proceso, estudia balances y causas de pérdida, y revisa cambios técnicos propuestos.
+    coordina: Con producción, calidad, mantenimiento y planificación.
+    anomalia: Si un producto muestra variabilidad o rechazo repetido, abre un análisis de causa y propone un cambio de método o parámetro.
+    cierre: Publica las versiones aprobadas de las hojas de proceso.
+  decide: Contenido técnico de las hojas de proceso y estándares de trabajo; validación técnica de cambios.
+  escala: Jefatura de producción y gerencia de planta (cambios que afectan capacidad o inversión).
+  consulta: [Producción y rechazos por producto y línea, Detenciones y pérdidas por causa, Parámetros de equipos, Tiempos de ciclo, Hojas de proceso vigentes]
+  genera:
+    crear: Hojas de proceso y estándares de trabajo (documentos versionados).
+    editar: Parámetros estándar por producto (con aprobación).
+    registrar: Análisis de pérdidas y validaciones de cambio.
+    exportar: Estudios de capacidad.
+  no_ve: Datos personales, contratos y sueldos. No cambia parámetros de PLC directamente.
+  impacto: Sus estándares son la referencia del ritmo, del costo estándar y del plan. Un estándar mal definido distorsiona el OEE y la planificación.
+  ui:
+    prioridad: Pérdidas y variabilidad por producto, y cambios técnicos por validar.
+    disposicion: Pareto de pérdidas · variabilidad por producto · documentos de proceso con versión · cambios por validar.
+    menu: [Inicio, Pérdidas y variabilidad, Documentos de proceso, Cambios técnicos, Producción, Indicadores]
+    datos: "Tablas: pérdidas por causa, documentos con versión y estado. Formularios: hoja de proceso, validación de cambio."
+    acciones: [Publicar nueva versión de hoja de proceso, Validar cambio técnico, Abrir análisis de causa]
+    alertas: [Rechazo de un producto sobre su umbral, Cambio técnico esperando validación]
+    notificaciones: Producción reporta pérdida recurrente; calidad abre NC de un producto suyo.
+    vacio: “No hay pérdidas registradas en el período.”
+    componentes: Pareto, gráfico de control, visor de documento con historial de versiones.
+  medir:
+    - [Tiempo ciclo, Tiempos por pieza (no se registran), falta]
+    - [Rendimiento, Producción contra estándar, parcial]
+    - [Merma, Rechazos de producción, hoy]
+    - [Variabilidad, Lecturas de sensores y mediciones, parcial]
+  flujo:
+    entrada: Datos de producción, pérdidas, NC de calidad.
+    procesa: Analiza causas y define métodos.
+    salida: Hojas de proceso y estándares versionados, cambios validados.
+    destinatarios: Producción, calidad, planificación, costos.
+    consecuencia: Operadores trabajan con la versión vigente; planificación usa tiempos reales.
+  permisos: {produccion: "c@pl", calidad: "c@pl", documentos: "c,cr,e@pl", producto: "c@em", equipos: "c@pl", eventos: "c@pl", kpis: "c@pl", proyectos: "c,cr,e@pl", traspaso: "c@pl", plc: "c@pl"}
+  apps: [web]
+  validar: [Quién aprueba una nueva versión de hoja de proceso]
+  hoy: Ve producción, calidad, planta e indicadores. No hay documentos de proceso versionados ni análisis de pérdidas por causa.
+
+- id: 17
+  dashboard: Mejora continua
+  proposito: Encuentra y elimina desperdicios de extremo a extremo y demuestra con datos que la mejora ocurrió.
+  jornada:
+    inicio: Revisa el avance de los proyectos de mejora (A3) y los indicadores que cada uno debe mover.
+    durante: Mapea flujos de valor, facilita 5S y Kaizen, y mide antes y después.
+    coordina: Con operaciones, RR. HH. (formación) y finanzas (validación de ahorros).
+    anomalia: Si un beneficio comprometido no aparece en los datos, reabre el análisis.
+    cierre: Actualiza el estado de cada A3 y los beneficios validados.
+  decide: Qué proyectos de mejora se priorizan dentro de su cartera y cuándo un beneficio está verificado.
+  escala: Gerencia de operaciones (proyectos que requieren inversión).
+  consulta: [Indicadores históricos (OEE, lead time, WIP), Pérdidas por causa, Resultados de auditorías 5S, Costos cuando estén disponibles]
+  genera:
+    crear: Proyectos de mejora (A3) con línea base y meta.
+    registrar: Avances, mediciones antes/después y beneficios.
+    cerrar: Proyectos con beneficio validado.
+    exportar: Seguimiento de beneficios.
+  no_ve: Datos personales y sueldos individuales.
+  impacto: Las mejoras validadas cambian estándares, capacidad y costos. Un beneficio mal medido lleva a invertir en lo que no funciona.
+  ui:
+    prioridad: Cartera de mejoras y su efecto en los indicadores.
+    disposicion: Tablero kanban de A3 · indicador antes/después por proyecto · beneficios acumulados.
+    menu: [Inicio, Proyectos de mejora, Indicadores, Pérdidas, 5S y auditorías]
+    datos: "Tablas: proyectos con línea base, meta y real. Formularios: A3, medición, beneficio."
+    acciones: [Crear A3, Registrar medición, Validar beneficio]
+    alertas: [Proyecto sin avance en 30 días, Beneficio comprometido no verificado]
+    notificaciones: Finanzas validó un ahorro.
+    vacio: “No hay proyectos de mejora. Cree un A3 a partir de una pérdida del Pareto.”
+    componentes: Kanban, gráfico antes/después.
+  medir:
+    - [Ahorros validados, Proyectos con beneficio validado por finanzas (no existen), falta]
+    - [Lead time, Tiempos de orden de inicio a término, parcial]
+    - [Productividad, Producción y asistencia, parcial]
+    - [WIP, Inventario en proceso (no existe), falta]
+  flujo:
+    entrada: Indicadores y pérdidas.
+    procesa: Analiza desperdicios y prueba mejoras.
+    salida: A3, estándares mejorados y beneficios.
+    destinatarios: Operaciones, ingeniería de procesos, finanzas.
+    consecuencia: Cambian estándares y metas.
+  permisos: {proyectos: "c,cr,e,ci@pl", kpis: "c,x@pl", produccion: "c@pl", calidad: "c@pl", documentos: "c@pl", costos: "c@ag"}
+  apps: [web]
+  validar: [Quién valida los ahorros (finanzas o control de gestión)]
+  hoy: Ve indicadores y producción. No existe el módulo de proyectos de mejora.
+
+- id: 18
+  dashboard: Automatización y control
+  proposito: Diseña y cuida la arquitectura de control (PLC, HMI, redes, alarmas). Es el dueño técnico de que cada cambio en un controlador esté probado, respaldado y aprobado.
+  jornada:
+    inicio: Revisa el estado de los PLC (en marcha, en falla, sin conexión), alarmas de control y cambios de programa pendientes.
+    durante: Prepara y prueba cambios en el simulador, documenta señales y versiones, y gestiona respaldos.
+    coordina: Con mantenimiento, producción, TI/OT e integradores.
+    anomalia: Ante una falla de control o de comunicación, diagnostica con eventos y E/S, coordina la intervención y documenta la causa.
+    cierre: Deja registrados respaldos, versiones y el estado de los cambios.
+  decide: Contenido técnico de los cambios de programa que solicita; no publica sus propios cambios (otra persona aprueba).
+  escala: Jefatura de mantenimiento o gerencia de planta (aprobación de cambios).
+  consulta: [Estado y versión de cada PLC, Racks, módulos y puntos de E/S, Eventos y alarmas de control, Historial de cambios de programa, Resultados del simulador]
+  genera:
+    solicitar: Cambios de programa (versión propuesta con justificación).
+    registrar: Pruebas en simulador, respaldos y lista de señales.
+    crear: Equipos y PLC en la estructura de planta.
+    editar: Documentación técnica de controladores.
+  no_ve: Datos personales, contratos, sueldos. No aprueba sus propios cambios.
+  impacto: Un cambio sin prueba ni respaldo puede detener una línea completa. Su documentación es la que usa el técnico cuando hay una falla.
+  ui:
+    prioridad: Controladores en falla o sin conexión y cambios esperando aprobación.
+    disposicion: Grilla de PLC con estado · cambios de programa con su estado · eventos de control · acceso al simulador.
+    menu: [Inicio, Controladores, Cambios de programa, Eventos, Simulador, Estructura de planta, OT de automatización]
+    datos: "Tablas: PLC (estado, versión, último contacto), cambios (estado, solicitante, revisor). Formularios: solicitud de cambio con diferencia de versión, registro de prueba."
+    acciones: [Solicitar cambio de programa, Registrar prueba en simulador, Ver E/S en vivo, Abrir simulador]
+    alertas: [PLC sin conexión, Falla de CPU, Cambio rechazado]
+    notificaciones: Su cambio fue aprobado o rechazado; un PLC pasó a falla.
+    vacio: “Todos los controladores en marcha y sin cambios pendientes.”
+    componentes: Diferencia de versiones, vista de E/S en vivo, distintivo de dato simulado.
+  medir:
+    - [Fallas de control, Eventos de falla de PLC, hoy]
+    - [Tiempo de recuperación, Duración entre falla y recuperación del PLC, hoy]
+    - [Cambios exitosos, Cambios aprobados sin reversión (la reversión no se registra), parcial]
+  flujo:
+    entrada: Fallas, solicitudes de producción o mantenimiento, resultados de simulación.
+    procesa: Diseña, prueba y documenta cambios.
+    salida: Solicitudes de cambio, respaldos, documentación.
+    destinatarios: Aprobador (jefatura de mantenimiento o planta), técnicos, sala de control.
+    consecuencia: Al aprobarse, el PLC recibe la nueva versión y queda trazado quién solicitó y quién aprobó.
+  permisos: {plc: "c,s,e@pl", plc_comandos: "c,r@pl", simulador: "c,r@pl", equipos: "c,cr,e@pl", eventos: "c,r@pl", ot: "c,r@pl", documentos: "c,cr,e@pl", kpis: "c@pl", repuestos: "c,s@pl", herramientas: "c@pl", habilitaciones: "c@pr"}
+  apps: [desktop, web]
+  validar: [Si la arquitectura de red y la lista de señales deben quedar en SIMA o en un repositorio de ingeniería]
+  hoy: Solicita cambios de PLC (control de cuatro ojos), crea equipos, envía mandos y usa el simulador. No hay registro de pruebas ni respaldos vinculados al cambio.
+
+- id: 19
+  dashboard: Cambios PLC/HMI
+  proposito: Escribe y mantiene la lógica de control bajo un proceso formal de cambios, de modo que ninguna modificación llegue a un controlador sin prueba ni respaldo.
+  jornada:
+    inicio: Revisa alarmas reincidentes y los cambios de programa en curso.
+    durante: Diagnostica alarmas, prepara la nueva versión, la prueba en el simulador y coordina la ventana de intervención.
+    coordina: Con el ingeniero de control, técnicos y supervisión.
+    anomalia: Si una alarma reincide tras un cambio, propone reversión o corrección y lo documenta.
+    cierre: Actualiza la bitácora de cambios y el respaldo de la versión publicada.
+  decide: Contenido de la lógica que propone, dentro del alcance autorizado.
+  escala: Ingeniero de automatización (diseño), aprobador del cambio.
+  consulta: [Programa y versión de cada PLC, Alarmas y su historial, Eventos de E/S, Documentación de señales, Resultados del simulador]
+  genera:
+    solicitar: Cambios de programa con justificación.
+    registrar: Pruebas en simulador, respaldos y bitácora de cambios.
+  no_ve: Datos personales, contratos, sueldos. No aprueba ni publica sus cambios.
+  impacto: Su lógica gobierna el comportamiento de las máquinas. Un error sin prueba se traduce en detenciones o riesgos.
+  ui:
+    prioridad: Cambios propios en curso, alarmas reincidentes y ventanas acordadas.
+    disposicion: Mis cambios (borrador, enviado, aprobado, rechazado) · alarmas reincidentes · simulador · ventanas.
+    menu: [Inicio, Mis cambios, Controladores, Alarmas, Simulador]
+    datos: "Tablas: cambios propios, alarmas por frecuencia. Formularios: solicitud de cambio, prueba de simulación."
+    acciones: [Crear solicitud de cambio, Registrar prueba, Abrir simulador]
+    alertas: [Alarma reincidente, Cambio rechazado, Ventana de intervención próxima]
+    notificaciones: Cambio aprobado o rechazado.
+    vacio: “No tiene cambios en curso.”
+    componentes: Editor de diferencias, historial de versiones.
+  medir:
+    - [Reincidencias, Alarmas repetidas tras un cambio, parcial]
+    - [Éxito de pruebas, Pruebas registradas con resultado (no existen), falta]
+    - [Tiempo de diagnóstico, Tiempo entre alarma y OT o cambio, parcial]
+  flujo:
+    entrada: Alarmas, solicitudes técnicas.
+    procesa: Diagnostica, programa y prueba.
+    salida: Cambio solicitado con prueba y respaldo.
+    destinatarios: Aprobador, técnicos, sala de control.
+    consecuencia: La versión publicada queda trazada.
+  permisos: {plc: "c,s@pl", simulador: "c,r@pl", plc_comandos: "c,r@pl", eventos: "c@pl", equipos: "c@pl", ot: "c,r@pl", documentos: "c,cr@pl", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si el programador puede enviar mandos a distancia en producción o solo en el simulador]
+  hoy: Igual que el ingeniero de automatización (mismo perfil). No hay registro de pruebas ni bitácora propia.
+
+- id: 20
+  dashboard: Instrumentación y calibración
+  proposito: Asegura que lo que miden los sensores sea verdad. Si un transmisor está descalibrado, las alarmas y los indicadores mienten.
+  jornada:
+    inicio: Revisa instrumentos con calibración vencida o por vencer y las OT de instrumentación asignadas.
+    durante: Inspecciona sensores y lazos, calibra según procedimiento con patrones trazables y registra desvíos.
+    coordina: Con calidad, automatización, mantenimiento y metrología.
+    anomalia: Si un instrumento está fuera de tolerancia, lo marca, avisa a quien lo usa y abre la acción correspondiente.
+    cierre: Registra las calibraciones hechas y actualiza las fechas de vencimiento.
+  decide: Declarar un instrumento conforme o fuera de tolerancia.
+  escala: Metrología y calidad (impacto en producto), automatización (lazos de control).
+  consulta: [Inventario de instrumentos y sensores, Fechas y resultados de calibración, Procedimientos, Lecturas de los sensores, OT de instrumentación]
+  genera:
+    registrar: Calibraciones (antes y después, patrón usado), desvíos.
+    editar: Estado y próxima fecha de calibración del instrumento.
+    cerrar: OT de instrumentación.
+  no_ve: Datos personales, contratos y sueldos; programas de PLC en edición.
+  impacto: Un instrumento vencido invalida mediciones de calidad y alarmas de proceso.
+  ui:
+    prioridad: Instrumentos vencidos y por vencer, y OT asignadas.
+    disposicion: Indicadores (vigentes, por vencer, vencidos) · lista ordenada por vencimiento · OT de instrumentación.
+    menu: [Calibraciones, Mis OT, Explorador de planta, Alertas, Reportar]
+    datos: "Tablas: instrumentos con vencimiento. Formularios: registro de calibración (lectura patrón, lectura instrumento, error, resultado)."
+    acciones: [Registrar calibración, Marcar fuera de tolerancia, Tomar OT]
+    alertas: [Calibración vencida, Calibración por vencer en 30 días]
+    notificaciones: Nueva OT de instrumentación.
+    vacio: “Todos los instrumentos tienen la calibración vigente.”
+    componentes: Línea de vencimientos, semáforo por instrumento.
+  medir:
+    - [Instrumentos dentro de tolerancia, Resultados de calibración (hoy solo se registra la fecha), parcial]
+    - [Calibraciones a tiempo, Fechas de calibración y vencimiento, hoy]
+  flujo:
+    entrada: Inventario y calendario de calibración.
+    procesa: Calibra y compara con tolerancia.
+    salida: Registro de calibración y estado del instrumento.
+    destinatarios: Calidad, metrología, automatización, pañol.
+    consecuencia: Un instrumento vencido no se puede retirar del pañol.
+  permisos: {calibraciones: "c,r,e@pl", herramientas: "c,e@pl", ot: ["c@pl", "r,ci@pr"], repuestos: "c,s@pl", equipos: "c@pl", eventos: "c@pl", plc: "c@pl", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si los sensores de proceso deben tener calendario de calibración propio además de las herramientas]
+  hoy: Calibrar herramientas y ver vencimientos. El registro solo guarda la fecha, no la lectura ni el resultado.
+
+- id: 21
+  dashboard: Proyectos industriales
+  proposito: Lleva una necesidad operativa hasta una instalación funcionando, con costo, plazo y calidad controlados.
+  jornada:
+    inicio: Revisa avance, costo y riesgos de cada proyecto.
+    durante: Define alcance, coordina ingeniería y proveedores, y sigue el cronograma.
+    coordina: Con planta, compras, mantenimiento, prevención y proveedores.
+    anomalia: Si un hito se atrasa o el costo se desvía, registra el riesgo y propone medidas.
+    cierre: Registra avances y, al terminar, el acta de puesta en servicio.
+  decide: Alcance técnico y aceptación de entregables de proveedores.
+  escala: Gerencia de planta o general (desviaciones de costo y plazo).
+  consulta: [Presupuesto y gasto del proyecto, Cronograma y avance, Riesgos, Proveedores y órdenes de compra del proyecto, Equipos afectados]
+  genera:
+    crear: Proyecto (alcance, presupuesto, cronograma).
+    registrar: Avances, riesgos y aceptación de entregables.
+    cerrar: Proyecto con acta de puesta en servicio.
+    solicitar: Compras del proyecto.
+  no_ve: Datos personales, contratos y sueldos.
+  impacto: Un proyecto mal entregado deja equipos sin documentación ni repuestos y traslada el problema a mantenimiento.
+  ui:
+    prioridad: Proyectos con desviación de plazo o costo.
+    disposicion: Cartera de proyectos con semáforo · Gantt · riesgos · compras del proyecto.
+    menu: [Inicio, Proyectos, Cronograma, Riesgos, Compras, Documentos]
+    datos: "Tablas: proyectos, hitos, riesgos. Formularios: proyecto, avance, riesgo, acta."
+    acciones: [Registrar avance, Registrar riesgo, Aceptar entregable]
+    alertas: [Hito atrasado, Gasto sobre presupuesto]
+    notificaciones: Orden de compra del proyecto recibida.
+    vacio: “No hay proyectos registrados.”
+    componentes: Gantt, curva S.
+  medir:
+    - ["Costo, plazo y calidad de proyectos", "Presupuesto, cronograma y aceptación (no existen)", falta]
+    - [Resultados operativos, Indicadores del equipo antes y después, parcial]
+  flujo:
+    entrada: Necesidades operativas aprobadas.
+    procesa: Planifica, contrata y controla.
+    salida: Instalación en servicio con documentación.
+    destinatarios: Planta, mantenimiento, finanzas.
+    consecuencia: Nuevos equipos entran a la estructura de planta con su documentación.
+  permisos: {proyectos: "c,cr,e,ci@pl", compras: "c,s@pl", proveedores: "c@em", presupuesto: "c@pl", equipos: "c,cr@pl", documentos: "c,cr,e@pl", kpis: "c@pl"}
+  apps: [web]
+  validar: [Si los proyectos tienen presupuesto propio o se cargan a centros de costo]
+  hoy: Ve producción e indicadores. No existe el módulo de proyectos.
+
+- id: 22
+  dashboard: Sistemas industriales
+  proposito: Conecta los datos de las máquinas con SIMA sin poner en riesgo la operación. Es quien sabe si un dato llegó, cuándo y desde dónde (físico o simulado).
+  jornada:
+    inicio: Revisa la conectividad de los PLC y del gateway, la latencia de ingesta y los eventos rechazados.
+    durante: Administra la captura de datos, las claves de dispositivo y los accesos OT.
+    coordina: Con TI, automatización, calidad y operaciones.
+    anomalia: Si se cae la comunicación o llegan datos incoherentes, aísla la fuente, registra el incidente y coordina con automatización.
+    cierre: Registra incidencias y cambios de integración.
+  decide: Qué dispositivos pueden enviar datos y con qué origen (simulado o físico).
+  escala: Automatización y TI (ciberincidentes).
+  consulta: [Estado de comunicación de cada PLC, Eventos e ingesta (origen y marca de simulado), Duplicados descartados, Claves de dispositivo y accesos]
+  genera:
+    registrar: Incidencias de integración y cambios de configuración.
+    editar: Estructura de planta y configuración de dispositivos.
+    crear: Equipos y PLC.
+  no_ve: Datos personales, contratos y sueldos.
+  impacto: Si mezcla datos simulados con físicos o pierde datos, todos los indicadores de planta se vuelven poco confiables.
+  ui:
+    prioridad: Comunicación de PLC y calidad del dato.
+    disposicion: Mapa de conectividad · consola de eventos con origen · métricas de ingesta · incidencias.
+    menu: [Inicio, Controladores, Eventos e ingesta, Estructura de planta, Incidencias]
+    datos: "Tablas: PLC con último contacto y origen, eventos rechazados. Formularios: incidencia, alta de dispositivo."
+    acciones: [Ver consola de eventos, Registrar incidencia, Dar de alta un PLC]
+    alertas: [PLC sin conexión, Datos físicos marcados como simulados o al revés, Ingesta con errores]
+    notificaciones: Nuevo dispositivo conectado.
+    vacio: “Toda la ingesta funciona normalmente.”
+    componentes: Distintivo físico/simulado, gráfico de latencia.
+  medir:
+    - [Disponibilidad MES, Último contacto de cada PLC, hoy]
+    - [Integridad de datos, Eventos duplicados o rechazados (los duplicados se descartan pero no se cuentan), parcial]
+    - [Ciberincidentes, Registro de incidentes OT (no existe), falta]
+  flujo:
+    entrada: Telemetría y eventos de PLC y simulador.
+    procesa: Valida origen, deduplica e integra.
+    salida: Datos confiables y trazables por origen.
+    destinatarios: Todas las áreas que usan indicadores de planta.
+    consecuencia: Los indicadores se calculan con datos de origen conocido.
+  permisos: {plc: "c,e@pl", eventos: "c@pl", equipos: "c,cr,e@pl", plc_comandos: "c,r@pl", simulador: "c@pl", tickets: "c,cr@pl", auditoria: "c@pl", habilitaciones: "c@pr"}
+  apps: [desktop, web]
+  validar: [Si la gestión de claves de dispositivo debe hacerse desde SIMA o solo por configuración del servidor]
+  hoy: Mismo perfil que automatización; puede crear equipos. No hay métricas de ingesta ni registro de incidencias OT.

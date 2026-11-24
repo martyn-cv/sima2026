@@ -26,14 +26,15 @@ public class ServicioToken(OpcionesJwt o)
 {
     public SymmetricSecurityKey LlaveFirma => new(Encoding.UTF8.GetBytes(o.Clave));
 
-    public (string token, DateTime vence) Crear(Trabajador t, Cargo c, string canal)
+    public (string token, DateTime vence) Crear(Trabajador t, Cargo c, string canal, string? restringido = null)
     {
         var vence = DateTime.UtcNow.AddHours(o.HorasValidez);
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, t.Id), new Claim("nombre", t.NombreCompleto), new Claim("perfil", c.PerfilSima),
             new Claim("canal", canal), new Claim("cargo", c.Nombre), new Claim("cargoId", c.Id.ToString()), new Claim("turno", t.Turno), new Claim("ver", t.VersionSesion.ToString()),
         };
+        if (restringido is not null) claims.Add(new Claim("restringido", restringido));   // solo puede configurar su seguridad
         var jwt = new JwtSecurityToken("sima", "sima", claims, expires: vence, signingCredentials: new SigningCredentials(LlaveFirma, SecurityAlgorithms.HmacSha256));
         return (new JwtSecurityTokenHandler().WriteToken(jwt), vence);
     }

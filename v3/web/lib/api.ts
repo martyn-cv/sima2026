@@ -2,8 +2,15 @@ import { crearCliente } from "@sima/cliente";
 
 const CLAVE = "sima.sesion";
 
-export const baseUrl = () =>
-  process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? `${window.location.protocol}//${window.location.hostname}:5080` : "http://localhost:5080");
+/**
+ * Dónde está la API: la variable NEXT_PUBLIC_API_URL si existe; si la web se abre directo en el puerto 3000, la API está en el 5080 del mismo equipo;
+ * y detrás de un proxy con HTTPS (Caddy) la API cuelga del mismo origen que la web.
+ */
+export const baseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window === "undefined") return "http://localhost:5080";
+  return window.location.port === "3000" ? `${window.location.protocol}//${window.location.hostname}:5080` : window.location.origin;
+};
 
 export const guardarToken = (t: string | null) => {
   try { if (t) localStorage.setItem(CLAVE, t); else localStorage.removeItem(CLAVE); } catch { /* almacenamiento no disponible */ }

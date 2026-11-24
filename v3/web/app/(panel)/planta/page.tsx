@@ -6,10 +6,12 @@ import { motion } from "motion/react";
 import { fecha, hace, type Equipo } from "@sima/cliente";
 import { api } from "@/lib/api";
 import { usePlanta } from "@/lib/planta";
+import { useAuth } from "@/lib/auth";
 import { Medidor } from "@/components/plc";
 import { Chip, Encabezado, ErrorCarga, Pestanas, Seccion, Tabla, cx, type Columna } from "@/components/ui";
 
 interface Alarma { id: number; equipo: string; equipoNombre: string; variable: string; nivel: string; mensaje: string; inicio: string; fin?: string | null; reconocidaPor?: string | null }
+interface Traspaso { id: number; fecha: string; turno: string; por: string; notas: string; revisiones: { texto: string; ok: boolean }[]; resumen: { ordenesAbiertas: number; ordenesEnCurso: number; alarmasAbiertas: number; repuestosCriticosBajos: number; equiposFuera: string[] } }
 interface Orden { id: number; codigo: string; equipo: string; equipoNombre: string; titulo: string; prioridad: string; estado: string; automatica: boolean; creada: string; asignado?: string | null }
 
 const ESTADO: Record<string, { texto: string; tono: "ok" | "peligro" | "neutro" | "aviso" }> = {
@@ -37,7 +39,9 @@ function Tarjeta({ e, i }: { e: Equipo; i: number }) {
 
 export default function Planta() {
   const { equipos } = usePlanta();
-  const [tab, setTab] = useState<"equipos" | "alarmas" | "ordenes">("equipos");
+  const { puede } = useAuth();
+  const [tab, setTab] = useState<"equipos" | "alarmas" | "ordenes" | "traspasos">("equipos");
+  const traspasos = useQuery({ queryKey: ["traspasos"], queryFn: () => api.get<Traspaso[]>("/api/traspaso"), enabled: puede("traspaso") && tab === "traspasos" });
   const [zona, setZona] = useState("");
   const alarmas = useQuery({ queryKey: ["alarmas"], queryFn: () => api.get<Alarma[]>("/api/alarmas"), refetchInterval: 10_000 });
   const ordenes = useQuery({ queryKey: ["ordenes"], queryFn: () => api.get<Orden[]>("/api/ordenes"), refetchInterval: 15_000 });
@@ -65,7 +69,7 @@ export default function Planta() {
   return (
     <>
       <Encabezado titulo="Equipos y alarmas" descripcion="Lo que informan los PLC, al segundo. Cuando una variable pasa su límite, se abre una alarma y se crea una orden de trabajo." />
-      <Pestanas id="planta" activa={tab} onCambio={setTab} items={[{ clave: "equipos", titulo: "Equipos", n: equipos.length }, { clave: "alarmas", titulo: "Alarmas abiertas", n: abiertas }, { clave: "ordenes", titulo: "Órdenes de trabajo", n: ordAbiertas }]} />
+      <Pestanas id="planta" activa={tab} onCambio={setTab} items={[{ clave: "equipos", titulo: "Equipos", n: equipos.length }, { clave: "alarmas", titulo: "Alarmas abiertas", n: abiertas }, { clave: "ordenes", titulo: "Órdenes de trabajo", n: ordAbiertas }, ...(puede("traspaso") ? [{ clave: "traspasos" as const, titulo: "Traspasos de turno" }] : [])]} />
       <div className="mt-5">
         {tab === "equipos" && (
           <>
@@ -76,6 +80,18 @@ export default function Planta() {
           </>
         )}
         {tab === "alarmas" && (alarmas.error ? <ErrorCarga error={alarmas.error} /> : <Seccion><Tabla columnas={colAl} filas={alarmas.data ?? []} clave={(a) => a.id} cargando={alarmas.isLoading} vacio={<p className="p-10 text-center text-gris">No hay alarmas registradas.</p>} maxAlto="calc(100dvh - 300px)" /></Seccion>)}
+        {tab === "traspasos" && (
+          <ul className="grid gap-3">
+            {(traspasos.data ?? []).length === 0 && <Seccion><p className="p-8 text-center text-gris">Todavía no hay traspasos de turno.</p></Seccion>}
+            {(traspasos.data ?? []).map((t) => (
+              <li key={t.id}><Seccion sinBorde className="border-l-[4px] border-negro"><div className="grid gap-3 p-4 md:grid-cols-[1fr_1.4fr]">
+                <div><p className="display text-[24px] font-semibold leading-none">Turno {t.turno === "D" ? "diurno" : t.turno === "N" ? "de noche" : t.turno}</p><p className="num text-[14px] text-gris">{new Date(t.fecha).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short" })} · {t.por}</p>
+                  <p className="mt-2 text-[14px]">{t.resumen.ordenesAbiertas} órdenes abiertas, {t.resumen.ordenesEnCurso} en curso, {t.resumen.alarmasAbiertas} alarmas, {t.resumen.repuestosCriticosBajos} repuestos críticos bajo el mínimo{t.resumen.equiposFuera.length ? `. Fuera de servicio: ${t.resumen.equiposFuera.join(", ")}` : ""}.</p>{t.notas && <p className="mt-2 border-l-2 border-linea pl-3 text-[14px]">{t.notas}</p>}</div>
+                <ul className="space-y-1 text-[14px]">{t.revisiones.map((r) => <li key={r.texto} className="flex gap-2"><Chip tono={r.ok ? "ok" : "aviso"} punto={false}>{r.ok ? "Revisado" : "Pendiente"}</Chip><span className="text-gris">{r.texto}</span></li>)}</ul>
+              </div></Seccion></li>
+            ))}
+          </ul>
+        )}
         {tab === "ordenes" && (ordenes.error ? <ErrorCarga error={ordenes.error} /> : <Seccion><Tabla columnas={colOt} filas={ordenes.data ?? []} clave={(o) => o.id} cargando={ordenes.isLoading} vacio={<p className="p-10 text-center text-gris">No hay órdenes de trabajo.</p>} maxAlto="calc(100dvh - 300px)" /></Seccion>)}
       </div>
     </>

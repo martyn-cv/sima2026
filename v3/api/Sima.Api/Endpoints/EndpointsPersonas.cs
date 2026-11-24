@@ -84,7 +84,7 @@ public static class EndpointsPersonas
                 cargo = t.Cargo, jefe, equipo,
                 contratos = contratos.Select(c => new { c.Id, c.Codigo, c.Tipo, c.EsActual, c.FechaInicio, c.FechaTermino, c.JornadaHoras, c.SueldoBase, c.Colacion, c.Movilizacion, c.Observaciones, estado = Reglas.EstadoContrato(e.EstadoLaboral == "Desvinculado", c, hoy) }),
                 terminos, habilitaciones = habil,
-                cuenta = new { login = t.CorreoCorporativo, alias = t.LoginAlias, t.UltimoAcceso, estado = e.EstadoCuenta, accesoWeb = e.Activa && t.Cargo!.Canal == "web", accesoApp = e.Activa && t.Cargo!.Canal == "app", bloqueada = t.BloqueadoHasta > DateTime.UtcNow },
+                cuenta = new { login = t.CorreoCorporativo, alias = t.LoginAlias, totpActivo = t.TotpActivo, t.DebeCambiarClave, t.UltimoAcceso, estado = e.EstadoCuenta, accesoWeb = e.Activa && t.Cargo!.Canal == "web", accesoApp = e.Activa && t.Cargo!.Canal == "app", bloqueada = t.BloqueadoHasta > DateTime.UtcNow },
             });
         });
 
@@ -110,7 +110,7 @@ public static class EndpointsPersonas
                 EstadoCivil = e.EstadoCivil ?? "", Nacionalidad = e.Nacionalidad ?? "Chilena", Telefono = e.Telefono ?? "", CorreoCorporativo = correo, CorreoPersonal = e.CorreoPersonal ?? "", Domicilio = e.Domicilio ?? "",
                 Comuna = e.Comuna ?? "", Region = e.Region ?? "Metropolitana de Santiago", ContactoEmergencia = e.ContactoEmergencia ?? "", TelefonoEmergencia = e.TelefonoEmergencia ?? "", Afp = e.Afp ?? "", SistemaSalud = e.SistemaSalud ?? "Fonasa",
                 Banco = e.Banco ?? "", TipoCuenta = e.TipoCuenta ?? "", NumeroCuenta = e.NumeroCuenta ?? "", FechaIngreso = e.FechaIngreso ?? e.Contrato.FechaInicio, CargoId = e.CargoId, Turno = e.Turno ?? "D",
-                JefeDirectoId = string.IsNullOrEmpty(e.JefeDirectoId) ? null : e.JefeDirectoId, PasswordHash = Claves.Hash(clave),
+                JefeDirectoId = string.IsNullOrEmpty(e.JefeDirectoId) ? null : e.JefeDirectoId, PasswordHash = Claves.Hash(clave), DebeCambiarClave = true,
             };
             var c = new Contrato { TrabajadorId = t.Id, Tipo = e.Contrato.Tipo, EsActual = true, FechaInicio = e.Contrato.FechaInicio, FechaTermino = e.Contrato.FechaTermino, SueldoBase = e.Contrato.SueldoBase, Colacion = e.Contrato.Colacion, Movilizacion = e.Contrato.Movilizacion, JornadaHoras = e.Contrato.Tipo == "Honorarios" ? null : e.Contrato.JornadaHoras, Observaciones = e.Contrato.Observaciones ?? "" };
             if (Valida(c) is { } err) return Ayudas.Error(err);
@@ -240,7 +240,7 @@ public static class EndpointsPersonas
             {
                 t.Id, nombre = t.NombreCompleto, login = t.CorreoCorporativo, alias = t.LoginAlias, cargo = t.Cargo!.Nombre, perfil = t.Cargo.PerfilSima, canal = t.Cargo.Canal, t.Turno,
                 estadoLaboral = est[t.Id].EstadoLaboral, estadoContrato = est[t.Id].EstadoContrato, estadoCuenta = est[t.Id].EstadoCuenta, accesoWeb = est[t.Id].Activa && t.Cargo.Canal == "web", accesoApp = est[t.Id].Activa && t.Cargo.Canal == "app",
-                t.UltimoAcceso, bloqueada = t.BloqueadoHasta > DateTime.UtcNow,
+                t.UltimoAcceso, bloqueada = t.BloqueadoHasta > DateTime.UtcNow, totpActivo = t.TotpActivo,
             });
             return Results.Ok(string.IsNullOrEmpty(estado) ? lista : lista.Where(x => x.estadoCuenta.StartsWith(estado.ToUpper())));
         });
@@ -253,7 +253,7 @@ public static class EndpointsPersonas
             if (t is null) return Ayudas.Error("No existe ese trabajador.", 404);
             const string alfabeto = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
             var temporal = new string(Enumerable.Range(0, 10).Select(_ => alfabeto[System.Security.Cryptography.RandomNumberGenerator.GetInt32(alfabeto.Length)]).ToArray());
-            t.PasswordHash = Claves.Hash(temporal); t.VersionSesion++; t.IntentosFallidos = 0; t.BloqueadoHasta = null;
+            t.PasswordHash = Claves.Hash(temporal); t.VersionSesion++; t.IntentosFallidos = 0; t.BloqueadoHasta = null; t.DebeCambiarClave = true;
             db.Auditar(s, "restableció la clave", "cuenta", id, t.NombreCompleto);
             await db.SaveChangesAsync();
             guardia.Olvidar(id);
@@ -271,6 +271,19 @@ public static class EndpointsPersonas
             await db.SaveChangesAsync();
             guardia.Olvidar(id);
             await hub.Clients.Group($"u:{id}").SendAsync("cuentaCerrada", new { motivo = "Sus sesiones fueron cerradas por un administrador." });
+            return Results.Ok(new { ok = true });
+        });
+
+        g.MapPost("/cuentas/{id}/quitar-2fa", async (string id, ClaimsPrincipal u, SimaDb db, GuardiaDeCuenta guardia) =>
+        {
+            var s = u.S();
+            if (!s.Puede("cuentas", "editar")) return Ayudas.Sin();
+            var t = await db.Trabajadores.FirstOrDefaultAsync(x => x.Id == id);
+            if (t is null) return Ayudas.Error("No existe ese trabajador.", 404);
+            t.TotpActivo = false; t.TotpSecreto = null; t.VersionSesion++;
+            db.Auditar(s, "quitó el segundo factor (teléfono perdido o cambiado)", "cuenta", id, t.NombreCompleto);
+            await db.SaveChangesAsync();
+            guardia.Olvidar(id);
             return Results.Ok(new { ok = true });
         });
 

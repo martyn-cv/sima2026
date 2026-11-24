@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { ApiError } from "@sima/cliente";
 import { Boton, Campo, Entrada, mensajeDe } from "@/components/ui";
 
 export default function Login() {
@@ -12,6 +13,8 @@ export default function Login() {
   const router = useRouter();
   const [correo, setCorreo] = useState("");
   const [clave, setClave] = useState("");
+  const [codigo, setCodigo] = useState("");
+  const [pideCodigo, setPideCodigo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const [sacudir, setSacudir] = useState(0);
@@ -19,11 +22,11 @@ export default function Login() {
 
   useEffect(() => { if (usuario) router.replace("/"); }, [usuario, router]);
 
-  async function enviar(e?: FormEvent, c = correo, k = clave) {
+  async function enviar(e?: FormEvent, c = correo, k = clave, cod = codigo) {
     e?.preventDefault();
     setError(null); setCargando(true);
-    try { await entrar(c, k); }
-    catch (x) { setError(mensajeDe(x)); setSacudir((n) => n + 1); }
+    try { await entrar(c, k, cod); }
+    catch (x) { if (x instanceof ApiError && x.datos?.requiere2fa) setPideCodigo(true); setError(mensajeDe(x)); setSacudir((n) => n + 1); }
     finally { setCargando(false); }
   }
 
@@ -59,6 +62,7 @@ export default function Login() {
           <div className="flex flex-col gap-4">
             <Campo etiqueta="Correo corporativo"><Entrada type="email" autoComplete="username" required value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="nombre@manuandina.cl" /></Campo>
             <Campo etiqueta="Clave"><Entrada type="password" autoComplete="current-password" required value={clave} onChange={(e) => setClave(e.target.value)} /></Campo>
+            {pideCodigo && <Campo etiqueta="Código de la aplicación de autenticación" ayuda="Los 6 dígitos que muestra la aplicación en su teléfono."><Entrada inputMode="numeric" autoComplete="one-time-code" maxLength={7} autoFocus required value={codigo} onChange={(e) => setCodigo(e.target.value)} /></Campo>}
             {error && <p role="alert" className="border-l-[3px] border-rojo bg-rojo-claro px-3 py-2 text-[14px] text-rojo-hondo">{error}</p>}
             <Boton type="submit" variante="rojo" cargando={cargando} className="mt-1 h-11">Ingresar</Boton>
           </div>

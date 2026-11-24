@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sima.Api", "Sima.Api\Sima.Api.csproj", "{FBDEB20A-3774-45A2-9A36-ABD75560D5EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sima.Api.Tests", "Sima.Api.Tests\Sima.Api.Tests.csproj", "{6DC9E90E-02AF-4E0D-8DB9-5F3221D66102}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FBDEB20A-3774-45A2-9A36-ABD75560D5EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBDEB20A-3774-45A2-9A36-ABD75560D5EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBDEB20A-3774-45A2-9A36-ABD75560D5EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBDEB20A-3774-45A2-9A36-ABD75560D5EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DC9E90E-02AF-4E0D-8DB9-5F3221D66102}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DC9E90E-02AF-4E0D-8DB9-5F3221D66102}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DC9E90E-02AF-4E0D-8DB9-5F3221D66102}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DC9E90E-02AF-4E0D-8DB9-5F3221D66102}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

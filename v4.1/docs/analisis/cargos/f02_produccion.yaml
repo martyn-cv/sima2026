@@ -1,0 +1,431 @@
+# Familia 2 · Producción y operación en piso
+- id: 6
+  dashboard: Jefatura de producción
+  proposito: Hace que los turnos fabriquen el volumen comprometido. Es quien traduce el programa en recursos por línea y quien negocia con mantenimiento y calidad cuando el programa choca con la realidad.
+  jornada:
+    inicio: Revisa el cierre de los turnos anteriores (unidades buenas, rechazo, detenciones) y el programa del día por línea.
+    durante: Asigna recursos por línea, coordina cambios de formato, autoriza la apertura y el término de órdenes de producción y sigue el avance contra el plan.
+    coordina: Con planificación (fechas), mantenimiento (ventanas de detención), calidad (lotes retenidos) y supervisores de turno.
+    anomalia: Si una línea se detiene o un lote se retiene, decide si se reprograma, se cambia de línea o se pide intervención urgente, y avisa a planificación.
+    cierre: Valida el balance diario de producción y deja las prioridades del día siguiente.
+  decide: Prioridad entre órdenes del programa, asignación de recursos por línea, inicio y término de órdenes de producción, aceptación de ventanas de mantenimiento.
+  escala: Gerencia de planta (incumplimiento del plan semanal, conflictos con mantenimiento que no se resuelven).
+  consulta: [Programa del día y la semana por línea, Avance de cada orden de producción, Detenciones y su causa, Lotes retenidos por calidad, OT que afectan líneas productivas, Dotación por turno (solo nombres y puestos)]
+  genera:
+    crear: Órdenes de producción a partir del programa.
+    editar: Prioridad, línea y estado de las órdenes (iniciar, pausar, terminar).
+    asignar: Recursos y equipos por línea.
+    aprobar: Ventanas de detención propuestas por mantenimiento.
+    exportar: Balance diario y semanal de producción.
+  no_ve: Remuneraciones, contratos y datos personales del personal. No ejecuta ni cierra OT técnicas.
+  impacto: De su asignación depende que el pedido salga a tiempo. Si acepta una ventana de mantenimiento sin reprogramar, la línea queda sin plan y el atraso llega a despacho.
+  ui:
+    prioridad: Avance de cada línea contra el plan, detenciones activas y lotes retenidos.
+    disposicion: Tablero por línea (avance, ritmo, rechazo) · órdenes del día · detenciones con causa · ventanas de mantenimiento por aprobar.
+    menu: [Inicio, Programa y órdenes, Líneas en vivo, Detenciones, Calidad de mis lotes, Ventanas de mantenimiento, Indicadores]
+    datos: "Tablas: órdenes de producción, detenciones por causa. Formularios: nueva orden, cambio de prioridad o línea, aprobación de ventana."
+    acciones: [Crear orden de producción, Iniciar o terminar una orden, Reprogramar orden, Aprobar ventana de mantenimiento]
+    alertas: [Línea bajo ritmo estándar, Equipo de una orden en curso con alarma, Lote retenido, Orden atrasada contra su fecha]
+    notificaciones: Mantenimiento propone una detención; calidad retiene un lote de una orden; un supervisor reporta una falla.
+    vacio: “No hay órdenes de producción para hoy. Cree una desde el programa o pídala a planificación.”
+    componentes: Barras de avance por línea, línea de tiempo de detenciones, tarjetas de orden con estado.
+  medir:
+    - [Plan cumplido, Órdenes de producción (meta y unidades buenas), hoy]
+    - [Merma, Unidades rechazadas y motivo, hoy]
+    - [Rendimiento, Unidades por hora contra estándar (el estándar no existe), parcial]
+    - [OEE, Producción y detenciones por equipo, hoy]
+  flujo:
+    entrada: Programa de planificación, estado de equipos, liberaciones de calidad.
+    procesa: Balancea recursos y decide prioridades.
+    salida: Órdenes de producción abiertas y priorizadas, ventanas aceptadas.
+    destinatarios: Supervisores y operadores, planificación, mantenimiento, despacho.
+    consecuencia: Las órdenes aparecen en SIMA Desktop de los operadores del turno.
+  permisos: {produccion: "c,cr,e,x@pl", plan_prod: "c,e@pl", calidad: "c@pl", ot: "c,cr@pl", equipos: "c@pl", eventos: "c@pl", traspaso: "c@pl", kpis: "c@pl", plc_comandos: "c@pl", asistencia: "c@eq", habilitaciones: "c@eq", sst: "c@pl"}
+  apps: [web, desktop]
+  validar: [Si la jefatura de producción también usa SIMA Desktop en piso, Si debe poder enviar mandos a distancia a los PLC (hoy puede)]
+  hoy: Crea y cambia el estado de órdenes de producción en la web. No hay programa por línea ni aprobación de ventanas de mantenimiento.
+
+- id: 7
+  dashboard: Mi turno
+  proposito: Lidera a las personas y los resultados de un turno. Es el primer responsable de que el turno empiece seguro, con materiales y con cada persona en un puesto para el que está habilitada.
+  jornada:
+    inicio: Recibe el traspaso del turno anterior, hace la charla inicial, confirma asistencia y asigna puestos verificando habilitaciones vigentes.
+    durante: Sigue la producción por orden, valida registros de los operadores y resuelve faltantes de material.
+    coordina: Con técnicos (fallas), calidad (rechazos), bodega (materiales) y jefatura de producción.
+    anomalia: Si un equipo falla, confirma el reporte del operador, fija la prioridad y avisa a mantenimiento; si hay un incidente, lo registra y asegura el área.
+    cierre: Cierra la bitácora del turno (producción, detenciones, incidentes, pendientes) y entrega el traspaso firmado.
+  decide: Asignación de puestos del turno, prioridad de los avisos de falla de su turno, detención de un equipo por condición insegura.
+  escala: Jefatura de producción (atrasos), mantenimiento (fallas), prevención (incidentes).
+  consulta: [Asistencia de su turno, Habilitaciones de su equipo, Órdenes de producción del turno, Estado de los equipos de sus líneas, OT abiertas de esos equipos, Incidentes del turno]
+  genera:
+    registrar: Asistencia operativa del turno, incidentes y la bitácora.
+    asignar: Personas a puestos y equipos.
+    crear: Avisos de falla y traspaso de turno.
+    editar: Estado de órdenes de producción del turno (iniciar, pausar).
+    cerrar: El turno (traspaso firmado).
+  no_ve: Sueldos, contratos y datos personales de su equipo. Ve solo a las personas de su turno.
+  impacto: Si asigna a alguien sin habilitación vigente, la empresa opera fuera de norma. Su bitácora es la base del traspaso y de los indicadores del turno.
+  ui:
+    prioridad: Quién está, quién falta y dónde trabaja cada uno; equipos detenidos; avance de las órdenes del turno.
+    disposicion: Indicadores del turno (unidades buenas, detenciones, incidentes, presentes) · tablero de puestos · órdenes del turno · equipos de sus líneas · bitácora.
+    menu: [Mi turno, Mi equipo, Producción, Equipos, Alertas, Bitácora y traspaso, Seguridad, Reportar falla]
+    datos: "Tablas: personas del turno con puesto y habilitaciones, órdenes del turno. Formularios: asignación de puesto, incidente, bitácora de cierre."
+    acciones: [Asignar puesto, Registrar ausencia, Reportar falla, Registrar incidente, Cerrar turno]
+    alertas: [Persona asignada con habilitación vencida, Ausencia en un puesto crítico, Equipo detenido, Incidente del turno]
+    notificaciones: Un operador reporta una anomalía; mantenimiento toma o cierra una OT de sus equipos; calidad rechaza un lote del turno.
+    vacio: “Su turno todavía no tiene órdenes asignadas.”
+    componentes: Tablero de puestos (persona-equipo), semáforo de habilitaciones, bitácora con plantilla.
+  medir:
+    - [Unidades buenas por turno, Registros de producción del turno, hoy]
+    - [Detenciones, Paradas y cambios de estado de equipos, hoy]
+    - [Incidentes, Incidentes SST del turno, hoy]
+    - [Ausentismo operativo, Asistencia diaria del turno (hoy solo existe el resumen mensual), parcial]
+  flujo:
+    entrada: Traspaso del turno anterior, órdenes de producción, estado de equipos.
+    procesa: Asigna personas y resuelve problemas del turno.
+    salida: Asignaciones, incidentes, avisos de falla y bitácora.
+    destinatarios: Operadores, mantenimiento, jefatura de producción, turno siguiente.
+    consecuencia: Mantenimiento recibe avisos ya priorizados; el turno siguiente parte con los pendientes claros.
+  permisos: {produccion: "c,r,e@eq", traspaso: "c,cr,ci@eq", asistencia: "c,r@eq", habilitaciones: "c@eq", equipos: "c@ln", eventos: "c,r@ln", ot: "c,cr@ln", calidad: "c,r@ln", sst: "c,r@eq", rutinas: "c,r@ln", plc_comandos: "c@ln", kpis: "c@eq"}
+  apps: [desktop]
+  validar: [Si el supervisor registra la asistencia diaria o solo la confirma (hoy RR. HH. carga el resumen mensual), Qué puestos se consideran críticos para alertar ausencias]
+  hoy: Desktop con traspaso, producción, alertas y reportes. No hay asignación de puestos ni asistencia diaria; la habilitación no se verifica al asignar.
+
+- id: 8
+  dashboard: Mi línea
+  proposito: Coordina una línea o célula y es el primer punto de escalamiento de los operadores. Vela por que la línea arranque bien y por que los estándares se cumplan en cada cambio de lote.
+  jornada:
+    inicio: Hace el checklist de arranque de la línea (resguardos, materiales, estándares visuales) y confirma el lote y la orden en curso.
+    durante: Sigue el ritmo real contra el estándar, verifica cambios de lote y piezas, y registra pérdidas.
+    coordina: Con el supervisor, los operadores de su línea y control de calidad.
+    anomalia: Si la línea pierde ritmo o aparece un defecto repetido, detiene la secuencia si corresponde, reporta la falla y avisa al supervisor.
+    cierre: Registra las pérdidas del turno por causa y deja el estado de la línea.
+  decide: Detención de la línea por calidad o seguridad, cambio de secuencia dentro de la orden.
+  escala: Supervisor de turno.
+  consulta: [Estado de los equipos de su línea, Orden y lote en curso, Estándares e instrucciones de la línea, Rechazos del turno, Operadores asignados a la línea]
+  genera:
+    registrar: Checklist de arranque, pérdidas por causa y cambios de lote.
+    crear: Avisos de falla.
+    editar: Estado de la orden de su línea (iniciar, pausar).
+  no_ve: Datos personales, contratos y sueldos. Ve solo su línea.
+  impacto: El checklist de arranque evita que la línea parta con un resguardo abierto o con el material equivocado. Sus pérdidas registradas alimentan el OEE y la mejora continua.
+  ui:
+    prioridad: Estado de cada equipo de su línea, ritmo contra estándar y pérdidas del turno.
+    disposicion: Esquema de la línea con sus equipos en vivo · orden y lote en curso · ritmo · pérdidas por causa · checklist de arranque.
+    menu: [Mi línea, Producción, Rutinas y arranque, Reportar falla, Seguridad, Alertas, Mi cargo]
+    datos: "Tablas: pérdidas por causa, equipos de la línea. Formularios: checklist de arranque, pérdida, cambio de lote."
+    acciones: [Completar checklist de arranque, Registrar pérdida, Registrar cambio de lote, Reportar falla]
+    alertas: [Equipo de la línea con alarma, Ritmo bajo el estándar, Checklist de arranque pendiente]
+    notificaciones: Mantenimiento toma la OT de un equipo de su línea; calidad rechaza un lote de la línea.
+    vacio: “La línea no tiene una orden en curso.”
+    componentes: Diagrama de línea animado por estado, contador de ritmo.
+  medir:
+    - [Ritmo real vs. estándar, Producción por hora y estándar por producto (el estándar no existe), parcial]
+    - [Retrabajos, Registros de retrabajo (no se distinguen del rechazo), falta]
+    - [Tiempos de cambio, Cambios de lote con hora de inicio y fin (no se registran), falta]
+  flujo:
+    entrada: Orden de la línea, instrucciones, estado de equipos.
+    procesa: Verifica arranque y estándares; detecta pérdidas.
+    salida: Checklist de arranque, pérdidas registradas, avisos de falla.
+    destinatarios: Supervisor, mantenimiento, calidad, ingeniería de procesos.
+    consecuencia: Las pérdidas quedan clasificadas para el OEE y el análisis de mejora.
+  permisos: {produccion: "c,r,e@ln", rutinas: "c,r@ln", equipos: "c@ln", eventos: "c,r@ln", ot: "c,cr@ln", calidad: "c,r@ln", sst: "r@pr", traspaso: "c@ln", plc_comandos: "c@ln", habilitaciones: "c@ln"}
+  apps: [desktop]
+  validar: [Catálogo de causas de pérdida que usa la planta, Si el líder puede detener la línea sin autorización del supervisor]
+  hoy: Comparte el perfil del supervisor de turno, así que hoy ve lo mismo que él. No hay checklist de arranque por línea ni registro de pérdidas por causa.
+
+- id: 9
+  dashboard: Mi operación
+  proposito: Opera los equipos para los que está autorizado. Es quien primero ve una anomalía, así que su reporte a tiempo evita fallas mayores y accidentes.
+  jornada:
+    inicio: Ve su orden de producción, su equipo asignado y si su habilitación está vigente; completa el checklist preuso del equipo.
+    durante: Carga material, observa que los parámetros estén dentro de los límites permitidos y registra unidades conformes y rechazadas.
+    coordina: Pide asistencia al líder de línea o al supervisor y avisa a calidad si ve un defecto.
+    anomalia: Detiene el equipo si hay una condición insegura, reporta la anomalía con el equipo preseleccionado y registra la detención.
+    cierre: Deja el registro de producción completo y el equipo limpio y en estado conocido.
+  decide: Detener su equipo ante una condición insegura (no necesita autorización para eso).
+  escala: Líder de línea o supervisor (cualquier anomalía); mantenimiento a través del reporte.
+  consulta: [Su orden de producción y meta, Su equipo y sus parámetros permitidos, Instrucciones de operación, Sus habilitaciones, Alertas de su equipo]
+  genera:
+    registrar: Unidades conformes y rechazadas con motivo, checklist preuso y detenciones.
+    crear: Reporte de anomalía o condición insegura.
+    solicitar: Asistencia al líder o al supervisor.
+  no_ve: Información de otras personas (salvo nombre y cargo), sueldos, contratos, programas PLC y parámetros críticos. No modifica parámetros de máquina.
+  impacto: Su registro es la base de la trazabilidad del lote y del OEE. Un reporte tardío convierte una anomalía en una falla con detención larga.
+  ui:
+    prioridad: Su orden (meta, hecho, rechazo), su equipo en vivo con límites y el checklist pendiente.
+    disposicion: Orden en curso con anillo de avance y registro rápido · equipo con medidores y límites · checklist · mis habilitaciones · botón grande de reportar.
+    menu: [Mi operación, Mi orden, Checklist, Reportar anomalía, Seguridad, Alertas, Mi cargo]
+    datos: "Formularios: registro de unidades (con botones +1/+5/+10), rechazo con motivo, checklist preuso, reporte de anomalía, detención con causa."
+    acciones: [Registrar unidades, Completar checklist, Reportar anomalía, Registrar detención, Pedir asistencia]
+    alertas: [Habilitación vencida para su equipo, Parámetro fuera de rango, Equipo con alarma]
+    notificaciones: Mantenimiento tomó la falla que reportó; su equipo fue liberado para operar.
+    vacio: “No tiene una orden asignada en este turno. Consulte a su líder de línea.”
+    componentes: Anillo de avance, medidores con banda permitida, botón de parada segura.
+  medir:
+    - [Piezas conformes, Registros de producción del operador, hoy]
+    - [Cumplimiento de estándar, Checklist completados a tiempo, parcial]
+    - [Reportes de anomalías, Avisos de falla creados por la persona, hoy]
+  flujo:
+    entrada: Orden de producción asignada, instrucciones, parámetros permitidos.
+    procesa: Opera y vigila el equipo.
+    salida: Registro de producción, checklist, reportes de anomalía.
+    destinatarios: Líder de línea, supervisor, mantenimiento, calidad.
+    consecuencia: El avance de la orden y el OEE se actualizan; mantenimiento recibe el aviso.
+  permisos: {produccion: "c,r@pr", rutinas: "c,r@pr", ot: "c,cr@pr", sst: "r@pr", equipos: "c@pr", eventos: "c@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si el operador queda asignado a un equipo fijo o por orden, Si debe bloquearse el registro cuando su habilitación está vencida]
+  hoy: Ve las órdenes de su turno y registra producción. No hay vínculo operador-equipo autorizado, ni checklist preuso por equipo, ni registro de detención por el operador.
+
+- id: 10
+  dashboard: Mi máquina CNC
+  proposito: Prepara y opera máquinas de control numérico. La primera pieza y el control dimensional dependen de su verificación.
+  jornada:
+    inicio: Verifica que el programa cargado sea el autorizado para la orden, las herramientas, el amarre y su habilitación CNC.
+    durante: Mecaniza la primera pieza, la mide y registra; luego sigue con controles dimensionales por frecuencia.
+    coordina: Con el programador CNC (programa), calidad (medidas), herramientas y mantenimiento.
+    anomalia: Si una medida sale de tolerancia o una herramienta se desgasta, detiene, registra la desviación y avisa.
+    cierre: Deja la hoja de preparación y las piezas identificadas.
+  decide: Liberar la primera pieza para seguir la serie (dentro del procedimiento) o detener por desviación.
+  escala: Calidad (desviación dimensional), programador CNC (programa), mantenimiento (falla).
+  consulta: [Orden y plano de la pieza, Programa autorizado y su versión, Herramientas asignadas, Tolerancias, Su habilitación CNC]
+  genera:
+    registrar: Hoja de preparación, primera pieza, controles dimensionales, desgaste de herramienta y producción.
+    crear: Reporte de desviación o falla.
+  no_ve: Datos de otras personas, sueldos, programas en edición. No edita el programa CNC.
+  impacto: Si arranca con un programa no autorizado o sin verificar la primera pieza, toda la serie puede salir fuera de tolerancia.
+  ui:
+    prioridad: Programa autorizado de la orden, primera pieza y próximas mediciones.
+    disposicion: Orden y pieza · programa con versión · hoja de preparación · tabla de mediciones · registro de producción.
+    menu: [Mi máquina CNC, Mi orden, Preparación y mediciones, Reportar anomalía, Seguridad, Mi cargo]
+    datos: "Tablas: mediciones (cota, nominal, tolerancia, medido). Formularios: hoja de preparación, medición, desgaste de herramienta."
+    acciones: [Registrar primera pieza, Registrar medición, Registrar unidades, Reportar desviación]
+    alertas: [Programa cargado distinto del autorizado, Medición fuera de tolerancia, Habilitación CNC vencida]
+    notificaciones: Calidad liberó o rechazó la primera pieza.
+    vacio: “No hay orden CNC asignada.”
+    componentes: Tabla de cotas con semáforo de tolerancia.
+  medir:
+    - [Tiempo de ciclo, Tiempos por pieza (no se registran), falta]
+    - [Piezas buenas, Registros de producción, hoy]
+    - [Scrap, Rechazos por motivo, hoy]
+    - [Capacidad, Mediciones dimensionales para Cpk (no se registran), falta]
+  flujo:
+    entrada: Orden, plano, programa autorizado.
+    procesa: Prepara, mecaniza y mide.
+    salida: Piezas identificadas, hoja de preparación y mediciones.
+    destinatarios: Calidad, programador CNC, líder de línea.
+    consecuencia: La serie avanza con trazabilidad dimensional.
+  permisos: {produccion: "c,r@pr", inspecciones: "r@pr", herramientas: "c,r@pl", rutinas: "c,r@pr", ot: "c,cr@pr", sst: "r@pr", equipos: "c@pr", documentos: "c@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Frecuencia de control dimensional por producto, Quién libera la primera pieza (operador o calidad)]
+  hoy: Mismo inicio que el operador genérico. No hay programa autorizado por orden ni registro de mediciones.
+
+- id: 11
+  dashboard: Mi ensamble
+  proposito: Une componentes en la secuencia y con los torques definidos. De su autocontrol depende que no lleguen errores de montaje a calidad o al cliente.
+  jornada:
+    inicio: Revisa la orden de ensamble, la lista de piezas del producto y que no falten componentes.
+    durante: Sigue la secuencia, aplica torques autorizados, identifica las partes y hace autocontrol por unidad.
+    coordina: Con el líder de línea, el auxiliar de abastecimiento (faltantes) y calidad.
+    anomalia: Si falta un componente o aparece un defecto, lo registra y avisa; segrega la unidad.
+    cierre: Deja el registro del lote con unidades ensambladas y defectos.
+  decide: Segregar una unidad con defecto.
+  escala: Líder de línea (faltantes y defectos repetidos).
+  consulta: [Orden de ensamble, Instrucción visual y secuencia, Lista de piezas, Torques autorizados, Criterios de calidad]
+  genera:
+    registrar: Unidades ensambladas, defectos y faltantes por lote.
+    solicitar: Reposición de componentes.
+    crear: Reporte de defecto.
+  no_ve: Información de otras personas, sueldos y contratos.
+  impacto: Un error de montaje no detectado llega a calidad o al cliente como reclamo.
+  ui:
+    prioridad: Orden de ensamble, paso actual de la secuencia y faltantes.
+    disposicion: Orden y lote · instrucción paso a paso · lista de piezas con disponibilidad · registro de unidades y defectos.
+    menu: [Mi ensamble, Mi orden, Instrucciones, Reportar defecto, Seguridad, Mi cargo]
+    datos: "Formularios: unidades por lote, defecto con tipo, solicitud de reposición."
+    acciones: [Registrar unidades, Registrar defecto, Pedir reposición de componente]
+    alertas: [Componente faltante, Defecto repetido en el lote]
+    notificaciones: Reposición entregada; calidad rechazó un lote.
+    vacio: “No hay orden de ensamble asignada.”
+    componentes: Instrucción visual por pasos con avance.
+  medir:
+    - [Unidades por hora, Producción con hora de registro, parcial]
+    - [Errores de montaje, Defectos por tipo (motivo de rechazo), parcial]
+    - [Retrabajo, Unidades retrabajadas (no se registran), falta]
+  flujo:
+    entrada: Orden, instrucción y componentes.
+    procesa: Ensambla y autocontrola.
+    salida: Producto ensamblado y registro de lote.
+    destinatarios: Líder de línea, calidad, embalaje.
+    consecuencia: El lote avanza a calidad o embalaje con trazabilidad.
+  permisos: {equipos: "c@pr", produccion: "c,r@pr", documentos: "c@pr", materiales: "s@pr", ot: "c,cr@pr", sst: "r@pr", rutinas: "c,r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si existen instrucciones visuales digitalizadas por producto]
+  hoy: Inicio de operador genérico. No hay instrucciones por producto ni solicitud de reposición.
+
+- id: 12
+  dashboard: Mi embalaje
+  proposito: Entrega el producto empacado y rotulado como lo exige el cliente. Un error de etiqueta o de lote rompe la trazabilidad y genera devoluciones.
+  jornada:
+    inicio: Revisa la orden de embalaje, la especificación del cliente y las etiquetas del lote.
+    durante: Verifica formato, etiqueta, fecha y lote, integridad del envase y conteo; arma pallets.
+    coordina: Con calidad (liberación), producción y bodega (retiro de pallets).
+    anomalia: Si la etiqueta no coincide o el envase está dañado, detiene el embalaje del lote y avisa a calidad.
+    cierre: Registra unidades embaladas y pallets listos para expedición.
+  decide: No embalar un lote cuya etiqueta o presentación no coincide.
+  escala: Calidad y líder de línea.
+  consulta: [Orden de embalaje, Especificación de embalaje del cliente, Lote y fecha, Estado de liberación del lote]
+  genera:
+    registrar: Unidades embaladas, pallets y verificación de etiqueta.
+    crear: Reporte de error de etiqueta o daño.
+  no_ve: Información de otras personas, sueldos y contratos; datos comerciales del pedido más allá de la especificación.
+  impacto: Su registro libera producto para despacho. Un lote mal etiquetado puede salir al cliente equivocado.
+  ui:
+    prioridad: Lote en curso, verificación de etiqueta y conteo.
+    disposicion: Orden y lote · especificación · verificación de etiqueta (lote, fecha, cliente) · conteo y pallets.
+    menu: [Mi embalaje, Mi orden, Verificación de etiqueta, Reportar anomalía, Seguridad, Mi cargo]
+    datos: "Formularios: verificación de etiqueta (lote y fecha), unidades embaladas, pallet."
+    acciones: [Verificar etiqueta, Registrar unidades embaladas, Cerrar pallet, Reportar error]
+    alertas: [Lote no liberado por calidad, Etiqueta no coincide con el lote]
+    notificaciones: Calidad liberó el lote; bodega retiró el pallet.
+    vacio: “No hay orden de embalaje asignada.”
+    componentes: Comparador lote-etiqueta.
+  medir:
+    - [Errores de etiquetado, Verificaciones de etiqueta con resultado (no se registran), falta]
+    - [Rendimiento, Unidades embaladas por hora, parcial]
+    - [Daños de transporte, Reclamos de entrega por daño (no existen), falta]
+  flujo:
+    entrada: Lote liberado y especificación de embalaje.
+    procesa: Verifica, embala y paletiza.
+    salida: Producto liberado para expedición con trazabilidad.
+    destinatarios: Bodega, despacho, calidad.
+    consecuencia: Despacho puede programar el envío del lote.
+  permisos: {equipos: "c@pr", produccion: "c,r@pr", calidad: "c@pr", despachos: "c@pr", ot: "c,cr@pr", sst: "r@pr", rutinas: "c,r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si se usará lectura de código de barras para verificar etiquetas]
+  hoy: Inicio de operador genérico. No hay verificación de etiqueta ni registro de pallets.
+
+- id: 13
+  dashboard: Sala de control
+  proposito: Vigila los procesos continuos desde los paneles. Reconoce alarmas, sigue tendencias y coordina la respuesta del personal en campo.
+  jornada:
+    inicio: Recibe el traspaso de la sala (alarmas abiertas, equipos en mantención) y revisa las tendencias de las últimas horas.
+    durante: Sigue tendencias y alarmas, reconoce las que corresponden y registra eventos en la bitácora de proceso.
+    coordina: Con operación de campo, automatización y supervisión.
+    anomalia: Ante una alarma crítica, la reconoce, avisa al operador de campo o a mantenimiento y registra la respuesta.
+    cierre: Entrega la bitácora de proceso con alarmas abiertas y pendientes.
+  decide: Reconocer alarmas y ejecutar secuencias autorizadas.
+  escala: Supervisor de turno, automatización (falla de control o de comunicación).
+  consulta: [Estados de equipos y PLC, Tendencias de variables, Alarmas abiertas y su historial, Eventos de planta, OT abiertas]
+  genera:
+    registrar: Reconocimiento de alarmas y bitácora de proceso.
+    crear: Avisos de falla.
+  no_ve: Programas PLC en edición, datos de personas, sueldos. No cambia parámetros de proceso fuera de lo autorizado.
+  impacto: Un reconocimiento tardío convierte un aviso en una detención. Su bitácora explica qué pasó cuando automatización o mantenimiento investigan.
+  ui:
+    prioridad: Alarmas críticas abiertas y variables fuera de rango.
+    disposicion: Consola de alarmas en vivo · mapa de planta · tendencias seleccionables · bitácora de proceso.
+    menu: [Sala de control, Alertas, Explorador de planta, Bitácora, Reportar falla, Seguridad]
+    datos: "Tablas: alarmas con nivel, equipo y tiempo abierto. Formularios: reconocimiento con comentario, entrada de bitácora."
+    acciones: [Reconocer alarma, Registrar en bitácora, Reportar falla]
+    alertas: [Alarma crítica sin reconocer, PLC sin comunicación, Alarma recurrente]
+    notificaciones: Mantenimiento tomó una OT de un equipo en alarma.
+    vacio: “No hay alarmas abiertas.”
+    componentes: Consola de eventos con filtro por nivel y marca de datos simulados, gráficos de tendencia.
+  medir:
+    - [Estabilidad del proceso, Lecturas de sensores (variabilidad), hoy]
+    - [Alarmas recurrentes, Historial de alarmas por equipo, hoy]
+    - [Disponibilidad, Cambios de estado de equipos, hoy]
+  flujo:
+    entrada: Telemetría, alarmas y eventos de PLC.
+    procesa: Reconoce, interpreta y coordina.
+    salida: Alarmas reconocidas, bitácora de proceso, avisos de falla.
+    destinatarios: Operación de campo, mantenimiento, automatización, supervisión.
+    consecuencia: Mantenimiento recibe el aviso con el contexto de la alarma.
+  permisos: {eventos: "c,r@pl", equipos: "c@pl", plc: "c@pl", ot: "c,cr@pl", traspaso: "c,cr@ar", rutinas: "c,r@pr", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si la sala de control puede ejecutar mandos a distancia (hoy no), Qué alarmas puede reconocer y cuáles solo automatización]
+  hoy: Ajuste por cargo en Desktop (inicio de sala de control). El reconocimiento de alarmas existe. No hay bitácora de proceso propia.
+
+- id: 14
+  dashboard: Mis movimientos
+  proposito: Mueve materiales por rutas autorizadas con un equipo inspeccionado. Es un cargo de alto riesgo, así que la habilitación y el checklist preuso son obligatorios.
+  jornada:
+    inicio: Confirma su habilitación de grúa horquilla y completa la inspección preuso del equipo.
+    durante: Recibe tareas de traslado, mueve cargas dentro de la capacidad y registra cada movimiento (origen, destino, carga).
+    coordina: Con bodega, despacho, recepción y seguridad.
+    anomalia: Si detecta un daño en el equipo, una ruta bloqueada o un incidente, detiene, reporta y no opera hasta que se libere.
+    cierre: Deja el equipo estacionado y el registro de movimientos completo.
+  decide: No operar si el checklist preuso falla o la habilitación está vencida.
+  escala: Jefe de bodega, prevención (incidentes).
+  consulta: [Su habilitación, Tareas de traslado, Ubicaciones, Capacidad del equipo]
+  genera:
+    registrar: Checklist preuso, movimientos de carga, daños e incidentes.
+  no_ve: Información de otras personas, sueldos, contratos.
+  impacto: Un movimiento no registrado descuadra el inventario; un equipo sin inspección es un riesgo grave para las personas.
+  ui:
+    prioridad: Estado de su habilitación, checklist del día y tareas de traslado pendientes.
+    disposicion: Habilitación y checklist · lista de tareas de traslado · registro rápido de movimiento.
+    menu: [Mis movimientos, Checklist preuso, Seguridad, Reportar, Mi cargo]
+    datos: "Formularios: checklist preuso, movimiento (origen, destino, carga), daño o incidente."
+    acciones: [Completar checklist preuso, Registrar movimiento, Reportar daño]
+    alertas: [Habilitación de grúa vencida, Checklist preuso no realizado, Ruta bloqueada]
+    notificaciones: Nueva tarea de traslado asignada.
+    vacio: “No tiene tareas de traslado asignadas.”
+    componentes: Tarjeta de habilitación con días restantes.
+  medir:
+    - [Incidentes, Incidentes SST del operador, hoy]
+    - [Exactitud de movimientos, Movimientos registrados contra conteos (no existen), falta]
+    - [Daños, Reportes de daño (no se registran), falta]
+  flujo:
+    entrada: Tareas de traslado desde bodega o despacho.
+    procesa: Inspecciona el equipo y mueve cargas.
+    salida: Movimientos registrados y checklist.
+    destinatarios: Bodega, despacho, prevención.
+    consecuencia: El inventario por ubicación queda actualizado.
+  permisos: {equipos: "c@pr", inventario: "c,r@pr", rutinas: "c,r@pr", sst: "r@pr", ot: "c,cr@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si las tareas de traslado se asignarán en SIMA o seguirán siendo verbales]
+  hoy: Ajuste por cargo en Desktop (rutinas y seguridad). No hay tareas de traslado ni movimientos por ubicación.
+
+- id: 15
+  dashboard: Apoyo de línea
+  proposito: Mantiene las estaciones abastecidas y ordenadas. Si se retrasa, la línea se detiene por falta de material.
+  jornada:
+    inicio: Revisa las solicitudes de reposición de las estaciones y la lista de tareas de limpieza y orden.
+    durante: Abastece estaciones, separa material y limpia según procedimiento.
+    coordina: Con operadores, líder de línea y bodega.
+    anomalia: Si falta material en bodega, avisa al líder; si ve una condición insegura, la reporta.
+    cierre: Confirma las reposiciones hechas y el checklist 5S.
+  decide: Prioridad de reposición entre estaciones.
+  escala: Líder de línea.
+  consulta: [Solicitudes de reposición, Lista de tareas, Procedimientos de limpieza]
+  genera:
+    registrar: Reposiciones confirmadas y checklist 5S.
+    crear: Reporte de condición insegura.
+  no_ve: Información de otras personas, producción detallada de otras líneas, sueldos.
+  impacto: Un faltante de material detiene la línea aunque las máquinas estén bien.
+  ui:
+    prioridad: Solicitudes de reposición pendientes.
+    disposicion: Solicitudes por estación · tareas 5S · reporte rápido.
+    menu: [Apoyo de línea, Reposiciones, Rutinas 5S, Reportar, Seguridad, Mi cargo]
+    datos: "Formularios: confirmación de reposición, checklist 5S."
+    acciones: [Confirmar reposición, Completar 5S, Reportar condición insegura]
+    alertas: [Estación sin material, Solicitud de reposición atrasada]
+    notificaciones: Nueva solicitud de reposición.
+    vacio: “No hay reposiciones pendientes.”
+    componentes: Lista de solicitudes con tiempo de espera.
+  medir:
+    - [Tiempo de reposición, Solicitudes de reposición con hora (no existen), falta]
+    - [Orden, Checklist 5S completados, parcial]
+    - [Faltantes de línea, Solicitudes no atendidas (no existen), falta]
+  flujo:
+    entrada: Solicitudes de los operadores.
+    procesa: Prepara y entrega material.
+    salida: Estaciones abastecidas, registros simples.
+    destinatarios: Operadores y líder de línea.
+    consecuencia: La línea sigue sin detenciones por material.
+  permisos: {equipos: "c@pr", materiales: "c,r@ln", rutinas: "c,r@ln", produccion: "c@ln", sst: "r@pr", ot: "c,cr@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si las solicitudes de reposición serán digitales]
+  hoy: Ajuste por cargo en Desktop (rutinas y reporte). No hay solicitudes de reposición.

@@ -9,7 +9,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-sima}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sima}
     volumes: [sima-db:/var/lib/postgresql/data]
-    ports: ["127.0.0.1:5432:5432"]      # solo para trabajar en local con la API fuera de Docker
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sima} -d ${POSTGRES_DB:-sima}"]
       interval: 5s
@@ -43,5 +42,44 @@ services:
     depends_on: [api]
     ports: ["3000:3000"]
 
+  # App de terreno (http://localhost:1421) y simulador de PLC (http://localhost:1420): se abren en el navegador.
+  terreno:
+    build: { context: ., dockerfile: docker/Dockerfile.estatica, args: { APP: terreno } }
+    restart: unless-stopped
+    ports: ["1421:80"]
+
+  simulador:
+    build: { context: ., dockerfile: docker/Dockerfile.estatica, args: { APP: plc-sim } }
+    restart: unless-stopped
+    ports: ["1420:80"]
+
+  # HTTPS:  docker compose --profile https up --build   →   https://localhost  (o su dominio con SIMA_DOMINIO)
+  # En producción quite los puertos 3000 y 5080 de arriba para que solo se entre por el proxy.
+  https:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on: [web, api]
+    environment:
+      SIMA_DOMINIO: ${SIMA_DOMINIO:-localhost}
+    volumes: ["./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "caddy-datos:/data"]
+    ports: ["80:80", "443:443"]
+
+  # Respaldo diario de la base de datos en ./respaldos (se conservan los últimos RESPALDOS_DIAS días).
+  respaldos:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-sima}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-sima}
+      PGDATABASE: ${POSTGRES_DB:-sima}
+      RESPALDOS_DIAS: ${RESPALDOS_DIAS:-14}
+    volumes: ["./scripts/respaldo.sh:/respaldo.sh:ro", "./respaldos:/respaldos"]
+    entrypoint: ["/bin/sh", "-c", "while true; do tr -d '\\r' < /respaldo.sh | /bin/sh -s -- /respaldos; sleep 86400; done"]
+
 volumes:
   sima-db:
+  caddy-datos:

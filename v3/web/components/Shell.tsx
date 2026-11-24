@@ -4,11 +4,11 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
-import { Banknote, Briefcase, Cpu, Factory, FileSignature, KeyRound, LayoutDashboard, LogOut, Menu, Network, ScrollText, SlidersHorizontal, UserMinus, Users, X, type LucideIcon } from "lucide-react";
+import { Banknote, BarChart3, Boxes, Briefcase, Cpu, Factory, FileSignature, KeyRound, LayoutDashboard, LogOut, Truck, Menu, Network, ScrollText, ShieldCheck, SlidersHorizontal, UserMinus, Users, X, type LucideIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { usePlanta } from "@/lib/planta";
-import { cx, AvisosProvider } from "./ui";
+import { cx, AvisosProvider, Cajon, PanelSeguridad } from "./ui";
 
 interface Item { href: string; titulo: string; icono: LucideIcon; recurso?: string }
 const GRUPOS: { titulo: string; items: Item[] }[] = [
@@ -27,6 +27,11 @@ const GRUPOS: { titulo: string; items: Item[] }[] = [
     { href: "/cargos", titulo: "Cargos y dotación", icono: Briefcase },
     { href: "/organigrama", titulo: "Organigrama", icono: Network },
   ] },
+  { titulo: "Operación", items: [
+    { href: "/indicadores", titulo: "Indicadores", icono: BarChart3, recurso: "kpis" },
+    { href: "/inventario", titulo: "Inventario", icono: Boxes },
+    { href: "/logistica", titulo: "Logística", icono: Truck, recurso: "despachos" },
+  ] },
   { titulo: "Planta", items: [
     { href: "/planta", titulo: "Equipos y alarmas", icono: Factory },
     { href: "/plc", titulo: "Controladores PLC", icono: Cpu, recurso: "plc" },
@@ -38,7 +43,8 @@ const COLOR_ESTADO: Record<string, string> = { operando: "bg-[#2fc77a]", alarma:
 
 function Navegacion({ alNavegar }: { alNavegar?: () => void }) {
   const ruta = usePathname();
-  const { puede, usuario, salir } = useAuth();
+  const { puede, usuario, salir, refrescar } = useAuth();
+  const [seguridad, setSeguridad] = useState(false);
   const activa = (h: string) => (h === "/" ? ruta === "/" : ruta.startsWith(h));
   return (
     <div className="flex h-full flex-col">
@@ -78,9 +84,11 @@ function Navegacion({ alNavegar }: { alNavegar?: () => void }) {
             <p className="truncate text-[15px] font-medium text-white">{usuario?.nombre}</p>
             <p className="truncate text-[13px] text-[#9aa0a9]" title={usuario?.cargo}>{usuario?.cargo}</p>
           </div>
+          <button onClick={() => setSeguridad(true)} aria-label="Seguridad de la cuenta" title="Seguridad de la cuenta" className="grid size-9 cursor-pointer place-items-center text-[#9aa0a9] transition-colors hover:text-white"><ShieldCheck className="size-[18px]" /></button>
           <button onClick={() => salir()} aria-label="Cerrar sesión" title="Cerrar sesión" className="grid size-9 cursor-pointer place-items-center text-[#9aa0a9] transition-colors hover:text-white"><LogOut className="size-[18px]" /></button>
         </div>
       </div>
+      <Cajon abierto={seguridad} onCerrar={() => setSeguridad(false)} titulo="Seguridad de la cuenta" ancho={560}>{usuario && <PanelSeguridad cliente={api} usuario={usuario} alNuevoToken={(t) => void refrescar(t)} alTerminar={() => setSeguridad(false)} />}</Cajon>
     </div>
   );
 }

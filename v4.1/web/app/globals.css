@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@import "../../paquetes/ui/src/tema.css";
+@source "../../paquetes/ui/src";
+
+/* SIMA Web · gestión empresarial: tema claro profesional por defecto (el oscuro queda como opción), más aire entre
+   bloques y tipografía de lectura. Colores, radios y tiempos vienen de paquetes/ui/src/tema.css. */
+:root { --alto-control: 38px; --alto-fila: 44px; }

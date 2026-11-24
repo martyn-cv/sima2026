@@ -1,0 +1,260 @@
+# Familia 7 · Personas, relaciones laborales y servicios
+# Esta familia maneja la información más protegida (hoja Permisos del Excel). Nada de su trabajo aparece en SIMA Desktop.
+- id: 44
+  dashboard: Personas
+  proposito: Asegura que la planta tenga a las personas correctas, contratadas según la ley, formadas y con relaciones laborales sanas.
+  jornada:
+    inicio: Revisa contratos por vencer, altas y bajas en curso, ausentismo del mes y habilitaciones vencidas.
+    durante: Aprueba contrataciones, firma desvinculaciones, revisa políticas y atiende casos escalados.
+    coordina: Con gerencia, jefaturas, trabajadores y asesoría legal.
+    anomalia: Ante un contrato vencido sin renovar o una cuenta activa de una persona desvinculada, corrige de inmediato.
+    cierre: Revisa indicadores de dotación y rotación.
+  decide: Contrataciones, desvinculaciones, renovaciones y políticas de personas; quién tiene cuenta SIMA y por qué canal.
+  escala: Gerencia general y asesoría legal.
+  consulta: [Dotación objetivo y actual por cargo, Contratos y vencimientos, Asistencia y ausentismo, Habilitaciones, Remuneraciones (consulta), Desvinculaciones, Cuentas SIMA]
+  genera:
+    crear: Fichas de trabajador, contratos y desvinculaciones.
+    editar: Datos personales, cargos y dotación objetivo, cuentas SIMA.
+    aprobar: Ingresos y salidas de personal.
+    exportar: Informes de dotación.
+  no_ve: Parámetros de PLC, OT técnicas, programas de máquina. Ve remuneraciones pero no las edita (las prepara el analista de remuneraciones).
+  impacto: Si un contrato vence sin control, la cuenta se suspende y la persona no puede trabajar en SIMA. Una desvinculación mal registrada deja accesos abiertos.
+  ui:
+    prioridad: Contratos por vencer, brechas de dotación y documentos pendientes.
+    disposicion: Franja (dotación, altas y bajas del mes, ausentismo, contratos por vencer) · vencimientos · brechas por cargo · habilitaciones vencidas.
+    menu: [Inicio, Trabajadores, Contratos, Desvinculaciones, Cuentas de acceso, Asistencia, Habilitaciones, Cargos y dotación, Remuneraciones]
+    datos: "Tablas: trabajadores, contratos, desvinculaciones. Formularios: ficha, contrato, término de contrato, cuenta."
+    acciones: [Registrar ingreso, Renovar contrato, Registrar desvinculación, Revisar cuenta]
+    alertas: [Contrato vence en 30 días, Cuenta activa de persona desvinculada, Brecha de dotación en cargo crítico]
+    notificaciones: Reclutamiento cerró una vacante; una habilitación venció.
+    vacio: “No hay vencimientos en los próximos 90 días.”
+    componentes: Línea de vencimientos, organigrama, pirámide de dotación.
+  medir:
+    - [Rotación, Desvinculaciones y dotación, hoy]
+    - [Cobertura de vacantes, Vacantes y fecha de cobertura (no existen), falta]
+    - [Ausentismo, Asistencia mensual, hoy]
+    - [Formación, Cursos y habilitaciones (solo habilitaciones), parcial]
+  flujo:
+    entrada: Solicitudes de jefaturas, procesos de selección, términos de contrato.
+    procesa: Verifica normativa y aprueba.
+    salida: Contratos, desvinculaciones, cuentas actualizadas.
+    destinatarios: Jefaturas, remuneraciones, soporte TI, el trabajador.
+    consecuencia: Al desvincular, la cuenta se cierra y la persona deja de aparecer en los equipos de las jefaturas.
+  permisos: {personal: "c,cr,e,x@em", contratos: "c,cr,e@em", terminos: "c,cr,e@em", cuentas: "c,e@em", asistencia: "c@em", habilitaciones: "c,e@em", remuneraciones: "c@em", conceptos: "c@em", parametros: "c@em", seleccion: "c,ap@em", capacitacion: "c@em", casos: "c@em", sst: "c@ag", auditoria: "c@em", permisos: "c@em", kpis: "c@ag"}
+  apps: [web]
+  validar: [Si la jefatura de RR. HH. debe poder preparar remuneraciones (hoy sí) o solo consultarlas, Plazo de aviso para contratos por vencer]
+  hoy: Fichas, contratos, desvinculaciones con cierre automático de cuenta, asistencia y habilitaciones. La web muestra además Planta, Mantenimiento y Eventos, que no corresponden a su trabajo.
+
+- id: 45
+  dashboard: Selección
+  proposito: Cubre los puestos con personas aptas para las exigencias técnicas y de seguridad del cargo.
+  jornada:
+    inicio: Revisa vacantes abiertas, su antigüedad y las entrevistas del día.
+    durante: Publica vacantes, entrevista, evalúa contra el perfil del cargo y verifica referencias.
+    coordina: Con jefes solicitantes, RR. HH. y candidatos.
+    anomalia: Si una vacante crítica supera el plazo, propone alternativas (reemplazo temporal, reasignación).
+    cierre: Actualiza el estado de cada proceso.
+  decide: Terna presentada al jefe solicitante.
+  escala: Jefatura de RR. HH.
+  consulta: [Vacantes y perfil del cargo (Excel), Dotación objetivo y brecha, Postulaciones y evaluaciones]
+  genera:
+    crear: Vacantes y procesos de selección.
+    registrar: Entrevistas, evaluaciones y terna.
+    editar: Datos de ingreso del seleccionado (alta inicial).
+  no_ve: Remuneraciones de los trabajadores actuales, datos bancarios.
+  impacto: Una vacante crítica sin cubrir obliga a sobretiempo o deja un equipo sin operador habilitado.
+  ui:
+    prioridad: Vacantes críticas y su antigüedad.
+    disposicion: Vacantes por cargo con brecha · procesos en curso (embudo) · entrevistas del día.
+    menu: [Inicio, Vacantes, Procesos, Cargos y perfiles, Ingresos]
+    datos: "Tablas: vacantes, postulantes. Formularios: vacante, evaluación, alta inicial."
+    acciones: [Abrir vacante, Registrar entrevista, Presentar terna]
+    alertas: [Vacante crítica sobre 30 días]
+    notificaciones: Jefe solicitante eligió candidato.
+    vacio: “No hay vacantes abiertas. La brecha de dotación de cada cargo está en Cargos.”
+    componentes: Embudo de selección.
+  medir:
+    - [Tiempo de cobertura, Fecha de apertura y de ingreso (no existen), falta]
+    - [Permanencia inicial, Ingresos y desvinculaciones antes de 6 meses, hoy]
+    - [Vacantes críticas, Brecha de dotación por cargo, hoy]
+  flujo:
+    entrada: Solicitud del jefe y perfil del cargo.
+    procesa: Recluta y evalúa.
+    salida: Terna y alta inicial.
+    destinatarios: Jefe solicitante, RR. HH., remuneraciones.
+    consecuencia: El nuevo trabajador entra con su cargo y su cuenta.
+  permisos: {seleccion: "c,cr,e@em", personal: "c,cr@em", contratos: "c@em", habilitaciones: "c@em"}
+  apps: [web]
+  validar: [Si los datos de postulantes no contratados se guardan y por cuánto tiempo]
+  hoy: Puede editar fichas de personal. No existen vacantes ni procesos de selección.
+
+- id: 46
+  dashboard: Remuneraciones y asistencia
+  proposito: Calcula y prepara los pagos de cada período con asistencia conciliada y total confidencialidad.
+  jornada:
+    inicio: Revisa la asistencia cargada, horas extra y conceptos del período.
+    durante: Concilia horas y ausencias, registra conceptos variables y prepara el cierre de remuneraciones.
+    coordina: Con jefaturas (asistencia), finanzas (aprobación) y trabajadores.
+    anomalia: Si una liquidación sale con valores anómalos, la corrige antes de enviar a aprobación.
+    cierre: Envía el cierre a aprobación (no lo aprueba).
+  decide: Contenido del cálculo dentro de los parámetros vigentes.
+  escala: Finanzas (aprobación), RR. HH.
+  consulta: [Contratos y sueldos base, Asistencia y horas, Conceptos variables, Parámetros legales]
+  genera:
+    registrar: Asistencia y conceptos variables.
+    crear: Cierre preparado del período.
+    exportar: Nómina y respaldos.
+  no_ve: Información técnica de planta. No aprueba su propio cierre.
+  impacto: Un error de cálculo afecta el pago de las personas; por eso el cierre requiere una segunda firma.
+  ui:
+    prioridad: Estado del período (preparado, aprobado) y diferencias.
+    disposicion: Avance del período · diferencias de asistencia · conceptos · liquidaciones.
+    menu: [Inicio, Asistencia, Conceptos, Remuneraciones, Parámetros]
+    datos: "Tablas: liquidaciones, asistencia. Formularios: concepto variable, preparar cierre."
+    acciones: [Preparar cierre, Registrar concepto, Exportar nómina]
+    alertas: [Asistencia faltante, Cierre rechazado]
+    notificaciones: Finanzas aprobó o rechazó el cierre.
+    vacio: “El período no tiene asistencia cargada.”
+    componentes: Etapas del cierre.
+  medir:
+    - [Exactitud de remuneraciones, Correcciones posteriores al pago (no existen), falta]
+    - [Puntualidad, Fecha de aprobación del cierre, hoy]
+    - [Errores, Cierres rechazados, hoy]
+  flujo:
+    entrada: Asistencia, contratos, conceptos.
+    procesa: Calcula y concilia.
+    salida: Cierre preparado.
+    destinatarios: Finanzas y tesorería.
+    consecuencia: Finanzas aprueba y tesorería paga.
+  permisos: {remuneraciones: "c,cr,x@em", asistencia: "c,r,e@em", conceptos: "c,cr,e@em", parametros: "c@em", contratos: "c@em", personal: "c@em", terminos: "c@em"}
+  apps: [web]
+  validar: [Si la asistencia diaria la registrará el supervisor o seguirá llegando como resumen mensual]
+  hoy: Prepara el cierre con control de cuatro ojos y edita conceptos. Funciona.
+
+- id: 47
+  dashboard: Capacitación y competencias
+  proposito: Mantiene al personal habilitado para los riesgos y cambios técnicos de su trabajo.
+  jornada:
+    inicio: Revisa habilitaciones vencidas y por vencer, y brechas de la matriz de competencias.
+    durante: Programa cursos, registra resultados y renueva habilitaciones.
+    coordina: Con supervisores, prevención, calidad y mantenimiento.
+    anomalia: Si una persona opera con una habilitación vencida, avisa a su jefatura para reasignarla.
+    cierre: Actualiza la matriz de formación.
+  decide: Programa de formación y registro de habilitaciones.
+  escala: RR. HH. y jefaturas.
+  consulta: [Habilitaciones por persona y cargo, Matriz de competencias, Cursos y evaluaciones]
+  genera:
+    crear: Cursos y planes de cierre de brechas.
+    registrar: Habilitaciones obtenidas y resultados.
+    editar: Vigencias.
+  no_ve: Sueldos, contratos y datos bancarios.
+  impacto: Una habilitación vencida bloquea a la persona para su tarea (LOTO, altura, grúa).
+  ui:
+    prioridad: Vencidas y por vencer por cargo crítico.
+    disposicion: Matriz cargo × habilitación · vencimientos · cursos programados.
+    menu: [Inicio, Habilitaciones, Matriz de competencias, Cursos]
+    datos: "Tablas: matriz de competencias, vencimientos. Formularios: habilitación, curso."
+    acciones: [Registrar habilitación, Programar curso, Exportar brechas]
+    alertas: [Habilitación vencida en cargo de riesgo, Vencimiento en 60 días]
+    notificaciones: Supervisor solicitó formación.
+    vacio: “Todas las habilitaciones están vigentes.”
+    componentes: Matriz con semáforo.
+  medir:
+    - [Personal habilitado, Habilitaciones vigentes por cargo, hoy]
+    - [Formación completada, Cursos (no existen), falta]
+    - [Brechas, Habilitaciones requeridas por cargo (la exigencia por cargo no está definida), parcial]
+  flujo:
+    entrada: Requisitos por cargo y vencimientos.
+    procesa: Programa y evalúa.
+    salida: Habilitaciones vigentes.
+    destinatarios: Supervisores, prevención, el trabajador.
+    consecuencia: La persona puede volver a ser asignada a la tarea.
+  permisos: {habilitaciones: "c,cr,e@em", capacitacion: "c,cr,e@em", personal: "c@em"}
+  apps: [web]
+  validar: [Qué habilitaciones exige cada cargo (no está en el Excel)]
+  hoy: Registra habilitaciones. No hay matriz de exigencia por cargo ni cursos.
+
+- id: 48
+  dashboard: Relaciones laborales
+  proposito: Canaliza inquietudes de los trabajadores y previene conflictos con confidencialidad.
+  jornada:
+    inicio: Revisa casos abiertos y su plazo.
+    durante: Atiende consultas, gestiona beneficios y apoya instancias de negociación.
+    coordina: Con gerencia, RR. HH., supervisores y representantes.
+    anomalia: Si un caso escala, lo deriva con registro confidencial.
+    cierre: Registra seguimientos.
+  decide: Tratamiento de cada caso dentro de los procedimientos.
+  escala: Jefatura de RR. HH. y asesoría legal.
+  consulta: [Casos y consultas, Beneficios, Dotación (sin sueldos)]
+  genera:
+    crear: Casos confidenciales y actas.
+    registrar: Seguimientos.
+    cerrar: Casos.
+  no_ve: Sueldos individuales, datos bancarios, información técnica.
+  impacto: Un caso sin seguimiento escala a conflicto laboral.
+  ui:
+    prioridad: Casos abiertos por plazo.
+    disposicion: Casos (privados) · beneficios · actas.
+    menu: [Inicio, Casos, Beneficios, Actas]
+    datos: "Formularios: caso confidencial con acceso restringido."
+    acciones: [Registrar caso, Registrar seguimiento, Cerrar caso]
+    alertas: [Caso sin respuesta en plazo]
+    notificaciones: Nueva consulta.
+    vacio: “No hay casos abiertos.”
+    componentes: Casos con indicador de confidencialidad.
+  medir:
+    - [Resolución de consultas, Casos cerrados en plazo (no existen), falta]
+    - [Clima, Encuestas (no existen), falta]
+    - [Cumplimiento de procesos, Casos con etapas (no existen), falta]
+  flujo:
+    entrada: Consultas de trabajadores.
+    procesa: Gestiona con reserva.
+    salida: Casos resueltos y actas.
+    destinatarios: El trabajador, RR. HH.
+    consecuencia: Medidas de mejora del clima.
+  permisos: {casos: "c,cr,e,ci@em", personal: "c@em", sst: "c@ag"}
+  apps: [web]
+  validar: [Quién más puede ver un caso (solo el especialista y RR. HH.)]
+  hoy: Ve SST. No existe el módulo de casos.
+
+- id: 49
+  dashboard: Administración de personal
+  proposito: Mantiene completo el expediente de cada persona y resuelve sus solicitudes documentales.
+  jornada:
+    inicio: Revisa solicitudes (certificados, permisos) y documentos faltantes de expedientes.
+    durante: Registra altas, bajas y permisos, emite certificados y actualiza legajos.
+    coordina: Con RR. HH., trabajadores y supervisores.
+    anomalia: Si falta un documento obligatorio de un ingreso, lo bloquea como pendiente.
+    cierre: Deja solicitudes resueltas.
+  decide: Ninguna de fondo; registra según instrucción de RR. HH.
+  escala: Jefatura de RR. HH.
+  consulta: [Fichas y expedientes, Contratos, Asistencia, Solicitudes]
+  genera:
+    registrar: Altas, bajas, permisos y documentos.
+    editar: Fichas y contratos (según instrucción).
+    crear: Certificados.
+  no_ve: Remuneraciones individuales (salvo que lo autorice RR. HH.), información técnica.
+  impacto: Un expediente incompleto expone a la empresa ante una fiscalización.
+  ui:
+    prioridad: Solicitudes pendientes y documentos faltantes.
+    disposicion: Solicitudes · expedientes incompletos · altas y bajas recientes.
+    menu: [Inicio, Solicitudes, Trabajadores, Contratos, Asistencia, Documentos]
+    datos: "Formularios: alta, permiso, certificado."
+    acciones: [Registrar alta, Emitir certificado, Registrar permiso]
+    alertas: [Documento obligatorio faltante]
+    notificaciones: Nueva solicitud.
+    vacio: “No hay solicitudes pendientes.”
+    componentes: Lista de verificación del expediente.
+  medir:
+    - [Documentos completos, Expedientes con documentos obligatorios (no se registran), falta]
+    - [Plazo de respuesta, Solicitudes con fecha (no existen), falta]
+  flujo:
+    entrada: Solicitudes e ingresos.
+    procesa: Registra y archiva.
+    salida: Expedientes y certificados.
+    destinatarios: Trabajadores, RR. HH.
+    consecuencia: El expediente queda completo.
+  permisos: {personal: "c,cr,e@em", contratos: "c,cr,e@em", terminos: "c@em", asistencia: "c,r@em", cuentas: "c@em", habilitaciones: "c@em", documentos: "c,cr@em"}
+  apps: [web]
+  validar: [Si el asistente debe ver datos sensibles (hoy sí)]
+  hoy: Edita fichas y contratos y ve datos sensibles. No hay solicitudes ni expedientes documentales.

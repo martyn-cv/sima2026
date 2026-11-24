@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "../../paquetes/ui/src/tema.css";
+@source "../../paquetes/ui/src";
+
+/* SIMA Desktop · estación de trabajo industrial: tema oscuro por defecto y mayor densidad de información.
+   Todos los colores, radios y tiempos vienen de paquetes/ui/src/tema.css. */
+:root { --alto-control: 32px; --alto-fila: 36px; }
+
+html, body, #raiz { height: 100%; }
+body { overflow: hidden; user-select: none; font-size: 13.5px; }
+input, textarea, [contenteditable], .seleccionable { user-select: text; }

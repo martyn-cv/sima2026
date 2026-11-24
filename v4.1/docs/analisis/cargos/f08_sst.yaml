@@ -1,0 +1,206 @@
+# Familia 8 · Seguridad, salud y medioambiente
+- id: 50
+  dashboard: Prevención SST
+  proposito: Asesora y verifica que los peligros estén controlados. Investiga cada evento para que no se repita.
+  jornada:
+    inicio: Revisa eventos reportados sin investigar, accidentes y casi accidentes recientes, y habilitaciones de seguridad vencidas.
+    durante: Investiga eventos, hace inspecciones, actualiza la matriz de riesgos y verifica controles.
+    coordina: Con todas las áreas, el organismo administrador y el comité paritario.
+    anomalia: Ante un accidente, asegura la atención, registra el evento, activa la investigación y comunica a la gerencia.
+    cierre: Actualiza acciones preventivas y su estado.
+  decide: Investigación y cierre de eventos, controles requeridos, detención de una tarea insegura.
+  escala: Gerencia de planta.
+  consulta: [Eventos SST por tipo y área, Matriz de riesgos, Inspecciones, Habilitaciones de seguridad, Acciones preventivas]
+  genera:
+    registrar: Investigaciones, inspecciones y controles.
+    aprobar: Cierre de eventos.
+    editar: Matriz de riesgos y habilitaciones de seguridad.
+    cerrar: Eventos con acciones verificadas.
+  no_ve: Datos médicos individuales, sueldos, contratos.
+  impacto: Un evento sin investigar se repite; un control no verificado expone a las personas.
+  ui:
+    prioridad: Eventos por investigar y accidentes.
+    disposicion: Franja (eventos del mes, por investigar, días sin accidentes, acciones vencidas) · eventos · riesgos por zona · habilitaciones de seguridad.
+    menu: [Prevención SST, Eventos, Investigaciones, Riesgos, Inspecciones, Habilitaciones, Explorador]
+    datos: "Tablas: eventos, acciones. Formularios: investigación, inspección, acción preventiva."
+    acciones: [Investigar evento, Registrar inspección, Cerrar evento]
+    alertas: [Accidente, Evento sin investigar 48 horas, Habilitación de seguridad vencida]
+    notificaciones: Nuevo evento reportado desde planta.
+    vacio: “No hay eventos por investigar.”
+    componentes: Mapa de calor de riesgos por zona, contador de días sin accidentes.
+  medir:
+    - [Controles cerrados, Acciones de eventos cerradas, parcial]
+    - [Acciones preventivas, Acciones con plazo (no se registran por separado), parcial]
+    - [Exposición a riesgos, Matriz de riesgos (no existe), falta]
+  flujo:
+    entrada: Reportes de todos los trabajadores.
+    procesa: Investiga y define controles.
+    salida: Eventos cerrados, matriz actualizada.
+    destinatarios: Gerencia, jefaturas, comité.
+    consecuencia: Cambian procedimientos y habilitaciones exigidas.
+  permisos: {sst: "c,r,ap,ci,x@pl", riesgos: "c,cr,e@pl", habilitaciones: "c,e@pl", equipos: "c@pl", eventos: "c@pl", ot: "c@pl", emergencias: "c,e@pl", rutinas: "c@pl"}
+  apps: [desktop, web]
+  validar: [Si necesita SIMA Web además de Desktop para informes]
+  hoy: Gestiona y cierra incidentes, edita habilitaciones. No hay matriz de riesgos ni inspecciones.
+
+- id: 51
+  dashboard: Comité paritario
+  proposito: Representa la participación de trabajadores y empleador en la prevención.
+  jornada:
+    inicio: Revisa observaciones abiertas y medidas recomendadas.
+    durante: Revisa condiciones, registra observaciones y participa en investigaciones.
+    coordina: Con trabajadores, empleador, prevención y organismo administrador.
+    anomalia: Si detecta un riesgo no resuelto, lo registra y hace seguimiento.
+    cierre: Deja actas y seguimientos.
+  decide: Recomendaciones del comité.
+  escala: Prevención y gerencia.
+  consulta: [Eventos SST (sin datos médicos), Observaciones, Medidas recomendadas]
+  genera:
+    registrar: Observaciones y actas.
+    crear: Recomendaciones.
+  no_ve: Datos personales y médicos, sueldos.
+  impacto: Sus recomendaciones cierran riesgos que la operación no prioriza.
+  ui:
+    prioridad: Riesgos no resueltos.
+    disposicion: Observaciones · recomendaciones con seguimiento · actas.
+    menu: [Comité paritario, Observaciones, Recomendaciones, Eventos, Mi cargo]
+    datos: "Formularios: observación, acta."
+    acciones: [Registrar observación, Registrar acta]
+    alertas: [Recomendación vencida]
+    notificaciones: Prevención cerró una medida.
+    vacio: “No hay observaciones abiertas.”
+    componentes: Seguimiento de recomendaciones.
+  medir:
+    - [Recomendaciones cerradas, Recomendaciones (no existen), falta]
+    - [Participación y cobertura, Actas e inspecciones (no existen), falta]
+  flujo:
+    entrada: Condiciones y eventos.
+    procesa: Revisa y recomienda.
+    salida: Actas y recomendaciones.
+    destinatarios: Prevención y gerencia.
+    consecuencia: Medidas preventivas.
+  permisos: {sst: "c,r@pl", riesgos: "c,r@pl"}
+  apps: [desktop]
+  validar: [Si los integrantes del comité tienen además su cargo productivo (doble rol)]
+  hoy: Perfil prevención (inicio ajustado). No hay observaciones ni actas.
+
+- id: 52
+  dashboard: Gestión ambiental
+  proposito: Controla residuos, consumos e impactos ambientales y el cumplimiento de permisos.
+  jornada:
+    inicio: Revisa vencimientos de permisos y monitoreos programados.
+    durante: Controla la segregación de residuos, contratistas y consumos.
+    coordina: Con planta, compras, mantenimiento, prevención y externos.
+    anomalia: Ante un derrame o incidente ambiental, registra, contiene y notifica.
+    cierre: Registra residuos generados y retirados.
+  decide: Controles ambientales.
+  escala: Gerencia de planta.
+  consulta: [Residuos, Consumos de agua y energía, Permisos ambientales, Monitoreos]
+  genera:
+    registrar: Residuos, monitoreos e incidentes ambientales.
+  no_ve: Datos personales, sueldos.
+  impacto: Un incumplimiento ambiental puede detener la planta.
+  ui:
+    prioridad: Permisos por vencer e incidentes.
+    disposicion: Residuos del mes · consumos · permisos · incidentes.
+    menu: [Gestión ambiental, Residuos, Consumos, Permisos, Incidentes]
+    datos: "Formularios: registro de residuo, monitoreo, incidente ambiental."
+    acciones: [Registrar residuo, Registrar incidente]
+    alertas: [Permiso por vencer, Consumo anómalo]
+    notificaciones: Contratista retiró residuos.
+    vacio: “No hay registros ambientales.”
+    componentes: Series de consumo.
+  medir:
+    - [Cumplimiento ambiental, Permisos y monitoreos (no existen), falta]
+    - [Incidentes, Incidentes ambientales (no existen; se podría usar SST con un tipo ambiental), falta]
+    - [Consumos, Energía y agua (no se miden), falta]
+  flujo:
+    entrada: Operación y contratistas.
+    procesa: Controla.
+    salida: Registros de cumplimiento.
+    destinatarios: Gerencia, autoridades.
+    consecuencia: Planta opera dentro de sus permisos.
+  permisos: {ambiente: "c,cr,r,e@pl", sst: "c,r@pl", servicios: "c@pl"}
+  apps: [desktop]
+  validar: [Qué permisos ambientales tiene la planta]
+  hoy: Perfil prevención. No existe el módulo ambiental.
+
+- id: 53
+  dashboard: Salud y ergonomía
+  proposito: Coordina la vigilancia de exposición y las medidas de salud laboral, protegiendo la información médica.
+  jornada:
+    inicio: Revisa evaluaciones de puesto pendientes y medidas en curso.
+    durante: Coordina controles de higiene y ergonomía con organismos externos.
+    coordina: Con prevención, RR. HH., supervisión y prestadores.
+    anomalia: Si un puesto presenta riesgo ergonómico, propone medidas.
+    cierre: Registra el seguimiento sin datos clínicos.
+  decide: Medidas preventivas por puesto.
+  escala: Prevención y RR. HH.
+  consulta: [Evaluaciones de puesto, Medidas preventivas, Eventos SST]
+  genera:
+    registrar: Evaluaciones de puesto y medidas.
+  no_ve: Diagnósticos médicos individuales en SIMA; sueldos.
+  impacto: Un riesgo ergonómico no atendido aumenta ausentismo y licencias.
+  ui:
+    prioridad: Medidas pendientes por puesto.
+    disposicion: Evaluaciones por puesto · medidas · cobertura.
+    menu: [Salud y ergonomía, Evaluaciones, Medidas, Eventos]
+    datos: "Formularios: evaluación de puesto, medida."
+    acciones: [Registrar evaluación, Registrar medida]
+    alertas: [Medida vencida]
+    notificaciones: Nueva solicitud de evaluación.
+    vacio: “No hay evaluaciones pendientes.”
+    componentes: Mapa de puestos con nivel de riesgo.
+  medir:
+    - [Cobertura preventiva, Puestos evaluados (no existen), falta]
+    - [Acciones correctivas, Medidas cerradas (no existen), falta]
+  flujo:
+    entrada: Solicitudes y evaluaciones.
+    procesa: Coordina con prestadores.
+    salida: Medidas por puesto.
+    destinatarios: Prevención, supervisión.
+    consecuencia: Puestos más seguros.
+  permisos: {riesgos: "c,r@pl", sst: "c@pl", asistencia: "c@ag"}
+  apps: [desktop]
+  validar: [Confirmar que SIMA no debe guardar ningún dato clínico]
+  hoy: Perfil prevención. No hay evaluaciones de puesto.
+
+- id: 54
+  dashboard: Brigada de emergencia
+  proposito: Responde a emergencias según su formación y mantiene el equipamiento de emergencia operativo.
+  jornada:
+    inicio: Revisa su rol asignado, inspecciones de equipamiento y el próximo simulacro.
+    durante: Inspecciona extintores, rutas y equipos de emergencia.
+    coordina: Con prevención, jefaturas y organismos externos.
+    anomalia: En una emergencia, activa la respuesta según el plan y registra lo actuado.
+    cierre: Registra inspecciones y hallazgos.
+  decide: Activar la respuesta de su rol.
+  escala: Prevención y servicios externos.
+  consulta: [Plan de emergencia, Rol asignado, Equipamiento y su estado, Simulacros]
+  genera:
+    registrar: Inspecciones de equipamiento, simulacros y hallazgos.
+  no_ve: Datos personales, sueldos.
+  impacto: Un equipo de emergencia vencido falla cuando más se necesita.
+  ui:
+    prioridad: Equipamiento vencido y rol asignado.
+    disposicion: Mi rol · inspecciones pendientes · simulacros · zonas bloqueadas.
+    menu: [Brigada de emergencia, Inspecciones, Simulacros, Plan de emergencia, Mi cargo]
+    datos: "Formularios: inspección de equipamiento, registro de simulacro."
+    acciones: [Registrar inspección, Registrar simulacro, Reportar hallazgo]
+    alertas: [Equipo de emergencia vencido, Simulacro atrasado]
+    notificaciones: Simulacro programado.
+    vacio: “No hay inspecciones pendientes.”
+    componentes: Plano con ubicación del equipamiento.
+  medir:
+    - [Simulacros ejecutados, Simulacros (no existen), falta]
+    - [Hallazgos cerrados, Hallazgos de inspección (no existen), falta]
+  flujo:
+    entrada: Plan de emergencia.
+    procesa: Inspecciona y entrena.
+    salida: Registros de simulacro e inspección.
+    destinatarios: Prevención.
+    consecuencia: Planta preparada ante emergencias.
+  permisos: {emergencias: "c,r@pl", sst: "c,r@pl", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si los brigadistas tienen además un cargo productivo]
+  hoy: Perfil prevención. No hay plan de emergencia ni simulacros.

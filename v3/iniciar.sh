@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 LOGS=.logs; mkdir -p "$LOGS"
 [ -f .env ] && set -a && . ./.env && set +a
-DB=${POSTGRES_DB:-sima}; USR=${POSTGRES_USER:-sima}; PASS=${POSTGRES_PASSWORD:-sima}
+DB=${POSTGRES_DB:-sima}; USR=${POSTGRES_USER:-sima}; PASS=${POSTGRES_PASSWORD:-sima}; PUERTO=${POSTGRES_PUERTO:-5432}
 
 faltan() { echo "Falta $1. Ejecute scripts/instalar-herramientas.sh o revise el README."; exit 1; }
 
@@ -29,15 +29,15 @@ command -v dotnet >/dev/null || faltan ".NET 8 SDK"
 command -v npm >/dev/null || faltan "Node.js 22"
 
 # PostgreSQL: si nadie escucha en 5432 y hay Docker, se levanta solo la base de datos
-if ! (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
+if ! (exec 3<>/dev/tcp/127.0.0.1/$PUERTO) 2>/dev/null; then
   command -v docker >/dev/null || faltan "PostgreSQL en el puerto 5432 (o Docker para levantarlo)"
   echo "Levantando PostgreSQL con Docker…"
-  docker compose up -d db
-  for _ in $(seq 1 30); do (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null && break; sleep 1; done
+  docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db
+  for _ in $(seq 1 30); do (exec 3<>/dev/tcp/127.0.0.1/$PUERTO) 2>/dev/null && break; sleep 1; done
 fi
 
 [ -d node_modules ] || npm install --no-audit --no-fund
-export ConnectionStrings__Sima="Host=localhost;Port=5432;Database=$DB;Username=$USR;Password=$PASS"
+export ConnectionStrings__Sima="Host=localhost;Port=$PUERTO;Database=$DB;Username=$USR;Password=$PASS"
 export Ingesta__ApiKey="${SIMA_INGESTA_KEY:-dev-ingesta-key}"
 
 PIDS=()

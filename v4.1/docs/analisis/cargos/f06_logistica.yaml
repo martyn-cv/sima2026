@@ -1,0 +1,339 @@
+# Familia 6 · Planificación, abastecimiento y logística
+- id: 36
+  dashboard: Programa de producción
+  proposito: Convierte pedidos y pronósticos en órdenes que la planta puede cumplir con su capacidad y sus materiales.
+  jornada:
+    inicio: Revisa pedidos nuevos y modificados, la carga por línea y el avance del programa de la semana.
+    durante: Secuencia lotes, revisa restricciones (capacidad, materiales, mantenimiento) y emite órdenes de producción.
+    coordina: Con comercial (fechas), operaciones, compras y bodega.
+    anomalia: Si una línea se detiene o falta material, reprograma y comunica el impacto en fechas.
+    cierre: Publica el programa actualizado.
+  decide: Secuencia y fecha de las órdenes de producción.
+  escala: Jefatura de producción y comercial (fechas no cumplibles).
+  consulta: [Pedidos con fecha comprometida, Capacidad por línea, Disponibilidad de materiales, Órdenes en curso y su avance, Ventanas de mantenimiento]
+  genera:
+    crear: Órdenes de producción desde el programa.
+    editar: Secuencia y fechas del programa.
+    exportar: Plan maestro y semanal.
+  no_ve: Datos personales, sueldos y contratos.
+  impacto: Su programa decide qué se fabrica y cuándo; un programa infactible genera atrasos y sobretiempo.
+  ui:
+    prioridad: Pedidos en riesgo y carga por línea.
+    disposicion: Carga por línea (semana) · pedidos por fecha · órdenes en curso · faltantes de material.
+    menu: [Inicio, Programa, Pedidos, Capacidad, Órdenes de producción, Materiales]
+    datos: "Tablas: pedidos, órdenes, carga. Formularios: orden de producción, reprogramación."
+    acciones: [Crear orden desde pedido, Reprogramar, Exportar programa]
+    alertas: [Pedido sin capacidad a tiempo, Material faltante para una orden, Línea detenida con órdenes programadas]
+    notificaciones: Comercial registró un pedido; mantenimiento programó una detención.
+    vacio: “No hay pedidos por programar.”
+    componentes: Gantt por línea, barras de carga.
+  medir:
+    - [Adherencia al plan, Órdenes terminadas en su fecha, parcial]
+    - [Atrasos, Órdenes vencidas, parcial]
+    - [WIP, Inventario en proceso (no existe), falta]
+    - [Utilización, Horas de producción contra disponibles, parcial]
+  flujo:
+    entrada: Pedidos, capacidad, materiales.
+    procesa: Secuencia y verifica factibilidad.
+    salida: Programa y órdenes de producción.
+    destinatarios: Producción, MRP, compras, comercial.
+    consecuencia: Las órdenes aparecen para la jefatura y los turnos.
+  permisos: {plan_prod: "c,cr,e,x@pl", produccion: "c,cr,e@pl", pedidos: "c@em", materiales: "c@pl", ot: "c@pl", equipos: "c@pl", kpis: "c@pl", inventario: "c@pl"}
+  apps: [web]
+  validar: [Si los pedidos vendrán de un ERP externo o se registrarán en SIMA]
+  hoy: Crea órdenes de producción. No hay pedidos, capacidad ni programa por línea.
+
+- id: 37
+  dashboard: Planificación de materiales
+  proposito: Calcula cuánto material se necesita y cuándo, para que no falte ni sobre.
+  jornada:
+    inicio: Revisa faltantes para las órdenes de la semana y entregas atrasadas de proveedores.
+    durante: Explota listas de materiales, compara con existencias y consumos, y genera requerimientos de compra.
+    coordina: Con planificación, compras, bodega y producción.
+    anomalia: Si un material crítico no llegará a tiempo, avisa a planificación para reprogramar.
+    cierre: Deja los requerimientos emitidos y la lista de faltantes.
+  decide: Cantidad y fecha de los requerimientos de material.
+  escala: Compras (urgencias), planificación (reprogramar).
+  consulta: [Listas de materiales, Existencias, Consumos, Plazos de proveedores, Órdenes programadas]
+  genera:
+    crear: Requerimientos de compra y lista de faltantes.
+    exportar: Plan de materiales.
+  no_ve: Datos personales, sueldos y contratos.
+  impacto: Un faltante detiene una orden; un exceso inmoviliza capital.
+  ui:
+    prioridad: Faltantes para la semana.
+    disposicion: Faltantes por orden · requerimientos emitidos · cobertura de existencias.
+    menu: [Inicio, Faltantes, Requerimientos, Existencias, Listas de materiales]
+    datos: "Tablas: necesidades netas por material. Formularios: requerimiento de compra."
+    acciones: [Emitir requerimiento, Marcar urgencia]
+    alertas: [Material crítico sin cobertura, Entrega de proveedor atrasada]
+    notificaciones: Bodega registró una recepción.
+    vacio: “Sin faltantes para las órdenes programadas.”
+    componentes: Tabla de necesidades netas con cobertura en días.
+  medir:
+    - [Quiebres, Faltantes de material (no existen), falta]
+    - [Exactitud MRP, Requerimientos contra consumo real (no existen), falta]
+    - [Urgencias por faltantes, Compras urgentes (no existen), falta]
+  flujo:
+    entrada: Programa, BOM y existencias.
+    procesa: Calcula necesidades netas.
+    salida: Requerimientos y faltantes.
+    destinatarios: Compras, planificación, bodega.
+    consecuencia: Compras gestiona lo que falta.
+  permisos: {materiales: "c,cr,e,x@pl", inventario: "c@pl", compras: "c,s@pl", plan_prod: "c@pl", producto: "c@em", produccion: "c@pl"}
+  apps: [web]
+  validar: [Fuente de las listas de materiales (BOM)]
+  hoy: Comparte el perfil de producción e ingeniería. No existen materiales, BOM ni MRP.
+
+- id: 38
+  dashboard: Compras
+  proposito: Asegura que lo que la planta necesita llegue a tiempo, conforme y a un costo razonable.
+  jornada:
+    inicio: Revisa requerimientos nuevos, órdenes de compra por vencer y entregas atrasadas.
+    durante: Cotiza, compara propuestas, emite órdenes de compra y sigue entregas.
+    coordina: Con planificación, finanzas, almacenes y calidad.
+    anomalia: Si un proveedor se atrasa o entrega no conforme, gestiona alternativa y comunica el riesgo.
+    cierre: Actualiza el estado de las órdenes de compra.
+  decide: Proveedor y condiciones dentro del presupuesto autorizado.
+  escala: Finanzas (montos sobre límite), desarrollo de proveedores (proveedor crítico).
+  consulta: [Requerimientos y solicitudes, Cotizaciones, Proveedores y su desempeño, Presupuesto autorizado, Recepciones]
+  genera:
+    crear: Órdenes de compra.
+    registrar: Cotizaciones y seguimiento de entregas.
+    aprobar: Adjudicación dentro de su límite.
+  no_ve: Datos personales, sueldos y contratos laborales.
+  impacto: Una compra atrasada detiene producción o mantenimiento.
+  ui:
+    prioridad: Requerimientos sin orden de compra y entregas atrasadas.
+    disposicion: Requerimientos pendientes · órdenes de compra abiertas · entregas atrasadas · proveedores.
+    menu: [Inicio, Requerimientos, Órdenes de compra, Proveedores, Recepciones]
+    datos: "Tablas: OC con estado y fecha. Formularios: cotización, orden de compra."
+    acciones: [Emitir OC, Registrar cotización, Reclamar atraso]
+    alertas: [Entrega atrasada, Requerimiento urgente sin OC]
+    notificaciones: Nuevo requerimiento; recepción con diferencias.
+    vacio: “No hay requerimientos pendientes.”
+    componentes: Comparador de cotizaciones.
+  medir:
+    - [Entregas a tiempo, OC con fecha comprometida y recepción (no existen), falta]
+    - [Ahorro verificable, Precio adjudicado contra referencia (no existe), falta]
+    - [Urgencias y rechazos, OC urgentes y recepciones rechazadas (no existen), falta]
+  flujo:
+    entrada: Requerimientos de MRP, pañol y proyectos.
+    procesa: Cotiza y adjudica.
+    salida: Órdenes de compra.
+    destinatarios: Proveedores, recepción, finanzas.
+    consecuencia: Recepción espera la entrega.
+  permisos: {compras: "c,cr,e,ap@em", proveedores: "c,e@em", materiales: "c@pl", inventario: "c@pl", repuestos: "c@pl", presupuesto: "c@ar", despachos: "c@em"}
+  apps: [web]
+  validar: [Límite de adjudicación del comprador]
+  hoy: Perfil logística (ve despachos). No existen compras ni proveedores.
+
+- id: 39
+  dashboard: Recepción de materiales
+  proposito: Recibe físicamente lo que compró la empresa y verifica que coincida con la orden de compra en documento, cantidad y condición.
+  jornada:
+    inicio: Revisa las entregas esperadas del día.
+    durante: Descarga, verifica documentos y cantidades, identifica lotes y registra la recepción.
+    coordina: Con compras, proveedor, calidad (inspección de recepción) y bodega.
+    anomalia: Si hay diferencias o daño, registra la diferencia y deja el material en espera.
+    cierre: Confirma recepciones y ubica el material.
+  decide: Recibir, recibir con diferencia o rechazar una entrega.
+  escala: Compras (diferencias), calidad (inspección).
+  consulta: [Órdenes de compra por recibir, Proveedores, Ubicaciones disponibles]
+  genera:
+    registrar: Recepciones, diferencias, lotes y ubicación.
+  no_ve: Precios de compra, datos personales, sueldos.
+  impacto: Una recepción mal registrada descuadra el inventario y el pago al proveedor.
+  ui:
+    prioridad: Entregas del día.
+    disposicion: Entregas esperadas · registro de recepción · diferencias.
+    menu: [Recepción de materiales, Entregas esperadas, Recepciones, Seguridad, Mi cargo]
+    datos: "Formularios: recepción contra OC (cantidad, lote, condición, ubicación)."
+    acciones: [Registrar recepción, Registrar diferencia]
+    alertas: [Entrega no programada, Diferencia de cantidad]
+    notificaciones: Compras emitió una OC con entrega hoy.
+    vacio: “No hay entregas esperadas hoy.”
+    componentes: Lista de OC con progreso de recepción.
+  medir:
+    - [Exactitud recepción, Recepciones sin diferencia (no existen), falta]
+    - [Tiempo de descarga, Hora de llegada y término (no existen), falta]
+    - [Diferencias, Diferencias registradas (no existen), falta]
+  flujo:
+    entrada: OC y entrega física.
+    procesa: Verifica.
+    salida: Recepción registrada con lote.
+    destinatarios: Bodega, compras, calidad, contabilidad.
+    consecuencia: El inventario aumenta y la factura puede conciliarse.
+  permisos: {inventario: "c,r@pl", compras: "c@pl", calidad: "c@pl", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si la recepción de repuestos también pasa por este cargo o solo por el pañol]
+  hoy: Comparte el perfil del pañol (repuestos). No existen OC ni recepciones.
+
+- id: 40
+  dashboard: Bodega y almacén
+  proposito: Custodia los materiales y productos con ubicaciones e inventario confiables.
+  jornada:
+    inicio: Revisa tareas del día (preparaciones, reposiciones, conteos) y asigna a su equipo.
+    durante: Organiza conteos cíclicos, controla FIFO/FEFO y orden del almacén.
+    coordina: Con recepción, planificación, producción y despacho.
+    anomalia: Si un conteo no cuadra, abre una diferencia para análisis.
+    cierre: Revisa tareas cumplidas y diferencias abiertas.
+  decide: Ubicaciones y asignación de tareas de bodega.
+  escala: Analista de inventarios (ajustes), jefatura de logística.
+  consulta: [Existencias por ubicación, Movimientos, Tareas de bodega, Conteos]
+  genera:
+    asignar: Tareas de picking, reposición y conteo.
+    registrar: Conteos cíclicos.
+    editar: Ubicaciones.
+  no_ve: Sueldos, contratos y datos personales del equipo más allá de lo operativo.
+  impacto: Un inventario poco confiable genera faltantes falsos y compras innecesarias.
+  ui:
+    prioridad: Tareas del día y diferencias de conteo.
+    disposicion: Tareas por persona · conteos programados · diferencias · ocupación.
+    menu: [Bodega y almacén, Tareas, Existencias, Conteos, Mi equipo, Seguridad]
+    datos: "Tablas: existencias por ubicación, tareas. Formularios: conteo, asignación."
+    acciones: [Asignar tarea, Registrar conteo, Mover ubicación]
+    alertas: [Diferencia de conteo, Producto próximo a vencer]
+    notificaciones: Recepción registró material.
+    vacio: “No hay tareas para hoy.”
+    componentes: Mapa de ubicaciones.
+  medir:
+    - [Exactitud stock, Conteos físicos (no existen), falta]
+    - [Rotación, Movimientos por material (no existen), falta]
+    - [Faltantes y daños, Faltantes y daños registrados (no existen), falta]
+  flujo:
+    entrada: Recepciones, pedidos de producción y despacho.
+    procesa: Custodia y prepara.
+    salida: Inventario confiable y tareas cumplidas.
+    destinatarios: Planificación, producción, despacho.
+    consecuencia: Planificación usa existencias reales.
+  permisos: {inventario: "c,r,e,as@pl", despachos: "c@pl", materiales: "c@pl", asistencia: "c@eq", habilitaciones: "c@eq", sst: "r@pr"}
+  apps: [desktop]
+  validar: [Si la bodega de materiales es la misma que el pañol de repuestos]
+  hoy: Perfil pañol (repuestos). No existe inventario de materiales por ubicación.
+
+- id: 41
+  dashboard: Preparación de pedidos
+  proposito: Ubica, cuenta y entrega materiales o productos sin diferencias.
+  jornada:
+    inicio: Ve sus tareas de picking y reposición.
+    durante: Prepara pedidos, confirma ubicaciones y registra entregas.
+    coordina: Con bodega, producción y despacho.
+    anomalia: Si no encuentra el material o la cantidad no alcanza, lo registra.
+    cierre: Confirma tareas terminadas.
+  decide: Ninguna fuera de su tarea; registra lo que encuentra.
+  escala: Jefe de bodega.
+  consulta: [Tareas asignadas, Ubicaciones y existencias]
+  genera:
+    registrar: Picking, entregas y reposiciones.
+  no_ve: Precios, datos personales, sueldos.
+  impacto: Un picking con error llega a producción o al cliente.
+  ui:
+    prioridad: Sus tareas en orden.
+    disposicion: Lista de tareas · confirmación por línea.
+    menu: [Preparación de pedidos, Mis tareas, Seguridad, Mi cargo]
+    datos: "Formularios: confirmación de picking (ubicación, cantidad)."
+    acciones: [Confirmar picking, Registrar faltante]
+    alertas: [Ubicación sin stock]
+    notificaciones: Nueva tarea asignada.
+    vacio: “No tiene tareas asignadas.”
+    componentes: Lista de picking con orden de recorrido.
+  medir:
+    - [Exactitud picking, Confirmaciones contra solicitud (no existen), falta]
+    - [Productividad, Líneas preparadas por hora (no existen), falta]
+    - [Daños, Daños registrados (no existen), falta]
+  flujo:
+    entrada: Tareas de picking.
+    procesa: Prepara.
+    salida: Pedidos preparados.
+    destinatarios: Producción y despacho.
+    consecuencia: Despacho puede cargar.
+  permisos: {inventario: "c,r@pr", despachos: "c@pr", sst: "r@pr", habilitaciones: "c@pr"}
+  apps: [desktop]
+  validar: [Si se usarán lectores de código de barras]
+  hoy: Perfil pañol. No existen tareas de picking.
+
+- id: 42
+  dashboard: Despacho y transporte
+  proposito: Hace que cada pedido llegue al cliente a tiempo y con la documentación correcta.
+  jornada:
+    inicio: Revisa despachos del día, ventanas de entrega y vehículos.
+    durante: Programa cargas, valida guías y sigue las entregas.
+    coordina: Con clientes, transportistas, comercial y bodega.
+    anomalia: Si un despacho se atrasa, avisa a servicio al cliente y reprograma.
+    cierre: Registra pruebas de entrega.
+  decide: Programación de vehículos y cargas.
+  escala: Comercial (atrasos con clientes).
+  consulta: [Pedidos listos para despacho, Producto liberado por calidad, Vehículos y ventanas, Documentos]
+  genera:
+    crear: Despachos.
+    editar: Estado del despacho (preparado, en ruta, entregado).
+    registrar: Pruebas de entrega.
+  no_ve: Datos personales, sueldos, costos de producción.
+  impacto: Su registro define el OTIF.
+  ui:
+    prioridad: Despachos del día y atrasos.
+    disposicion: Plan de despacho · en ruta · entregados · atrasados.
+    menu: [Inicio, Despachos, Pedidos listos, Transportistas]
+    datos: "Tablas: despachos con estado y compromiso. Formularios: despacho, prueba de entrega."
+    acciones: [Programar despacho, Avanzar estado, Registrar entrega]
+    alertas: [Despacho atrasado, Lote no liberado en despacho]
+    notificaciones: Calidad liberó un lote.
+    vacio: “No hay despachos programados.”
+    componentes: Línea de tiempo de entregas.
+  medir:
+    - [OTIF, Despachos con compromiso y entrega, hoy]
+    - [Costo de flete, Costos de transporte (no existen), falta]
+    - [Reclamos de entrega, Reclamos (no existen), falta]
+  flujo:
+    entrada: Producto liberado y pedidos.
+    procesa: Programa y despacha.
+    salida: Entregas con evidencia.
+    destinatarios: Clientes, comercial, finanzas.
+    consecuencia: Se puede facturar y cerrar el pedido.
+  permisos: {despachos: "c,cr,e,x@em", pedidos: "c@em", calidad: "c@pl", inventario: "c@pl", kpis: "c@ar"}
+  apps: [web]
+  validar: [Si la prueba de entrega incluirá foto o firma]
+  hoy: Despachos con avance de estado y OTIF. No hay pedidos ni pruebas de entrega.
+
+- id: 43
+  dashboard: Análisis de inventarios
+  proposito: Reduce diferencias de stock y ordena el flujo físico y del sistema.
+  jornada:
+    inicio: Revisa diferencias de conteo y ajustes pendientes.
+    durante: Analiza causas, rotación y obsolescencia.
+    coordina: Con bodega, finanzas, planificación y compras.
+    anomalia: Si una diferencia es grande, investiga movimientos antes de proponer el ajuste.
+    cierre: Emite análisis y propuestas de ajuste.
+  decide: Propuestas de ajuste (la aprobación es de finanzas o la jefatura).
+  escala: Finanzas.
+  consulta: [Movimientos, Conteos, Existencias, Históricos]
+  genera:
+    crear: Análisis y propuestas de ajuste.
+    exportar: Informes de inventario.
+  no_ve: Datos personales, sueldos.
+  impacto: Ajustes sin análisis esconden pérdidas.
+  ui:
+    prioridad: Diferencias sin explicar.
+    disposicion: Diferencias · rotación · obsolescencia · ajustes propuestos.
+    menu: [Inicio, Diferencias, Rotación, Ajustes, Informes]
+    datos: "Tablas: diferencias, rotación. Formularios: propuesta de ajuste."
+    acciones: [Proponer ajuste, Exportar análisis]
+    alertas: [Diferencia sobre umbral, Material obsoleto]
+    notificaciones: Bodega registró un conteo.
+    vacio: “Sin diferencias abiertas.”
+    componentes: Curva ABC.
+  medir:
+    - [Exactitud de inventario, Conteos (no existen), falta]
+    - [Días de stock, Existencias y consumo (no existen), falta]
+    - [Obsolescencia, Materiales sin movimiento (no existen), falta]
+  flujo:
+    entrada: Conteos y movimientos.
+    procesa: Analiza.
+    salida: Ajustes propuestos.
+    destinatarios: Finanzas, bodega.
+    consecuencia: El inventario contable se ajusta con respaldo.
+  permisos: {inventario: "c,cr,x@pl", repuestos: "c,x@pl", materiales: "c@pl", despachos: "c@pl", costos: "c@ag"}
+  apps: [web]
+  validar: [Quién aprueba los ajustes de inventario]
+  hoy: Ve despachos y repuestos. No hay conteos ni ajustes.

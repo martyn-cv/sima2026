@@ -22,7 +22,7 @@ interface Detalle {
   contratos: (ContratoBase & { id: number; codigo: string; esActual: boolean; estado: string; jornadaHoras?: number })[];
   terminos: { id: number; fechaTermino: string; causal: string; finiquitoMonto: number; observaciones: string }[];
   habilitaciones: { id: number; nombre: string; fechaObtencion: string; vigenciaMeses: number; vence: string; estado: string }[];
-  cuenta: { login: string; alias?: string | null; ultimoAcceso?: string | null; estado: string; accesoWeb: boolean; accesoApp: boolean; bloqueada: boolean };
+  cuenta: { login: string; alias?: string | null; totpActivo?: boolean; debeCambiarClave?: boolean; ultimoAcceso?: string | null; estado: string; accesoWeb: boolean; accesoApp: boolean; bloqueada: boolean };
 }
 
 export default function FichaTrabajador({ params }: { params: Promise<{ id: string }> }) {
@@ -52,6 +52,7 @@ export default function FichaTrabajador({ params }: { params: Promise<{ id: stri
   const restablecer = accion(`/api/cuentas/${id}/restablecer-clave`, "Clave restablecida.");
   const cerrarSesiones = accion(`/api/cuentas/${id}/cerrar-sesiones`, "Se cerraron las sesiones abiertas.");
   const desbloquear = accion(`/api/cuentas/${id}/desbloquear`, "Cuenta desbloqueada.");
+  const quitar2fa = accion(`/api/cuentas/${id}/quitar-2fa`, "Segundo factor quitado: la persona puede activarlo de nuevo.");
   const guardar = useMutation({
     mutationFn: (v: ValoresTrabajador) => api.put(`/api/trabajadores/${id}`, aCuerpo(v, false)),
     onSuccess: () => { refrescar(); aviso("Datos guardados."); setDlg(null); }, onError: (e) => aviso(mensajeDe(e), "error"),
@@ -175,6 +176,7 @@ export default function FichaTrabajador({ params }: { params: Promise<{ id: stri
               <Dato etiqueta="Usuario">{data.cuenta.login}</Dato><Dato etiqueta="Estado"><Estado v={data.cuenta.estado} /></Dato>
               <Dato etiqueta="Ingresa por">{r.canal === "web" ? "Web de administración" : "App de terreno"}</Dato><Dato etiqueta="Perfil">{r.perfil}</Dato>
               <Dato etiqueta="Último ingreso">{hace(data.cuenta.ultimoAcceso)}</Dato><Dato etiqueta="Bloqueo por intentos">{data.cuenta.bloqueada ? "Bloqueada" : "No"}</Dato>
+              <Dato etiqueta="Segundo factor"><Chip tono={data.cuenta.totpActivo ? "ok" : "neutro"}>{data.cuenta.totpActivo ? "Activo" : "No activo"}</Chip></Dato><Dato etiqueta="Clave"><Chip tono={data.cuenta.debeCambiarClave ? "aviso" : "neutro"}>{data.cuenta.debeCambiarClave ? "Debe elegir una propia" : "Propia"}</Chip></Dato>
               {data.cuenta.alias && <Dato etiqueta="Usuario de demostración" className="col-span-2">{data.cuenta.alias}</Dato>}
               <Dato etiqueta="Acceso web"><Chip tono={data.cuenta.accesoWeb ? "ok" : "neutro"}>{data.cuenta.accesoWeb ? "Permitido" : "Sin acceso"}</Chip></Dato>
               <Dato etiqueta="Acceso app"><Chip tono={data.cuenta.accesoApp ? "ok" : "neutro"}>{data.cuenta.accesoApp ? "Permitido" : "Sin acceso"}</Chip></Dato>
@@ -186,6 +188,7 @@ export default function FichaTrabajador({ params }: { params: Promise<{ id: stri
                   <>
                     <Boton variante="contorno" disabled={!activo} cargando={restablecer.isPending} onClick={() => restablecer.mutate()}><KeyRound className="size-4" />Restablecer clave</Boton>
                     <Boton variante="contorno" disabled={!activo} cargando={cerrarSesiones.isPending} onClick={() => cerrarSesiones.mutate()}><LogOut className="size-4" />Cerrar sesiones abiertas</Boton>
+                    <Boton variante="contorno" disabled={!data.cuenta.totpActivo} cargando={quitar2fa.isPending} onClick={() => quitar2fa.mutate()}><ShieldOff className="size-4" />Quitar segundo factor</Boton>
                     <Boton variante="contorno" disabled={!data.cuenta.bloqueada} cargando={desbloquear.isPending} onClick={() => desbloquear.mutate()}><Unlock className="size-4" />Desbloquear cuenta</Boton>
                   </>
                 ) : <p className="text-gris">Solo Personas puede modificar cuentas.</p>}

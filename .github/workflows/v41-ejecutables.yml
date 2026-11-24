@@ -1,0 +1,78 @@
+name: SIMA 4.1 · ejecutables de Windows
+# Genera SIMA-Desktop.exe y SIMA-PLC-Simulator.exe: un único archivo portable por aplicación (con MSVC el cargador
+# de WebView2 queda dentro del ejecutable), más las sumas SHA-256. Si hay certificado en los secretos, los firma.
+# Se ejecuta a mano (Actions → Run workflow), al publicar una etiqueta «v4.1.*» o cuando cambian las aplicaciones.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+    tags: ["v4.1.*"]
+    paths: ["v4.1/terreno/**", "v4.1/plc-sim/**", "v4.1/paquetes/**", "v4.1/package-lock.json", "v4.1/scripts/construir-exe.ps1", ".github/workflows/v41-ejecutables.yml"]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write          # para crear la publicación en Releases cuando se sube una etiqueta v4.1.*
+    env:
+      TIENE_CERT: ${{ secrets.WINDOWS_CERT_PFX != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: v4.1/package-lock.json }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            v4.1/terreno/src-tauri -> target
+            v4.1/plc-sim/src-tauri -> target
+      - name: Dependencias
+        working-directory: v4.1
+        run: npm ci --no-audit --no-fund
+      - name: Compilar los dos ejecutables
+        working-directory: v4.1
+        shell: pwsh
+        run: ./scripts/construir-exe.ps1
+      - name: Firmar (opcional)
+        if: env.TIENE_CERT == 'true'
+        env:
+          CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+          CERT_CLAVE: ${{ secrets.WINDOWS_CERT_CLAVE }}
+        shell: pwsh
+        working-directory: v4.1/dist/windows
+        run: |
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\cert.pfx", [Convert]::FromBase64String($env:CERT_PFX))
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1
+          foreach ($exe in "SIMA-Desktop.exe", "SIMA-PLC-Simulator.exe") {
+            & $signtool.FullName sign /f "$env:RUNNER_TEMP\cert.pfx" /p $env:CERT_CLAVE /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $exe
+          }
+          Get-FileHash SIMA-*.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content SHA256SUMS.txt
+      - name: Comprobar los ejecutables
+        shell: pwsh
+        working-directory: v4.1/dist/windows
+        run: |
+          foreach ($exe in "SIMA-Desktop.exe", "SIMA-PLC-Simulator.exe") {
+            $info = (Get-Item $exe).VersionInfo
+            "{0}: {1:N1} MB · {2} {3}" -f $exe, ((Get-Item $exe).Length / 1MB), $info.ProductName, $info.ProductVersion
+            # se abre unos segundos y se cierra: confirma que arranca sin consola y sin depender de un servidor de desarrollo
+            $p = Start-Process -FilePath ".\$exe" -PassThru
+            Start-Sleep -Seconds 8
+            if ($p.HasExited) { throw "$exe se cerró al iniciar (código $($p.ExitCode))" }
+            Stop-Process -Id $p.Id -Force
+          }
+          Get-Content SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sima-4.1-windows
+          path: |
+            v4.1/dist/windows/SIMA-Desktop.exe
+            v4.1/dist/windows/SIMA-PLC-Simulator.exe
+            v4.1/dist/windows/SHA256SUMS.txt
+      - name: Publicar en Releases (solo con etiqueta)
+        if: startsWith(github.ref, 'refs/tags/v4.1.')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            v4.1/dist/windows/SIMA-Desktop.exe
+            v4.1/dist/windows/SIMA-PLC-Simulator.exe
+            v4.1/dist/windows/SHA256SUMS.txt

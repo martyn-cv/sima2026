@@ -1,0 +1,8 @@
+**/node_modules/
+**/.next/
+**/dist/
+**/target/
+api/
+datos/
+respaldos/
+.logs/
