@@ -155,7 +155,11 @@ public static class EndpointsPlanta
             if (!(eq.Estado is EstadosEquipo.Mantenimiento or EstadosEquipo.Pruebas))
                 EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Diagnostico, "desktop", false, $"{o.Codigo} iniciada por {s.Nombre} con bloqueo LOTO", por: s);
             db.Auditar(s, "inició una orden con bloqueo confirmado", "orden", o.Codigo, $"{eq.Codigo} · {o.Titulo}", antes, eq.Estado);
+            o.RecibidaEn ??= DateTime.UtcNow;
+            Calendario.Anotar(db, o, s, "inicio", $"Inicié la intervención con bloqueo y etiquetado confirmados. {eq.Codigo} queda en diagnóstico.");
+            await Calendario.SincronizarOtAsync(db, o);
             await db.SaveChangesAsync();      // si otro técnico la tomó al mismo tiempo, la versión (xmin) no coincide y responde 409
+            if (o.AsignadaPorId is { } jefe && jefe != s.Id) await Avisos.AUsuarioAsync(db, hub, jefe, $"{o.Codigo} · {eq.Codigo}: {s.Nombre} inició la intervención", "info", $"/mantenimiento?orden={o.Id}", "mantenimiento", o.Codigo);
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
             await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
             await Avisos.ACargosAsync(db, hub, Avisos.Produccion, $"{eq.Codigo} en diagnóstico: {s.Nombre} inició {o.Codigo} con bloqueo", "advertencia", $"/explorador?equipo={eq.Codigo}", "mantenimiento", eq.Codigo);

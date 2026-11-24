@@ -132,3 +132,73 @@ public class PruebasSimulacion(Fabrica f)
         Assert.DoesNotContain((await f.Leer(control, "/api/ingesta/simulacion/fallas")).EnumerateArray(), x => x.GetProperty("estadoFisico").GetString() is "activa" or "programada" or "latente");
     }
 }
+
+/// <summary>Escenario C: asignación desde el calendario con disponibilidad, instrucciones, recepción, bitácora y aviso al completar.</summary>
+[Collection("api")]
+public class PruebasPlanificacion(Fabrica f)
+{
+    static async Task<JsonElement> Json(HttpResponseMessage r) => await r.Content.ReadFromJsonAsync<JsonElement>();
+
+    [Fact]
+    public async Task EscenarioC_AsignacionConInstruccionesLlegaAlTecnicoYElJefeRecibeLosAvances()
+    {
+        var jm = await f.Entrar("jefe.mantenimiento", "Jefemant2026", "app");
+        var tec = await f.Entrar("tecnico", "Tecnico2026", "app");
+        var idTec = (await f.Leer(tec, "/api/auth/yo")).GetProperty("id").GetString()!;
+        var turno = (await f.Leer(jm, "/api/calendario/tecnicos")).EnumerateArray().First(t => t.GetProperty("id").GetString() == idTec).GetProperty("turno").GetString();
+        var r = await jm.PostAsJsonAsync("/api/ordenes", new { equipo = "EV-02", titulo = "Cambio de sellos de las válvulas de llenado", prioridad = "media", tipo = "preventiva", especialidad = "mecanica" });
+        var ot = (await Json(r)).GetProperty("id").GetInt32();
+        var version = (await f.Leer(jm, $"/api/ordenes/{ot}")).GetProperty("version").GetUInt32();
+        // un horario dentro del turno del técnico, mañana
+        var hora = turno switch { "A" => 9, "B" => 16, "N" => 23, _ => 10 };
+        var dia = DateTime.UtcNow.Date.AddDays(1); while (turno is "D" or null && dia.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) dia = dia.AddDays(1);
+        var inicio = DateTime.SpecifyKind(dia.AddHours(hora + 3), DateTimeKind.Utc);       // Chile UTC-3
+        var cuerpo = new { version, responsableId = idTec, colaboradores = Array.Empty<string>(), inicio, duracionMin = 90, especialidad = "mecanica", instrucciones = "Usar el kit de sellos KS-12 y torquear a 25 N·m. Probar 20 ciclos.", pruebas = "20 ciclos sin fugas", resultados = "Válvulas sin goteo", confirmar = false };
+        var a = await jm.PostAsJsonAsync($"/api/ordenes/{ot}/asignar", cuerpo);
+        Assert.True(a.StatusCode is HttpStatusCode.OK, await a.Content.ReadAsStringAsync());
+
+        // una segunda tarea en el mismo horario: el sistema avisa el conflicto y sugiere horarios antes de confirmar
+        var r2 = await jm.PostAsJsonAsync("/api/ordenes", new { equipo = "EV-02", titulo = "Inspección de mordazas", prioridad = "baja" });
+        var ot2 = (await Json(r2)).GetProperty("id").GetInt32();
+        var v2 = (await f.Leer(jm, $"/api/ordenes/{ot2}")).GetProperty("version").GetUInt32();
+        var choque = await jm.PostAsJsonAsync($"/api/ordenes/{ot2}/asignar", cuerpo with { version = v2, instrucciones = "" });
+        Assert.Equal(HttpStatusCode.Conflict, choque.StatusCode);
+        var cj = await Json(choque);
+        Assert.True(cj.GetProperty("requiereConfirmacion").GetBoolean());
+        Assert.Contains(cj.GetProperty("conflictos").EnumerateArray(), c => c.GetProperty("tipo").GetString() == "solape");
+        Assert.True(cj.GetProperty("sugerencias").GetArrayLength() > 0);
+        // sin habilitación vigente no se asigna (confiabilidad tiene LOTO vencida en el Excel)
+        var conf = await f.Entrar("confiabilidad", "Confiabilidad2026", "app");
+        var idConf = (await f.Leer(conf, "/api/auth/yo")).GetProperty("id").GetString()!;
+        var bloq = await jm.PostAsJsonAsync($"/api/ordenes/{ot2}/asignar", cuerpo with { version = v2, responsableId = idConf, confirmar = true, instrucciones = "" });
+        Assert.Equal(HttpStatusCode.Conflict, bloq.StatusCode);
+        Assert.False((await Json(bloq)).GetProperty("requiereConfirmacion").GetBoolean());
+
+        // el técnico ve la tarea con sus instrucciones y confirma la recepción; el jefe recibe el aviso
+        var det = await f.Leer(tec, $"/api/ordenes/{ot}");
+        Assert.Contains("KS-12", det.GetProperty("planificacion").GetProperty("instrucciones").GetString());
+        Assert.Contains((await f.Leer(tec, "/api/notificaciones")).GetProperty("items").EnumerateArray(), n => n.GetProperty("texto").GetString()!.Contains("Se le asignó") && n.GetProperty("texto").GetString()!.Contains("instrucciones"));
+        Assert.Equal(HttpStatusCode.Created, (await tec.PostAsJsonAsync($"/api/ordenes/{ot}/bitacora", new { tipo = "recepcion", texto = "" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await tec.PostAsJsonAsync($"/api/ordenes/{ot}/bitacora", new { tipo = "recursos", texto = "Necesito el kit KS-12: en pañol no aparece" })).StatusCode);
+        // el técnico no puede escribir instrucciones; la jefatura sí responde
+        Assert.Equal(HttpStatusCode.Forbidden, (await tec.PostAsJsonAsync($"/api/ordenes/{ot}/bitacora", new { tipo = "instruccion", texto = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await jm.PostAsJsonAsync($"/api/ordenes/{ot}/bitacora", new { tipo = "instruccion", texto = "Use el kit equivalente KS-12B aprobado" })).StatusCode);
+        var notJefe = (await f.Leer(jm, "/api/notificaciones")).GetProperty("items").EnumerateArray().Select(n => n.GetProperty("texto").GetString()!).ToList();
+        Assert.Contains(notJefe, t => t.Contains("recepción confirmada"));
+        Assert.Contains(notJefe, t => t.Contains("solicitud de recursos"));
+
+        // inicio y término quedan en la bitácora y el jefe es avisado al completar
+        Assert.Equal(HttpStatusCode.OK, (await tec.PostAsJsonAsync($"/api/ordenes/{ot}/tomar", new { lotoConfirmado = true })).StatusCode);
+        await Fabrica.Probar(tec, ot);
+        Assert.Equal(HttpStatusCode.OK, (await tec.PostAsJsonAsync($"/api/ordenes/{ot}/cerrar", new { lotoRetirado = true, nota = "Sellos cambiados" })).StatusCode);
+        var bit = (await f.Leer(jm, $"/api/ordenes/{ot}/bitacora")).EnumerateArray().Select(x => x.GetProperty("tipo").GetString()).ToList();
+        Assert.Equal(new[] { "instruccion", "recepcion", "recursos", "instruccion", "inicio", "completada" }, bit);
+        Assert.Contains((await f.Leer(jm, "/api/notificaciones")).GetProperty("items").EnumerateArray(), n => n.GetProperty("texto").GetString()!.Contains("completó su intervención"));
+        // el calendario muestra la actividad completada; quien no es del área la ve como «ocupado»
+        var cal = await f.Leer(jm, $"/api/calendario?desde={dia:yyyy-MM-dd}&hasta={dia.AddDays(2):yyyy-MM-dd}");
+        Assert.Contains(cal.EnumerateArray(), x => x.GetProperty("ordenId").ValueKind == JsonValueKind.Number && x.GetProperty("ordenId").GetInt32() == ot && x.GetProperty("estado").GetString() == "completada");
+        var rrhh = await f.Entrar("rrhh", "Rrhh2026", "web");
+        var calRrhh = await f.Leer(rrhh, $"/api/calendario?desde={dia:yyyy-MM-dd}&hasta={dia.AddDays(2):yyyy-MM-dd}");
+        Assert.All(calRrhh.EnumerateArray().Where(x => x.GetProperty("area").GetString() == "mantenimiento"), x => Assert.Equal("Ocupado", x.GetProperty("titulo").GetString()));
+    }
+}

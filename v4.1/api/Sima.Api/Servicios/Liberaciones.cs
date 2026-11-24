@@ -117,7 +117,10 @@ public static class Ordenes
         if (!string.IsNullOrWhiteSpace(nota)) o.Descripcion = (o.Descripcion + "\nCierre técnico: " + nota.Trim()).Trim();
         EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Pendiente, "desktop", false, $"{o.Codigo}: {s.Nombre} terminó y pidió la liberación", por: s);
         db.Auditar(s, "terminó una orden y pidió la liberación del equipo", "orden", o.Codigo, $"{eq.Codigo} · requiere: {string.Join(", ", Liberaciones.Requeridas(o))}", antes, eq.Estado, nota);
+        Calendario.Anotar(db, o, s, "completada", $"Terminé la ejecución y pedí la liberación del equipo{(string.IsNullOrWhiteSpace(nota) ? "." : $": {nota.Trim()}")}");
+        await Calendario.SincronizarOtAsync(db, o);
         if (guardar) await db.SaveChangesAsync();
+        if (o.AsignadaPorId is { } jefe && jefe != s.Id) await Avisos.AUsuarioAsync(db, hub, jefe, $"{o.Codigo} · {eq.Codigo}: {s.Nombre} completó su intervención y pidió la liberación", "aprobacion", $"/mantenimiento?orden={o.Id}", "mantenimiento", o.Codigo);
         await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
         await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
         // si no hay nadie con esa facultad conectado, el equipo sigue bloqueado: la notificación queda guardada para cuando entren

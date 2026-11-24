@@ -331,5 +331,15 @@ public class OrdenTrabajo
     public bool AfectaCalidad { get; set; }              // la liberación exige la validación de calidad
     public int RondaLiberacion { get; set; }             // cuántas veces el técnico pidió la liberación
     public uint Version { get; set; }                    // xmin: dos técnicos no pueden tomar la misma orden
+    // planificación (la fija la jefatura o la planificación al asignar)
+    public string Instrucciones { get; set; } = "";
+    public DateOnly? FechaLimite { get; set; }
+    public string ResultadosEsperados { get; set; } = "";
+    public string PruebasRequeridas { get; set; } = "";
+    public string HerramientasSugeridas { get; set; } = "[]";   // JSON: ids de herramientas
+    public string RepuestosSugeridos { get; set; } = "[]";      // JSON: ids de repuestos
+    public string Procedimientos { get; set; } = "[]";          // JSON: ids de documentos del equipo
+    public string? AsignadaPorId { get; set; }
+    public DateTime? RecibidaEn { get; set; }                   // el técnico confirmó que recibió la tarea
     public string Codigo => $"OT-{Id:0000}";
 }

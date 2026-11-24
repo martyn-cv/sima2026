@@ -67,6 +67,99 @@ namespace Sima.Api.Datos.Migraciones
                     b.ToTable("accesos_plataforma", (string)null);
                 });
 
+            modelBuilder.Entity("Sima.Api.Dominio.Actividad", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Creada")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreadaPor")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CreadaPorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Datos")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("EquipoId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Fin")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Inicio")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("OrdenId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Prioridad")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Recursos")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResponsableId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Restricciones")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Ubicacion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("Visibilidad")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrdenId");
+
+                    b.HasIndex("Inicio", "Fin");
+
+                    b.ToTable("actividades", (string)null);
+                });
+
             modelBuilder.Entity("Sima.Api.Dominio.AfpComision", b =>
                 {
                     b.Property<string>("Afp")
@@ -514,6 +607,47 @@ namespace Sima.Api.Datos.Migraciones
                     b.HasIndex("Periodo");
 
                     b.ToTable("cierres_remuneraciones", (string)null);
+                });
+
+            modelBuilder.Entity("Sima.Api.Dominio.ComentarioOrden", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AutorCargo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AutorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AutorNombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("OrdenId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrdenId");
+
+                    b.ToTable("comentarios_orden", (string)null);
                 });
 
             modelBuilder.Entity("Sima.Api.Dominio.ComponenteEquipo", b =>
@@ -1778,6 +1912,9 @@ namespace Sima.Api.Datos.Migraciones
                     b.Property<bool>("AfectaSeguridad")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("AsignadaPorId")
+                        .HasColumnType("text");
+
                     b.Property<string>("AsignadoAId")
                         .HasColumnType("text");
 
@@ -1811,6 +1948,17 @@ namespace Sima.Api.Datos.Migraciones
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateOnly?>("FechaLimite")
+                        .HasColumnType("date");
+
+                    b.Property<string>("HerramientasSugeridas")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Instrucciones")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<bool>("LotoConfirmado")
                         .HasColumnType("boolean");
 
@@ -1818,8 +1966,27 @@ namespace Sima.Api.Datos.Migraciones
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Procedimientos")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateOnly?>("Programada")
                         .HasColumnType("date");
+
+                    b.Property<string>("PruebasRequeridas")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RecibidaEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RepuestosSugeridos")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResultadosEsperados")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int>("RondaLiberacion")
                         .HasColumnType("integer");
@@ -1907,6 +2074,46 @@ namespace Sima.Api.Datos.Migraciones
                     b.HasKey("Clave");
 
                     b.ToTable("parametros", (string)null);
+                });
+
+            modelBuilder.Entity("Sima.Api.Dominio.ParticipanteActividad", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ActividadId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nota")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RespondioEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Rol")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TrabajadorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActividadId");
+
+                    b.HasIndex("TrabajadorId", "ActividadId")
+                        .IsUnique();
+
+                    b.ToTable("participantes_actividad", (string)null);
                 });
 
             modelBuilder.Entity("Sima.Api.Dominio.Planta", b =>
@@ -3034,6 +3241,15 @@ namespace Sima.Api.Datos.Migraciones
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Sima.Api.Dominio.ParticipanteActividad", b =>
+                {
+                    b.HasOne("Sima.Api.Dominio.Actividad", null)
+                        .WithMany("Participantes")
+                        .HasForeignKey("ActividadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Sima.Api.Dominio.Plc", b =>
                 {
                     b.HasOne("Sima.Api.Dominio.AreaPlanta", "Area")
@@ -3139,6 +3355,11 @@ namespace Sima.Api.Datos.Migraciones
                         .HasForeignKey("OrdenId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Sima.Api.Dominio.Actividad", b =>
+                {
+                    b.Navigation("Participantes");
                 });
 
             modelBuilder.Entity("Sima.Api.Dominio.AreaPlanta", b =>

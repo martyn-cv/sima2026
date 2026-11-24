@@ -63,6 +63,9 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
     public DbSet<EvaluacionFalla> EvaluacionesFalla => Set<EvaluacionFalla>();
     public DbSet<EscenarioSimulacion> EscenariosSimulacion => Set<EscenarioSimulacion>();
     public DbSet<InspeccionComponente> InspeccionesComponente => Set<InspeccionComponente>();
+    public DbSet<Actividad> Actividades => Set<Actividad>();
+    public DbSet<ParticipanteActividad> ParticipantesActividad => Set<ParticipanteActividad>();
+    public DbSet<ComentarioOrden> ComentariosOrden => Set<ComentarioOrden>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -193,6 +196,10 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
         });
         mb.Entity<IntervencionHerramienta>(e => { e.ToTable("intervencion_herramientas"); e.HasKey(x => new { x.IntervencionId, x.HerramientaId }); e.HasOne<Herramienta>().WithMany().HasForeignKey(x => x.HerramientaId).OnDelete(DeleteBehavior.Restrict); });
         mb.Entity<Documento>(e => { e.ToTable("documentos"); e.HasIndex(x => x.TipoEquipo); e.HasOne<Equipo>().WithMany().HasForeignKey(x => x.EquipoId).OnDelete(DeleteBehavior.Cascade); });
+        mb.Entity<Actividad>(e => { e.ToTable("actividades"); e.HasIndex(x => new { x.Inicio, x.Fin }); e.HasIndex(x => x.OrdenId); e.Property(x => x.Version).IsRowVersion();
+            e.HasMany(x => x.Participantes).WithOne().HasForeignKey(x => x.ActividadId).OnDelete(DeleteBehavior.Cascade); });
+        mb.Entity<ParticipanteActividad>(e => { e.ToTable("participantes_actividad"); e.HasIndex(x => new { x.TrabajadorId, x.ActividadId }).IsUnique(); });
+        mb.Entity<ComentarioOrden>(e => { e.ToTable("comentarios_orden"); e.HasIndex(x => x.OrdenId); });
         mb.Entity<FallaSimulada>(e => { e.ToTable("fallas_simuladas"); e.HasIndex(x => new { x.EquipoId, x.EstadoFisico }); e.HasOne<Equipo>().WithMany().HasForeignKey(x => x.EquipoId).OnDelete(DeleteBehavior.Cascade); });
         mb.Entity<EvaluacionFalla>(e => { e.ToTable("evaluaciones_falla"); e.HasIndex(x => x.FallaId); });
         mb.Entity<EscenarioSimulacion>(e => { e.ToTable("escenarios_simulacion"); });

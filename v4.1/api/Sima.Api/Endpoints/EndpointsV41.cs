@@ -263,6 +263,7 @@ public static class EndpointsV41
                 asignado = o.AsignadoAId is null ? null : nombres.GetValueOrDefault(o.AsignadoAId),
                 verificadaPor = o.VerificadaPorId is null ? null : nombres.GetValueOrDefault(o.VerificadaPorId),
                 liberacion = await Liberaciones.ResumenAsync(db, o),
+                planificacion = await PlanificacionAsync(db, o, nombres),
                 equipo = new { eq.Codigo, eq.Nombre, eq.Tipo, eq.Estado, area = eq.Linea!.Area!.Nombre, linea = eq.Linea.Nombre },
                 intervenciones = inter.Select(i => new { i.Id, i.TecnicoNombre, i.Inicio, i.Fin, i.Causa, i.Diagnostico, i.Accion, i.Resultado, i.Observaciones, herramientas = i.Herramientas.Select(h => herr.GetValueOrDefault(h.HerramientaId)) }),
                 repuestos = movs.Select(m => new { rep[m.RepuestoId].Codigo, rep[m.RepuestoId].Nombre, cantidad = -m.Cantidad, m.Fecha, m.PorNombre }),
@@ -378,4 +379,24 @@ public static class EndpointsV41
             return Results.Created($"/api/ordenes/{o.Id}", new { i.Id, ordenEstado = o.Estado, stock, simulacion = sim.HayFallas ? new { sim.Resuelta, sim.Persiste, sim.Mensaje } : null });
         });
     }
+
+    static readonly System.Text.Json.JsonSerializerOptions JsPlan = new(System.Text.Json.JsonSerializerDefaults.Web);
+    /// <summary>Lo que la jefatura definió al asignar: horario, colaboradores, instrucciones, recursos, pruebas y recepción.</summary>
+    static async Task<object> PlanificacionAsync(SimaDb db, OrdenTrabajo o, Dictionary<string, string> nombres)
+    {
+        var a = await db.Actividades.AsNoTracking().Include(x => x.Participantes).FirstOrDefaultAsync(x => x.OrdenId == o.Id);
+        List<int> Ids(string j) => System.Text.Json.JsonSerializer.Deserialize<List<int>>(j, JsPlan) ?? new();
+        var h = Ids(o.HerramientasSugeridas); var r = Ids(o.RepuestosSugeridos); var d = Ids(o.Procedimientos);
+        return new
+        {
+            inicio = a?.Inicio, fin = a?.Fin, actividad = a?.Id, actividadVersion = a?.Version,
+            colaboradores = a?.Participantes.Where(p => p.Rol == "colaborador").Select(p => new { id = p.TrabajadorId, nombre = nombres.GetValueOrDefault(p.TrabajadorId) }),
+            o.Instrucciones, o.FechaLimite, o.ResultadosEsperados, o.PruebasRequeridas, o.RecibidaEn,
+            asignadaPor = o.AsignadaPorId is null ? null : nombres.GetValueOrDefault(o.AsignadaPorId),
+            herramientas = await db.Herramientas.AsNoTracking().Where(x => h.Contains(x.Id)).Select(x => new { x.Id, x.Codigo, x.Nombre, x.Estado }).ToListAsync(),
+            repuestos = await db.Repuestos.AsNoTracking().Where(x => r.Contains(x.Id)).Select(x => new { x.Id, x.Codigo, x.Nombre, x.Stock }).ToListAsync(),
+            procedimientos = await db.Documentos.AsNoTracking().Where(x => d.Contains(x.Id)).Select(x => new { x.Id, x.Titulo, x.Clase }).ToListAsync(),
+        };
+    }
+
 }
