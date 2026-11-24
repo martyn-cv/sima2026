@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import {
   AlertTriangle, ArrowRight, BadgeCheck, BookUser, Briefcase, CalendarDays, Check, ClipboardCheck, Cpu, Eye, EyeOff, HardHat, Home, KeyRound, Loader2, Lock, Network, RefreshCw, Repeat,
-  Route, Search, Server, ShieldCheck, Siren, TriangleAlert, Users, Wrench, WifiOff, Hammer, type LucideIcon,
+  Route, Search, Server, ShieldCheck, Siren, TriangleAlert, Users, Wrench, WifiOff, Hammer, ListChecks, type LucideIcon,
 } from "lucide-react";
 import { ApiError } from "@sima/cliente";
 import { Avatar, AvisosProvider, Boton, Campo, CURVA, Entrada, EstadoVista, MarcaSimulado, PantallaSeguridad, TIEMPO, cx, defEstado, mensajeDe, useAviso } from "@sima/ui";
@@ -16,7 +16,9 @@ import { Mantenimiento } from "./pantallas/Mantenimiento";
 import { Reportar } from "./pantallas/Reportar";
 import { Alarmas, Directorio, MiCargo } from "./pantallas/Resto";
 import { Panol, Rutinas, Traspaso } from "./pantallas/Operacion";
-import { Automatizacion, Calibraciones, Calidad, Condicion, InicioRol, Plan, Produccion, RUTA, Seguridad, Turno } from "./pantallas/Rol";
+import { Automatizacion, Calibraciones, Calidad, Condicion, InicioRol, Produccion, RUTA, Seguridad, Turno } from "./pantallas/Rol";
+import { PlanificacionMantenimiento } from "./pantallas/Calendario";
+import { Seguimiento } from "./pantallas/Seguimiento";
 import { SECCIONES, experienciaDe, seccionesDe, tiene, type Seccion } from "./roles";
 import { Estacion, Logo, VERSION, type ItemNav } from "./shell";
 
@@ -194,11 +196,11 @@ function Ingreso({ sinConexion }: { sinConexion: boolean }) {
 // ------------------------------------------------------------------------------------------------ marco
 /** Icono de cada sección del menú. Qué secciones ve cada persona lo decide roles.ts según su cargo y sus capacidades. */
 const ICONOS: Record<Seccion, LucideIcon> = {
-  inicio: Home, produccion: ClipboardCheck, turno: Users, plan: CalendarDays, mantenimiento: Wrench, explorador: Network, alertas: Siren, reportar: TriangleAlert, seguridad: HardHat,
+  inicio: Home, produccion: ClipboardCheck, turno: Users, plan: CalendarDays, seguimiento: ListChecks, mantenimiento: Wrench, explorador: Network, alertas: Siren, reportar: TriangleAlert, seguridad: HardHat,
   calidad: ShieldCheck, calibraciones: BadgeCheck, condicion: Route, automatizacion: Cpu, rutinas: ClipboardCheck, panol: Hammer, traspaso: Repeat, cargo: Briefcase, directorio: BookUser,
 };
 const PANTALLAS: Record<Seccion, () => ReactNode> = {
-  inicio: InicioRol, produccion: Produccion, turno: Turno, plan: Plan, mantenimiento: Mantenimiento, explorador: Explorador, alertas: Alarmas, reportar: () => <Reportar />, seguridad: Seguridad,
+  inicio: InicioRol, produccion: Produccion, turno: Turno, plan: PlanificacionMantenimiento, seguimiento: Seguimiento, mantenimiento: Mantenimiento, explorador: Explorador, alertas: Alarmas, reportar: () => <Reportar />, seguridad: Seguridad,
   calidad: Calidad, calibraciones: Calibraciones, condicion: Condicion, automatizacion: Automatizacion, rutinas: Rutinas, panol: Panol, traspaso: Traspaso, cargo: MiCargo, directorio: Directorio,
 };
 const POR_RUTA = Object.fromEntries(Object.entries(RUTA).map(([s, r]) => [r, s as Seccion])) as Record<string, Seccion>;

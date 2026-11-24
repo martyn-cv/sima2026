@@ -19,6 +19,9 @@ public static class Calendario
         return TimeZoneInfo.Utc;
     }
     public static DateTime ALocal(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Zona);
+    static readonly System.Globalization.CultureInfo Es = System.Globalization.CultureInfo.GetCultureInfo("es-CL");
+    /// <summary>Fecha y hora de planta en texto para avisos («jue 26-11 10:00»).</summary>
+    public static string Texto(DateTime utc, string formato = "ddd dd-MM HH:mm") => ALocal(utc).ToString(formato, Es);
     public static DateTime AUtc(DateTime local) => TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), Zona);
 
     /// <summary>Turnos de la planta (supuesto documentado en docs/DISENO.md): A 06–14, B 14–22, N 22–06 y D 08:00–17:30 de lunes a viernes.</summary>

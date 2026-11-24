@@ -118,7 +118,7 @@ public static class EndpointsCalendario
             db.Auditar(s, "reprogramó una actividad", "actividad", a.Id.ToString(), a.Titulo, antes, $"{Calendario.ALocal(e.Inicio):dd-MM HH:mm}–{Calendario.ALocal(e.Fin):HH:mm}");
             await db.SaveChangesAsync();
             foreach (var p in personas.Where(p => p != s.Id))
-                await Avisos.AUsuarioAsync(db, hub, p, $"Se reprogramó «{a.Titulo}»: {Calendario.ALocal(e.Inicio):ddd dd-MM HH:mm}–{Calendario.ALocal(e.Fin):HH:mm}", "tarea", a.OrdenId is { } x ? $"/mantenimiento?orden={x}" : "/agenda", a.Area);
+                await Avisos.AUsuarioAsync(db, hub, p, $"Se reprogramó «{a.Titulo}»: {Calendario.Texto(e.Inicio)}–{Calendario.Texto(e.Fin, "HH:mm")}", "tarea", a.OrdenId is { } x ? $"/mantenimiento?orden={x}" : "/agenda", a.Area);
             await hub.Clients.Group("planta").SendAsync("calendario", new { id = a.Id });
             return Results.Ok(new { a.Id, a.Inicio, a.Fin });
         });
@@ -174,7 +174,7 @@ public static class EndpointsCalendario
             if (cambiaronInstrucciones) Calendario.Anotar(db, o, s, "instruccion", instruccionesNuevas);
             db.Auditar(s, "asignó una orden de trabajo", "orden", o.Codigo, $"{trab.First(t => t.Id == e.ResponsableId).Nombres} · {Calendario.ALocal(e.Inicio):dd-MM HH:mm} · {e.DuracionMin} min{(colaboradores.Count > 0 ? $" · {colaboradores.Count} colaboradores" : "")}{(c.Count > 0 ? " · confirmada con conflictos" : "")}");
             await db.SaveChangesAsync();
-            var cuando = $"{Calendario.ALocal(e.Inicio):ddd dd-MM HH:mm}";
+            var cuando = Calendario.Texto(e.Inicio);
             foreach (var pid in personas.Where(p => p != s.Id))
                 await Avisos.AUsuarioAsync(db, hub, pid, pid == e.ResponsableId
                     ? $"{(nuevoResponsable ? "Se le asignó" : "Se actualizó")} {o.Codigo} · {equipo.Codigo}: {o.Titulo} ({cuando}, {e.DuracionMin} min){(o.Instrucciones.Length > 0 ? ". Tiene instrucciones de la jefatura." : "")}"

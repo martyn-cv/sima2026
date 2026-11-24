@@ -13,11 +13,12 @@ import { usePlanta } from "../lib/planta";
 import { ir, useParametro } from "../ruta";
 import { ESPECIALIDAD_CARGO, tiene } from "../roles";
 import { ESP, ESTADO_OT } from "./bloques";
+import { BitacoraOrden, TareaAsignada, type Planificacion } from "./Bitacora";
 
 interface Orden { id: number; codigo: string; equipo: string; equipoNombre: string; titulo: string; descripcion: string; prioridad: string; estado: string; automatica: boolean; simulada?: boolean; especialidad: string; programada?: string | null; creada: string; cerrada?: string | null; asignado?: string | null; asignadoAId?: string | null }
 interface DetalleOrden {
   id: number; codigo: string; titulo: string; descripcion: string; tipo: string; prioridad: string; estado: string; asignadoAId?: string | null; asignado?: string | null; creada: string; version: number;
-  especialidad: string; programada?: string | null; automatica: boolean; simulada: boolean; cierreSolicitado?: string | null; verificadaPor?: string | null; verificadaEn?: string | null; liberacion?: LiberacionOt;
+  especialidad: string; programada?: string | null; automatica: boolean; simulada: boolean; cierreSolicitado?: string | null; verificadaPor?: string | null; verificadaEn?: string | null; liberacion?: LiberacionOt; planificacion?: Planificacion | null;
   equipo: { codigo: string; nombre: string; tipo: string; estado: string; area: string; linea: string }; intervenciones: { id: number; tecnicoNombre: string; accion: string; resultado: string; fin: string; diagnostico?: string }[]
 }
 type Filtro = "mias" | "abierta" | "en_curso" | "por_verificar" | "cerrada";
@@ -195,6 +196,8 @@ function Flujo({ id }: { id: number }) {
         <span className="flex flex-col items-end gap-1"><Chip tono={ESTADO_OT[ot.estado]?.tono ?? "neutro"}>{ESTADO_OT[ot.estado]?.t ?? ot.estado}</Chip><Chip tono={PRIO[ot.prioridad]?.tono} punto={false}>prioridad {ot.prioridad}</Chip>{ot.simulada && <MarcaSimulado texto="Nació de un PLC simulado" />}</span>
       </div>
 
+      <TareaAsignada id={ot.id} plan={ot.planificacion} asignadoAId={ot.asignadoAId} estado={ot.estado} />
+
       {!terminada && (
         <ol className="flex items-center gap-2 px-5 pt-4" aria-label="Pasos de la orden">
           {PASOS.map((p, i) => (
@@ -371,6 +374,8 @@ function Flujo({ id }: { id: number }) {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <BitacoraOrden id={ot.id} asignadoAId={ot.asignadoAId} colaboradores={ot.planificacion?.colaboradores?.map((c) => c.id)} estado={ot.estado} />
 
       {!terminada && (
         <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-linea-suave bg-papel px-5 py-3">

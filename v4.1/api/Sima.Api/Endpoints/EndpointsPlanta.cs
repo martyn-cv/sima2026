@@ -109,12 +109,14 @@ public static class EndpointsPlanta
             if (!string.IsNullOrEmpty(estado)) q = q.Where(o => o.Estado == estado);
             var eq = await db.Equipos.AsNoTracking().ToDictionaryAsync(e => e.Id);
             var nombres = await db.Trabajadores.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Nombres + " " + t.ApellidoPaterno);
-            var lista = (await q.OrderByDescending(o => o.Id).Take(200).ToListAsync()).Where(o => veTodas || Liberaciones.LeePorFirma(s, o));
+            var lista = (await q.OrderByDescending(o => o.Id).Take(200).ToListAsync()).Where(o => veTodas || Liberaciones.LeePorFirma(s, o)).ToList();
+            var ids = lista.Select(o => o.Id).ToList();
+            var agenda = await db.Actividades.AsNoTracking().Where(a => a.OrdenId != null && ids.Contains(a.OrdenId.Value) && a.Estado != "cancelada").ToDictionaryAsync(a => a.OrdenId!.Value, a => a.Inicio);
             return Results.Ok(lista.Select(o => new
             { o.Id, o.Codigo, equipo = eq[o.EquipoId].Codigo, equipoNombre = eq[o.EquipoId].Nombre, equipoTipo = eq[o.EquipoId].Tipo, criticidad = eq[o.EquipoId].Criticidad, o.Titulo, o.Descripcion, o.Prioridad, o.Estado, o.Automatica, o.LotoConfirmado, o.Creada, o.Cerrada,
                 o.Tipo, o.Especialidad, o.Programada, o.Version, o.CreadaPorId, o.Simulada, o.CierreSolicitado, o.VerificadaEn,
                 verificadaPor = o.VerificadaPorId is null ? null : nombres.GetValueOrDefault(o.VerificadaPorId),
-                asignado = o.AsignadoAId is null ? null : nombres.GetValueOrDefault(o.AsignadoAId), o.AsignadoAId }));
+                asignado = o.AsignadoAId is null ? null : nombres.GetValueOrDefault(o.AsignadoAId), o.AsignadoAId, o.RecibidaEn, o.FechaLimite, agendada = agenda.TryGetValue(o.Id, out var ag) ? ag : (DateTime?)null }));
         });
 
         g.MapPost("/ordenes", async (OrdenEntrada e, ClaimsPrincipal u, SimaDb db, IHubContext<PlantaHub> hub) =>

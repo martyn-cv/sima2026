@@ -6,7 +6,7 @@ import type { Usuario } from "@sima/cliente";
  * entrega para el cargo (usuario.capacidades): nunca aparece algo que el servidor vaya a negar.
  */
 export type Seccion =
-  | "inicio" | "produccion" | "turno" | "plan" | "mantenimiento" | "explorador" | "alertas" | "reportar" | "seguridad"
+  | "inicio" | "produccion" | "turno" | "plan" | "seguimiento" | "mantenimiento" | "explorador" | "alertas" | "reportar" | "seguridad"
   | "calidad" | "calibraciones" | "condicion" | "automatizacion" | "rutinas" | "panol" | "traspaso" | "cargo" | "directorio";
 
 export interface DefSeccion { titulo: string; grupo: "Mi trabajo" | "Planta" | "Turno" | "Personal"; requiere?: string[]; perfiles?: string[] }
@@ -16,7 +16,8 @@ export const SECCIONES: Record<Seccion, DefSeccion> = {
   inicio: { titulo: "Inicio", grupo: "Mi trabajo" },
   produccion: { titulo: "Producción", grupo: "Mi trabajo", requiere: ["produccion.registrar", "produccion.editar"] },
   turno: { titulo: "Mi equipo de turno", grupo: "Mi trabajo", requiere: ["asistencia.ver"] },
-  plan: { titulo: "Plan de mantenimiento", grupo: "Mi trabajo", requiere: ["ordenes.asignar"] },
+  plan: { titulo: "Planificación de mantenimiento", grupo: "Mi trabajo", requiere: ["ordenes.asignar"] },
+  seguimiento: { titulo: "Seguimiento del departamento", grupo: "Mi trabajo", requiere: ["ordenes.asignar", "ordenes.aprobar"] },
   mantenimiento: { titulo: "Órdenes de trabajo", grupo: "Mi trabajo", requiere: ["ordenes.ejecutar", "ordenes.aprobar", "equipos.liberar_tecnica", "equipos.liberar_seguridad", "equipos.liberar_calidad", "equipos.confirmar_produccion"] },
   calidad: { titulo: "Inspección de calidad", grupo: "Mi trabajo", requiere: ["calidad.registrar"] },
   calibraciones: { titulo: "Instrumentos y calibración", grupo: "Mi trabajo", requiere: ["herramientas.ver"], perfiles: ["instrumentacion", "calidad_terreno"] },
@@ -63,12 +64,12 @@ const PERFIL: Record<string, Experiencia> = {
   },
   supervisor_mant: {
     inicio: "Cuadrilla de mantenimiento", enfoque: "Carga de trabajo de la cuadrilla, bloqueos activos y cierres técnicos.",
-    menu: ["inicio", "plan", "mantenimiento", "explorador", "alertas", "panol", "traspaso", "seguridad", "reportar"], acciones: ["plan", "mantenimiento", "traspaso"],
+    menu: ["inicio", "plan", "seguimiento", "mantenimiento", "explorador", "alertas", "panol", "traspaso", "seguridad", "reportar"], acciones: ["plan", "mantenimiento", "traspaso"],
     alertas: ["Intervención sin LOTO", "Retraso crítico", "Equipo no liberado"], alcance: "Solo sus equipos y su cuadrilla; detalle personal mínimo.",
   },
   jefe_mant: {
     inicio: "Gestión de mantenimiento", enfoque: "Activos críticos, disponibilidad, backlog, fallas repetitivas y aprobaciones.",
-    menu: ["inicio", "plan", "mantenimiento", "condicion", "automatizacion", "explorador", "alertas", "panol", "traspaso", "reportar"], acciones: ["plan", "automatizacion", "condicion"],
+    menu: ["inicio", "plan", "seguimiento", "mantenimiento", "condicion", "automatizacion", "explorador", "alertas", "panol", "traspaso", "reportar"], acciones: ["plan", "automatizacion", "condicion"],
     alertas: ["Fallas repetitivas", "Equipos críticos fuera de servicio", "Repuestos críticos bajo mínimo", "Cambios de PLC por aprobar"], alcance: "Todo mantenimiento; sin acceso a sueldos.",
   },
   confiabilidad: {
@@ -112,7 +113,7 @@ const CARGO: Record<number, Partial<Experiencia>> = {
   13: { inicio: "Sala de control", enfoque: "Estados, tendencias y alarmas de proceso: reconocer y escalar.", menu: ["inicio", "alertas", "explorador", "rutinas", "reportar", "seguridad", "cargo"], acciones: ["alertas", "explorador", "reportar"], alertas: ["Alarmas críticas", "Desviaciones de proceso", "Fallas de comunicación"] },
   14: { inicio: "Mis movimientos", enfoque: "Inspección preuso de la grúa, rutas y reporte de daños.", menu: ["inicio", "rutinas", "seguridad", "reportar", "alertas", "cargo"], acciones: ["rutinas", "seguridad"], alertas: ["Grúa sin habilitación vigente", "Ruta bloqueada", "Daño"] },
   15: { inicio: "Apoyo de línea", enfoque: "Abastecimiento de línea, limpieza y checklist 5S.", menu: ["inicio", "produccion", "rutinas", "reportar", "seguridad", "cargo"], acciones: ["rutinas", "reportar"] },
-  24: { inicio: "Plan semanal de OT", enfoque: "Backlog, programa de la semana, asignación de técnicos y repuestos.", menu: ["inicio", "plan", "explorador", "panol", "alertas", "reportar"], acciones: ["plan", "panol"], alertas: ["OT sin fecha", "OT sin técnico", "OT programadas sin repuestos"], alcance: "Prepara y programa órdenes; la ejecución la firma el técnico asignado." },
+  24: { inicio: "Plan semanal de OT", enfoque: "Backlog, programa de la semana, asignación de técnicos y repuestos.", menu: ["inicio", "plan", "seguimiento", "explorador", "panol", "alertas", "reportar"], acciones: ["plan", "panol"], alertas: ["OT sin fecha", "OT sin técnico", "OT programadas sin repuestos"], alcance: "Prepara y programa órdenes; la ejecución la firma el técnico asignado." },
   19: { inicio: "Cambios PLC/HMI", enfoque: "Solicitudes de cambio, versiones y pruebas de los controladores asignados." },
   22: { inicio: "Sistemas industriales", enfoque: "Comunicación de los PLC con SIMA, eventos y calidad de datos." },
   26: { inicio: "Mis OT mecánicas" }, 27: { inicio: "Mis OT eléctricas" }, 28: { inicio: "Mis OT electromecánicas" },

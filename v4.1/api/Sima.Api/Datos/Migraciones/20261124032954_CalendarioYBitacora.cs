@@ -29,7 +29,7 @@ namespace Sima.Api.Datos.Migraciones
                 table: "ordenes_trabajo",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
 
             migrationBuilder.AddColumn<string>(
                 name: "Instrucciones",
@@ -43,7 +43,7 @@ namespace Sima.Api.Datos.Migraciones
                 table: "ordenes_trabajo",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
 
             migrationBuilder.AddColumn<string>(
                 name: "PruebasRequeridas",
@@ -63,7 +63,7 @@ namespace Sima.Api.Datos.Migraciones
                 table: "ordenes_trabajo",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
 
             migrationBuilder.AddColumn<string>(
                 name: "ResultadosEsperados",

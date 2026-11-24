@@ -385,7 +385,7 @@ public static class EndpointsV41
     static async Task<object> PlanificacionAsync(SimaDb db, OrdenTrabajo o, Dictionary<string, string> nombres)
     {
         var a = await db.Actividades.AsNoTracking().Include(x => x.Participantes).FirstOrDefaultAsync(x => x.OrdenId == o.Id);
-        List<int> Ids(string j) => System.Text.Json.JsonSerializer.Deserialize<List<int>>(j, JsPlan) ?? new();
+        List<int> Ids(string j) { if (string.IsNullOrWhiteSpace(j)) return new(); try { return System.Text.Json.JsonSerializer.Deserialize<List<int>>(j, JsPlan) ?? new(); } catch (System.Text.Json.JsonException) { return new(); } }
         var h = Ids(o.HerramientasSugeridas); var r = Ids(o.RepuestosSugeridos); var d = Ids(o.Procedimientos);
         return new
         {
