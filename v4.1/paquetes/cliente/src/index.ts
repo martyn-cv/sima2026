@@ -32,7 +32,8 @@ export interface TrabajadorResumen {
 }
 export interface ContratoFila {
   id: number; codigo: string; trabajadorId: string; trabajador: string; cargo: string; tipo: string; esActual: boolean; fechaInicio: string; fechaTermino?: string | null;
-  jornadaHoras?: number | null; sueldoBase: number; colacion: number; movilizacion: number; estado: string; diasParaVencer?: number | null; observaciones?: string;
+  jornadaHoras?: number | null; sueldoBase: number | null; colacion: number | null; movilizacion: number | null; estado: string; diasParaVencer?: number | null; observaciones?: string;
+  cuenta?: string | null; enGracia?: boolean; familia?: string | null;
 }
 export interface Liquidacion {
   periodo: string; idTrabajador: string; trabajador: string; cargo: string; tipoContrato: string; diasTrabajados: number; sueldoBase: number; sueldoProporcional: number; gratificacion: number;

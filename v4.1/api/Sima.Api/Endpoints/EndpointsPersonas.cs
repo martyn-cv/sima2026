@@ -173,7 +173,8 @@ public static class EndpointsPersonas
             if (!string.IsNullOrEmpty(tipo)) q = q.Where(c => c.Tipo == tipo);
             var lista = (await q.OrderBy(c => c.FechaTermino == null).ThenBy(c => c.FechaTermino).ToListAsync())
                 .Select(c => new { c.Id, c.Codigo, c.TrabajadorId, trabajador = nombres[c.TrabajadorId].NombreCompleto, cargo = nombres[c.TrabajadorId].Cargo!.Nombre, c.Tipo, c.EsActual, c.FechaInicio, c.FechaTermino, c.JornadaHoras, SueldoBase = sueldos ? c.SueldoBase : (int?)null, Colacion = sueldos ? c.Colacion : (int?)null, Movilizacion = sueldos ? c.Movilizacion : (int?)null,
-                    estado = Reglas.EstadoContrato(est[c.TrabajadorId].EstadoLaboral == "Desvinculado", c, hoy), diasParaVencer = c.EsActual && c.FechaTermino is { } f && est[c.TrabajadorId].EstadoLaboral == "Activo" ? f.DayNumber - hoy.DayNumber : (int?)null });
+                    estado = Reglas.EstadoContrato(est[c.TrabajadorId].EstadoLaboral == "Desvinculado", c, hoy), diasParaVencer = c.EsActual && c.FechaTermino is { } f && est[c.TrabajadorId].EstadoLaboral == "Activo" ? f.DayNumber - hoy.DayNumber : (int?)null,
+                    cuenta = c.EsActual ? est[c.TrabajadorId].EstadoCuenta : null, enGracia = c.EsActual && est[c.TrabajadorId].EnGracia, c.Observaciones, familia = nombres[c.TrabajadorId].Cargo!.Familia });
             return Results.Ok(string.IsNullOrEmpty(estado) ? lista : lista.Where(x => x.estado == estado));
         });
 

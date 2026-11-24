@@ -10,7 +10,7 @@ public static class Reloj
     public static Func<DateOnly> Hoy { get; set; } = () => DateOnly.FromDateTime(DateTime.Now);
 }
 
-public record EstadoTrabajador(string EstadoLaboral, DateOnly? FechaTermino, string? Causal, Contrato? Actual, string EstadoContrato, string EstadoCuenta)
+public record EstadoTrabajador(string EstadoLaboral, DateOnly? FechaTermino, string? Causal, Contrato? Actual, string EstadoContrato, string EstadoCuenta, bool EnGracia = false)
 {
     public bool Activa => EstadoCuenta == "ACTIVA";
 }
@@ -19,7 +19,10 @@ public record EstadoTrabajador(string EstadoLaboral, DateOnly? FechaTermino, str
 /// La regla central de la base única: el estado de la cuenta de SIMA sale de los contratos y de las desvinculaciones.
 ///  - Desvinculado (hay un término con fecha ≤ hoy)  → cuenta CERRADA
 ///  - Activo con contrato actual vigente              → cuenta ACTIVA
-///  - Activo sin contrato vigente                      → cuenta SUSPENDIDA
+///  - Activo sin contrato vigente                      → cuenta SUSPENDIDA (no cerrada: un contrato vencido no es una
+///    desvinculación confirmada; RRHH debe regularizarlo renovando, pasando a indefinido o registrando el término)
+///  - Período de gracia opcional (parámetro «contratos.dias_gracia», por defecto 0): durante esos días un contrato
+///    vencido mantiene la cuenta activa y queda marcado «en gracia» para que RRHH lo regularice.
 /// </summary>
 public static class Reglas
 {
@@ -30,15 +33,19 @@ public static class Reglas
         return c.FechaTermino is null || c.FechaTermino >= hoy ? "VIGENTE" : "VENCIDO";
     }
 
-    public static EstadoTrabajador Calcular(IEnumerable<TerminoContrato> terminos, IEnumerable<Contrato> contratos, DateOnly hoy)
+    public static EstadoTrabajador Calcular(IEnumerable<TerminoContrato> terminos, IEnumerable<Contrato> contratos, DateOnly hoy, int diasGracia = 0)
     {
         var term = terminos.Where(t => t.FechaTermino <= hoy).OrderBy(t => t.FechaTermino).FirstOrDefault();
         var desv = term is not null;
         var actual = contratos.FirstOrDefault(c => c.EsActual);
         var estCont = actual is null ? "SIN CONTRATO" : EstadoContrato(desv, actual, hoy);
-        var cuenta = desv ? "CERRADA" : estCont == "VIGENTE" ? "ACTIVA" : "SUSPENDIDA";
-        return new EstadoTrabajador(desv ? "Desvinculado" : "Activo", term?.FechaTermino, term?.Causal, actual, estCont, cuenta);
+        var gracia = !desv && estCont == "VENCIDO" && diasGracia > 0 && actual!.FechaTermino is { } ft && hoy.DayNumber - ft.DayNumber <= diasGracia;
+        var cuenta = desv ? "CERRADA" : estCont == "VIGENTE" || gracia ? "ACTIVA" : "SUSPENDIDA";
+        return new EstadoTrabajador(desv ? "Desvinculado" : "Activo", term?.FechaTermino, term?.Causal, actual, estCont, cuenta, gracia);
     }
+
+    public static async Task<int> DiasGraciaAsync(SimaDb db, CancellationToken ct = default)
+        => (int)((await db.Parametros.AsNoTracking().FirstOrDefaultAsync(p => p.Clave == "contratos.dias_gracia", ct))?.Valor ?? 0);
 
     public static async Task<Dictionary<string, EstadoTrabajador>> CalcularTodosAsync(SimaDb db, IEnumerable<string>? ids = null, CancellationToken ct = default)
     {
@@ -56,7 +63,8 @@ public static class Reglas
         var terminos = (await qt.ToListAsync(ct)).ToLookup(x => x.TrabajadorId);
         var contratos = (await qc.ToListAsync(ct)).ToLookup(x => x.TrabajadorId);
         var res = new Dictionary<string, EstadoTrabajador>();
-        foreach (var id in await qw.ToListAsync(ct)) res[id] = Calcular(terminos[id], contratos[id], hoy);
+        var gracia = await DiasGraciaAsync(db, ct);
+        foreach (var id in await qw.ToListAsync(ct)) res[id] = Calcular(terminos[id], contratos[id], hoy, gracia);
         return res;
     }
 
