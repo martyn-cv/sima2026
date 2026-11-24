@@ -380,7 +380,7 @@ export function StockCritico({ completo }: { completo?: boolean }) {
       {!data ? <Esqueleto className="h-32" /> : bajos.length === 0 ? <Vacio texto="Todo el stock sobre el mínimo." /> : (
         <ul className="grid grid-cols-[minmax(0,1fr)] gap-1.5">{bajos.slice(0, completo ? 50 : 7).map((r) => (
           <li key={r.id} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-xl border border-linea-suave px-3 py-2">
-            <span className="min-w-0"><span className="block truncate text-[13.5px]"><b className="num text-[12px]">{r.codigo}</b> {r.nombre}{r.critico && <span className="ml-1.5 rounded bg-rojo-claro px-1.5 text-[10.5px] font-bold text-rojo">CRÍTICO</span>}</span><span className="text-[11.5px] text-gris">{r.ubicacion} · mínimo {r.stockMinimo}</span></span>
+            <span className="min-w-0"><span className="block truncate text-[13.5px]" title={`${r.codigo} ${r.nombre}`}><b className="num text-[12px]">{r.codigo}</b> {r.nombre}</span><span className="flex items-center gap-1.5 text-[11.5px] text-gris">{r.critico && <span className="rounded bg-rojo-claro px-1.5 text-[10.5px] font-bold text-rojo">CRÍTICO</span>}{r.ubicacion} · mínimo {r.stockMinimo}</span></span>
             <span className={cx("num text-[16px] font-bold", r.stock === 0 ? "text-rojo" : "text-ambar")}>{r.stock}</span>
           </li>))}</ul>
       )}

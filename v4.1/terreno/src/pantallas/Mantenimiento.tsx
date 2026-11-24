@@ -54,7 +54,7 @@ export function Mantenimiento() {
   useEffect(() => { if (ordenes && filtro === "mias" && n("mias") === 0) setFiltro("abierta"); if (ordenes && filtro === "por_verificar" && n("por_verificar") === 0) setFiltro(n("mias") ? "mias" : "abierta"); }, [ordenes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="grid h-[calc(100dvh-112px)] min-h-[560px] gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
+    <div className="grid h-[calc(100dvh-112px)] min-h-[560px] gap-4 lg:grid-cols-[352px_minmax(0,1fr)]">
       <div className="flex min-h-0 flex-col">
         <h1 className="t-pantalla">Órdenes de trabajo</h1>
         <p className="mb-3 mt-0.5 text-[12.5px] text-gris">{firma ? "Firme las liberaciones que le corresponden. También puede ejecutar las órdenes asignadas a usted." : "Tome una orden, bloquee el equipo, diagnostique, intervenga, pruebe y pida la liberación."}</p>

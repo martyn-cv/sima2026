@@ -107,13 +107,28 @@ function Buscador({ abierto, onCerrar, rutas }: { abierto: boolean; onCerrar: ()
 }
 
 // ------------------------------------------------------------------------------------------------ barra lateral
+const ANCHO_MIN = 200, ANCHO_DEF = 256, ANCHO_MAX = 380;
 export interface ItemNav { s: Seccion; r: string; t: string; i: LucideIcon; g: string; n?: number; critico?: boolean }
 function BarraLateral({ nav, activa, plegada, alPlegar, abrirBuscador }: { nav: ItemNav[]; activa: (r: string) => boolean; plegada: boolean; alPlegar: () => void; abrirBuscador: () => void }) {
   const { usuario } = useAuth();
   const [cerrados, setCerrados] = useState<Set<string>>(new Set());
+  // ancho ajustable arrastrando el borde (se recuerda en este equipo); doble clic vuelve al ancho por defecto
+  const [ancho, setAncho] = useState(() => { try { return Math.min(ANCHO_MAX, Math.max(ANCHO_MIN, Number(localStorage.getItem("sima.lateral.ancho")) || ANCHO_DEF)); } catch { return ANCHO_DEF; } });
+  const [arrastrando, setArrastrando] = useState(false);
+  useEffect(() => { try { localStorage.setItem("sima.lateral.ancho", String(ancho)); } catch { /* sin almacenamiento */ } }, [ancho]);
+  const empezar = (e: React.PointerEvent) => {
+    e.preventDefault(); setArrastrando(true);
+    const x0 = e.clientX, a0 = ancho;
+    const mover = (ev: PointerEvent) => setAncho(Math.min(ANCHO_MAX, Math.max(ANCHO_MIN, a0 + ev.clientX - x0)));
+    const fin = () => { setArrastrando(false); window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", fin); };
+    window.addEventListener("pointermove", mover); window.addEventListener("pointerup", fin);
+  };
   const grupos = [...new Set(nav.map((n) => n.g))];
   return (
-    <motion.aside animate={{ width: plegada ? 56 : 236 }} transition={{ duration: TIEMPO.componente, ease: CURVA }} className="flex shrink-0 flex-col overflow-hidden border-r border-linea-suave bg-fondo-2" aria-label="Navegación">
+    <motion.aside animate={{ width: plegada ? 56 : ancho }} transition={arrastrando ? { duration: 0 } : { duration: TIEMPO.componente, ease: CURVA }} className="relative flex shrink-0 flex-col overflow-hidden border-r border-linea-suave bg-fondo-2" aria-label="Navegación">
+      {!plegada && <div role="separator" aria-orientation="vertical" aria-label="Ajustar el ancho del menú" aria-valuemin={ANCHO_MIN} aria-valuemax={ANCHO_MAX} aria-valuenow={ancho} tabIndex={0} title="Arrastre para ajustar el ancho · doble clic para restablecer"
+        onPointerDown={empezar} onDoubleClick={() => setAncho(ANCHO_DEF)} onKeyDown={(e) => { if (e.key === "ArrowLeft") setAncho((a) => Math.max(ANCHO_MIN, a - 16)); if (e.key === "ArrowRight") setAncho((a) => Math.min(ANCHO_MAX, a + 16)); }}
+        className={cx("absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize transition-colors duration-150 hover:bg-acento/40 focus-visible:bg-acento/60 focus-visible:outline-none", arrastrando && "bg-acento/60")} />}
       <div className={cx("flex h-12 shrink-0 items-center gap-2.5 border-b border-linea-suave", plegada ? "justify-center px-0" : "px-3.5")}>
         <Logo />
         {!plegada && <div className="min-w-0"><p className="text-[13.5px] font-semibold leading-tight">SIMA Desktop</p><p className="truncate text-[11px] text-gris" title={usuario?.familia}>{usuario?.familia ?? "Manufacturas Andina"}</p></div>}
@@ -136,7 +151,7 @@ function BarraLateral({ nav, activa, plegada, alPlegar, abrirBuscador }: { nav: 
               {(!cerrados.has(g) || plegada) && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: TIEMPO.componente, ease: CURVA }} className="overflow-hidden">
                   {nav.filter((n) => n.g === g).map((n) => (
-                    <a key={n.r} href={`#${n.r}`} aria-current={activa(n.r) ? "page" : undefined} title={plegada ? n.t : undefined}
+                    <a key={n.r} href={`#${n.r}`} aria-current={activa(n.r) ? "page" : undefined} title={n.t}
                       className={cx("relative flex h-8 items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors duration-[140ms]", plegada ? "justify-center px-0" : "px-2.5", activa(n.r) ? "bg-papel text-negro" : "text-gris hover:bg-papel/60 hover:text-negro")}>
                       {activa(n.r) && <motion.span layoutId="barra-activa" className="absolute inset-y-1.5 left-0 w-[2px] rounded-full bg-acento" transition={{ duration: TIEMPO.componente, ease: CURVA }} />}
                       <n.i className={cx("size-4 shrink-0", activa(n.r) && "text-acento")} strokeWidth={1.9} />
