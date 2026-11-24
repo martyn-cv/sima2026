@@ -32,7 +32,7 @@ public class Fabrica : WebApplicationFactory<Program>, IAsyncLifetime
         b.UseEnvironment("Development");
         b.ConfigureAppConfiguration((_, c) => c.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ConnectionStrings:Sima"] = $"{Servidor};Database={_bd}", ["Seed:Excel"] = Excel, ["Simulador:Habilitado"] = "false", ["Ingesta:ApiKey"] = "clave-de-prueba", ["Ingesta:ClaveGateway"] = ClaveGateway, ["Logging:LogLevel:Default"] = "Warning",
+            ["ConnectionStrings:Sima"] = $"{Servidor};Database={_bd}", ["Seed:Excel"] = Excel, ["Simulador:Habilitado"] = "false", ["Simulacion:Habilitada"] = "false", ["Ingesta:ApiKey"] = "clave-de-prueba", ["Ingesta:ClaveGateway"] = ClaveGateway, ["Logging:LogLevel:Default"] = "Warning",
         }));
     }
 

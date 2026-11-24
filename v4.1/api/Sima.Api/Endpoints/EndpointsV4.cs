@@ -412,6 +412,8 @@ public static class EndpointsV4
             }
             db.Auditar(s, decision == "aprobar" ? "aprobó y publicó un cambio de PLC" : "rechazó un cambio de PLC", "plc", p.Codigo, $"{c.Resumen} · solicitado por {c.SolicitadoPor}");
             await db.SaveChangesAsync();
+            // planta simulada: si la versión publicada corrige un error de lógica provocado, la máquina vuelve a comportarse bien
+            if (decision == "aprobar") await Simulacion.RevisarLogicaAsync(db, hub, p);
             await hub.Clients.Group("planta").SendAsync("cambioPlc", new { id = c.Id, plc = p.Codigo, estado = c.Estado, por = s.Nombre, resumen = c.Resumen, version = p.VersionPrograma });
             return Results.Ok(new { ok = true, version = p.VersionPrograma });
         });

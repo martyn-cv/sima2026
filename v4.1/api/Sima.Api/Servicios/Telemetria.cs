@@ -44,10 +44,14 @@ public class ProcesadorTelemetria(IHubContext<PlantaHub> hub)
         var equiposTocados = new HashSet<Equipo>();
         var avisos = new List<(string evento, object datos)>();
         var ok = 0;
+        // fallas simuladas activas: alteran lo que «mide» cada sensor y fijan el estado del equipo
+        var fallas = await Simulacion.ManifiestasAsync(db, ct);
+        var forzados = await Simulacion.EstadosForzadosAsync(db, ct);
 
-        foreach (var l in lecturas)
+        foreach (var l0 in lecturas)
         {
-            if (!porClave.TryGetValue((l.Equipo, l.Variable), out var s) || double.IsNaN(l.Valor)) continue;
+            if (!porClave.TryGetValue((l0.Equipo, l0.Variable), out var s) || double.IsNaN(l0.Valor)) continue;
+            var l = fallas.TryGetValue(s.EquipoId, out var fs) ? l0 with { Valor = Simulacion.Afectar(l0.Valor, s, fs) } : l0;
             var ts = l.Ts is { } t && t <= ahora ? t : ahora;
             if (s.UltimoEn is null || ts - s.UltimoEn >= CadenciaHistorial) db.Lecturas.Add(new Lectura { SensorId = s.Id, Valor = l.Valor, Ts = ts });
             s.Ultimo = l.Valor; s.UltimoEn = ts;
@@ -92,9 +96,11 @@ public class ProcesadorTelemetria(IHubContext<PlantaHub> hub)
                 var nuevo = hayAlarma ? EstadosEquipo.Falla : informado ?? (eq.Estado == EstadosEquipo.Falla ? EstadosEquipo.Operativo : eq.Estado);
                 // en marcha con un aviso abierto (variable sobre el umbral de aviso): operativo con observaciones
                 if (EstadosEquipo.Marcha(nuevo)) nuevo = hayAviso ? EstadosEquipo.OperativoObs : EstadosEquipo.Operativo;
+                // una falla simulada activa manda sobre lo que informe el PLC
+                if (forzados.TryGetValue(eq.Id, out var forzado) && (forzado == EstadosEquipo.Falla || nuevo != EstadosEquipo.Falla)) nuevo = forzado;
                 EstadosEquipo.Cambiar(db, eq, nuevo, origen, simulado, hayAlarma ? "variable sobre el límite de alarma" : reportados.ContainsKey(eq.Codigo) ? "informado por el PLC" : "variables normalizadas", ahora, avisos);
             }
-            if (hayAlarma && !await db.Ordenes.AnyAsync(o => o.EquipoId == eq.Id && o.Automatica && o.Estado != "cerrada", ct))
+            if (hayAlarma && !fallas.ContainsKey(eq.Id) && !await db.Ordenes.AnyAsync(o => o.EquipoId == eq.Id && o.Automatica && o.Estado != "cerrada", ct))
             {
                 var al = abiertas.First(a => a.EquipoId == eq.Id && a.Nivel == "alarma");
                 var ot = new OrdenTrabajo { EquipoId = eq.Id, Titulo = $"Falla en {eq.Nombre}", Descripcion = al.Mensaje, Prioridad = eq.Criticidad == "alta" ? "critica" : "alta", Automatica = true, Simulada = simulado };

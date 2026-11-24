@@ -13,7 +13,8 @@ public record LineaEntrada(int AreaId, string Codigo, string Nombre);
 public record ConsumoEntrada(int RepuestoId, int Cantidad);
 public record PlanificarEntrada(uint Version, string? AsignadoAId, DateOnly? Programada, string? Prioridad, string? Especialidad, bool QuitarAsignacion = false, bool QuitarFecha = false);
 public record IntervencionEntrada(string? Uid, DateTime? Inicio, DateTime? Fin, string Causa, string Diagnostico, string Accion, string Resultado, string? Observaciones,
-    List<ConsumoEntrada>? Repuestos, List<int>? Herramientas, bool Cerrar, bool LotoRetirado, List<PruebaEntrada>? Pruebas = null, bool? AfectaSeguridad = null, bool? AfectaCalidad = null);
+    List<ConsumoEntrada>? Repuestos, List<int>? Herramientas, bool Cerrar, bool LotoRetirado, List<PruebaEntrada>? Pruebas = null, bool? AfectaSeguridad = null, bool? AfectaCalidad = null,
+    int? ComponenteId = null, string? ComponenteTipo = null, string? TipoAccion = null);
 
 /// <summary>Integración v4.1: estructura de planta, ficha completa de equipos, eventos e intervenciones técnicas.</summary>
 public static class EndpointsV41
@@ -323,7 +324,9 @@ public static class EndpointsV41
             {
                 Uid = e.Uid is { Length: > 0 } ? e.Uid : null, OrdenId = o.Id, TecnicoId = s.Id, TecnicoNombre = s.Nombre, Inicio = e.Inicio ?? o.Creada, Fin = e.Fin is { } f && f <= ahora.AddMinutes(5) ? f : ahora,
                 Causa = e.Causa, Diagnostico = e.Diagnostico.Trim(), Accion = e.Accion.Trim(), Resultado = e.Resultado, Observaciones = e.Observaciones?.Trim() ?? "",
+                ComponenteId = e.ComponenteId, ComponenteTipo = e.ComponenteTipo ?? "", TipoAccion = e.TipoAccion is { } ta && Simulacion.AccionesTexto.ContainsKey(ta) ? ta : "",
             };
+            if (e.ComponenteId is { } cid && !await db.Componentes.AnyAsync(c => c.Id == cid && c.EquipoId == o.EquipoId)) return Ayudas.Error("Ese componente no pertenece al equipo de la orden.");
             if (i.Fin < i.Inicio) i.Inicio = i.Fin.AddMinutes(-30);
             foreach (var h in (e.Herramientas ?? new()).Distinct())
             {
@@ -345,22 +348,34 @@ public static class EndpointsV41
             var eq = await db.Equipos.Include(x => x.Sensores).Include(x => x.Plc).FirstAsync(x => x.Id == o.EquipoId);
             // registrar la intervención pasa el equipo de diagnóstico a mantenimiento
             if (eq.Estado == EstadosEquipo.Diagnostico) EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Mantenimiento, "desktop", false, $"{o.Codigo}: intervención de {s.Nombre}", ahora, por: s);
+            // planta simulada: la intervención se evalúa contra la causa real (que el técnico no conoce)
+            var sim = await Simulacion.EvaluarAsync(db, hub, s, o, i, e.ComponenteId, e.ComponenteTipo, i.TipoAccion.Length > 0 ? i.TipoAccion : null, consumos.Select(c => c.RepuestoId).ToList());
             foreach (var pr in e.Pruebas ?? new())
             {
                 if (string.IsNullOrWhiteSpace(pr.Descripcion) || pr.Resultado is not ("conforme" or "no_conforme")) return Ayudas.Error("Cada prueba necesita una descripción y un resultado (conforme o no conforme).");
                 if (pr.Uid is { Length: > 0 } && await db.PruebasOrden.AnyAsync(x => x.Uid == pr.Uid)) continue;
-                db.PruebasOrden.Add(new PruebaOrden { OrdenId = o.Id, Uid = pr.Uid, Descripcion = pr.Descripcion.Trim(), Resultado = pr.Resultado, Valores = pr.Valores?.Trim() ?? "", RegistradaPorId = s.Id, RegistradaPor = s.Nombre, Fecha = ahora });
+                // en la planta simulada el resultado de la prueba lo da la máquina: si los síntomas siguen, no puede ser conforme
+                var noSeSostiene = sim.Persiste && pr.Resultado == "conforme";
+                db.PruebasOrden.Add(new PruebaOrden { OrdenId = o.Id, Uid = pr.Uid, Descripcion = pr.Descripcion.Trim(), Resultado = noSeSostiene ? "no_conforme" : pr.Resultado,
+                    Valores = (pr.Valores?.Trim() ?? "") + (noSeSostiene ? " · la planta simulada no confirma el resultado: persisten los síntomas" : ""), RegistradaPorId = s.Id, RegistradaPor = s.Nombre, Fecha = ahora });
             }
             Eventos.Agregar(db, "mantenimiento", e.Cerrar ? "ok" : "info", $"{o.Codigo}: {i.Accion}", "desktop", false, eq.Id, eq.PlcId, ahora, new { orden = o.Codigo, i.Causa, i.Resultado, repuestos = consumos.Count, cerrada = e.Cerrar }, usuarioId: s.Id);
             db.Auditar(s, "registró una intervención", "orden", o.Codigo, $"{eq.Codigo} · {i.Causa} · {consumos.Sum(c => c.Cantidad)} repuestos");
             await db.SaveChangesAsync();          // si otra persona movió el mismo repuesto u orden, la versión no coincide: 409 y no queda nada a medias
+            if (sim.Persiste && e.Cerrar)
+            {
+                // la intervención queda registrada (es parte del historial), pero la orden sigue en curso: la máquina no está reparada
+                await tx.CommitAsync();
+                await hub.Clients.Group("planta").SendAsync("intervencion", new { id = i.Id, orden = o.Codigo, equipo = eq.Codigo, tecnico = s.Nombre, cerrada = false });
+                return Ayudas.Error($"La intervención quedó registrada, pero las pruebas no se sostienen. {sim.Mensaje} Revise el diagnóstico: la orden sigue en curso.", 409);
+            }
             // terminar no libera el equipo: queda «pendiente de liberación» hasta que firmen quienes corresponde
             if (e.Cerrar && await Ordenes.PedirLiberacionAsync(db, hub, s, o, null, e.AfectaSeguridad, e.AfectaCalidad) is { } error) return error;   // sin pruebas conformes: nada queda a medias
             await tx.CommitAsync();
             await hub.Clients.Group("planta").SendAsync("equipo", new { codigo = eq.Codigo, estado = eq.Estado });
             await hub.Clients.Group("planta").SendAsync("orden", new { id = o.Id, codigo = o.Codigo, equipo = eq.Codigo, titulo = o.Titulo, prioridad = o.Prioridad, estado = o.Estado });
             await hub.Clients.Group("planta").SendAsync("intervencion", new { id = i.Id, orden = o.Codigo, equipo = eq.Codigo, tecnico = s.Nombre, cerrada = e.Cerrar });
-            return Results.Created($"/api/ordenes/{o.Id}", new { i.Id, ordenEstado = o.Estado, stock });
+            return Results.Created($"/api/ordenes/{o.Id}", new { i.Id, ordenEstado = o.Estado, stock, simulacion = sim.HayFallas ? new { sim.Resuelta, sim.Persiste, sim.Mensaje } : null });
         });
     }
 }

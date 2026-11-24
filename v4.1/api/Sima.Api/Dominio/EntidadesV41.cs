@@ -82,6 +82,9 @@ public class Intervencion
     public string? Uid { get; set; }                     // idempotencia: la app de escritorio puede reenviar sin duplicar
     public int OrdenId { get; set; }
     public string TecnicoId { get; set; } = "";
+    public int? ComponenteId { get; set; }               // componente intervenido (ficha técnica)
+    public string ComponenteTipo { get; set; } = "";
+    public string TipoAccion { get; set; } = "";         // reemplazo, ajuste, limpieza, lubricación…
     public string TecnicoNombre { get; set; } = "";
     public DateTime Inicio { get; set; }
     public DateTime Fin { get; set; }

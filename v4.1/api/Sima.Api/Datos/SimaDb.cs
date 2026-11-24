@@ -59,6 +59,10 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
     public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
     public DbSet<AccesoPlataforma> AccesosPlataforma => Set<AccesoPlataforma>();
     public DbSet<RegistroAcceso> RegistrosAcceso => Set<RegistroAcceso>();
+    public DbSet<FallaSimulada> FallasSimuladas => Set<FallaSimulada>();
+    public DbSet<EvaluacionFalla> EvaluacionesFalla => Set<EvaluacionFalla>();
+    public DbSet<EscenarioSimulacion> EscenariosSimulacion => Set<EscenarioSimulacion>();
+    public DbSet<InspeccionComponente> InspeccionesComponente => Set<InspeccionComponente>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -189,6 +193,10 @@ public class SimaDb(DbContextOptions<SimaDb> opciones) : DbContext(opciones)
         });
         mb.Entity<IntervencionHerramienta>(e => { e.ToTable("intervencion_herramientas"); e.HasKey(x => new { x.IntervencionId, x.HerramientaId }); e.HasOne<Herramienta>().WithMany().HasForeignKey(x => x.HerramientaId).OnDelete(DeleteBehavior.Restrict); });
         mb.Entity<Documento>(e => { e.ToTable("documentos"); e.HasIndex(x => x.TipoEquipo); e.HasOne<Equipo>().WithMany().HasForeignKey(x => x.EquipoId).OnDelete(DeleteBehavior.Cascade); });
+        mb.Entity<FallaSimulada>(e => { e.ToTable("fallas_simuladas"); e.HasIndex(x => new { x.EquipoId, x.EstadoFisico }); e.HasOne<Equipo>().WithMany().HasForeignKey(x => x.EquipoId).OnDelete(DeleteBehavior.Cascade); });
+        mb.Entity<EvaluacionFalla>(e => { e.ToTable("evaluaciones_falla"); e.HasIndex(x => x.FallaId); });
+        mb.Entity<EscenarioSimulacion>(e => { e.ToTable("escenarios_simulacion"); });
+        mb.Entity<InspeccionComponente>(e => { e.ToTable("inspecciones_componente"); e.HasIndex(x => x.OrdenId); });
         mb.Entity<EquipoRepuesto>(e =>
         {
             e.ToTable("equipo_repuestos"); e.HasKey(x => new { x.EquipoId, x.RepuestoId });

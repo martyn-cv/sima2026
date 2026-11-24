@@ -108,6 +108,7 @@ public class IngestaEventos(IHubContext<PlantaHub> hub)
         if (nuevos.Count == 0) return (0, validos.Count, rechazados);
 
         var equipos = await db.Equipos.Where(e => e.PlcId == plc.Id).ToListAsync(ct);
+        var forzados = await Simulacion.EstadosForzadosAsync(db, ct);   // una falla simulada activa no la despeja un evento del PLC
         var avisos = new List<(string, object)>();
         var ahora = DateTime.UtcNow;
         foreach (var e in nuevos)
@@ -120,7 +121,7 @@ public class IngestaEventos(IHubContext<PlantaHub> hub)
             var ev = Eventos.Agregar(db, e.Tipo, nivel, e.Mensaje ?? e.Tipo, origen, simulado, eq?.Id, plc.Id, ts, e.Datos, $"{plc.Codigo}:{e.Uid}");
 
             // un equipo en mantención, bloqueado o fuera de servicio no cambia por lo que diga el PLC: el estado administrativo manda
-            var bloqueado = eq is not null && EstadosEquipo.Protegido(eq.Estado);
+            var bloqueado = eq is not null && (EstadosEquipo.Protegido(eq.Estado) || forzados.ContainsKey(eq.Id));
             switch (e.Tipo)
             {
                 case "arranque" when eq is not null && !bloqueado: EstadosEquipo.Cambiar(db, eq, EstadosEquipo.Operativo, origen, simulado, "arranque", ts, avisos); break;

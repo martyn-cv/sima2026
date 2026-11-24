@@ -194,6 +194,8 @@ public static class EndpointsPlanta
             if (o.Estado != "en_curso") return Ayudas.Error("La orden debe estar en curso.", 409);
             if (string.IsNullOrWhiteSpace(e.Descripcion)) return Ayudas.Error("Describa qué se probó.");
             if (e.Resultado is not ("conforme" or "no_conforme")) return Ayudas.Error("El resultado debe ser conforme o no conforme.");
+            if (e.Resultado == "conforme" && await Simulacion.PersisteAsync(db, o.EquipoId) is { } sintomas)
+                return Ayudas.Error($"La prueba no resulta conforme: el equipo sigue presentando: {sintomas}", 409);
             var pr = new PruebaOrden { OrdenId = o.Id, Uid = e.Uid, Descripcion = e.Descripcion.Trim(), Resultado = e.Resultado, Valores = e.Valores?.Trim() ?? "", RegistradaPorId = s.Id, RegistradaPor = s.Nombre };
             db.PruebasOrden.Add(pr);
             var eq = await db.Equipos.FirstAsync(x => x.Id == o.EquipoId);

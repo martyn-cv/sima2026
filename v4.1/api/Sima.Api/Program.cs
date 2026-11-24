@@ -25,6 +25,7 @@ builder.Services.AddSingleton<GuardiaDeCuenta>();
 builder.Services.AddScoped<ProcesadorTelemetria>();
 builder.Services.AddScoped<IngestaEventos>();
 builder.Services.AddHostedService<SimuladorInterno>();
+builder.Services.AddHostedService<MotorSimulacion>();
 builder.Services.AddSignalR();
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
@@ -118,6 +119,7 @@ app.MapOperacion();
 app.MapV4();
 app.MapV41();
 app.MapFase2();
+app.MapSimulacion(cfg);
 app.MapHub<PlantaHub>("/hubs/planta");
 
 // ---- arranque automático: crea el esquema, importa el Excel y carga la planta con sus PLC

@@ -108,6 +108,7 @@ public static class Ordenes
         if (ultima is null && db.ChangeTracker.Entries<PruebaOrden>().FirstOrDefault(x => x.Entity.OrdenId == o.Id)?.Entity is { } nueva) ultima = nueva;
         if (ultima is null) return Ayudas.Error("Registre las pruebas que hizo después de intervenir antes de pedir la liberación.");
         if (ultima.Resultado != "conforme") return Ayudas.Error("La última prueba no fue conforme: corrija y vuelva a probar antes de pedir la liberación.");
+        if (await Simulacion.PersisteAsync(db, o.EquipoId) is { } sintomas) return Ayudas.Error($"El equipo sigue presentando: {sintomas} No se puede pedir la liberación de una máquina que no está reparada.", 409);
         var eq = await db.Equipos.FirstAsync(x => x.Id == o.EquipoId);
         var antes = eq.Estado;
         o.Estado = "por_verificar"; o.CierreSolicitado = DateTime.UtcNow; o.RondaLiberacion++;
