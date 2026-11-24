@@ -239,7 +239,7 @@ function AtencionAhora() {
 
 // ------------------------------------------------------------------------------------------------ inicio por cargo
 const ICONO: Partial<Record<Seccion, typeof Wrench>> = { produccion: ClipboardCheck, turno: Users, plan: CalendarDays, mantenimiento: Wrench, explorador: Compass, alertas: Siren, reportar: AlertTriangle, seguridad: HardHat, calidad: ShieldCheck, calibraciones: BadgeCheck, condicion: Route, automatizacion: Cpu, rutinas: ClipboardCheck, panol: Hammer, traspaso: Route };
-export const RUTA: Record<Seccion, string> = { inicio: "/", produccion: "/produccion", turno: "/turno", plan: "/plan", seguimiento: "/seguimiento", mantenimiento: "/mantenimiento", explorador: "/explorador", alertas: "/alertas", reportar: "/reportar", seguridad: "/seguridad", calidad: "/calidad", calibraciones: "/calibraciones", condicion: "/condicion", automatizacion: "/automatizacion", rutinas: "/rutinas", panol: "/panol", traspaso: "/traspaso", cargo: "/cargo", directorio: "/directorio" };
+export const RUTA: Record<Seccion, string> = { inicio: "/", produccion: "/produccion", turno: "/turno", plan: "/plan", seguimiento: "/seguimiento", mantenimiento: "/mantenimiento", explorador: "/explorador", alertas: "/alertas", reportar: "/reportar", seguridad: "/seguridad", calidad: "/calidad", calibraciones: "/calibraciones", condicion: "/condicion", automatizacion: "/automatizacion", rutinas: "/rutinas", panol: "/panol", traspaso: "/traspaso", cargo: "/cargo", directorio: "/directorio", capacitaciones: "/capacitaciones", agenda: "/agenda" };
 
 export function InicioRol() {
   const { usuario } = useAuth();

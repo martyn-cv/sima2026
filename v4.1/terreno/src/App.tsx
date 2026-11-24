@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import {
   AlertTriangle, ArrowRight, BadgeCheck, BookUser, Briefcase, CalendarDays, Check, ClipboardCheck, Cpu, Eye, EyeOff, HardHat, Home, KeyRound, Loader2, Lock, Network, RefreshCw, Repeat,
-  Route, Search, Server, ShieldCheck, Siren, TriangleAlert, Users, Wrench, WifiOff, Hammer, ListChecks, type LucideIcon,
+  Route, Search, Server, ShieldCheck, Siren, TriangleAlert, Users, Wrench, WifiOff, Hammer, ListChecks, GraduationCap, CalendarClock, type LucideIcon,
 } from "lucide-react";
 import { ApiError } from "@sima/cliente";
 import { Avatar, AvisosProvider, Boton, Campo, CURVA, Entrada, EstadoVista, MarcaSimulado, PantallaSeguridad, TIEMPO, cx, defEstado, mensajeDe, useAviso } from "@sima/ui";
@@ -20,6 +20,7 @@ import { Panol } from "./pantallas/PanolV2";
 import { Automatizacion, Calibraciones, Calidad, Condicion, InicioRol, Produccion, RUTA, Seguridad, Turno } from "./pantallas/Rol";
 import { PlanificacionMantenimiento } from "./pantallas/Calendario";
 import { Seguimiento } from "./pantallas/Seguimiento";
+import { Capacitaciones, MiAgenda } from "./pantallas/Capacitaciones";
 import { SECCIONES, experienciaDe, seccionesDe, tiene, type Seccion } from "./roles";
 import { Estacion, Logo, VERSION, type ItemNav } from "./shell";
 
@@ -198,11 +199,11 @@ function Ingreso({ sinConexion }: { sinConexion: boolean }) {
 /** Icono de cada sección del menú. Qué secciones ve cada persona lo decide roles.ts según su cargo y sus capacidades. */
 const ICONOS: Record<Seccion, LucideIcon> = {
   inicio: Home, produccion: ClipboardCheck, turno: Users, plan: CalendarDays, seguimiento: ListChecks, mantenimiento: Wrench, explorador: Network, alertas: Siren, reportar: TriangleAlert, seguridad: HardHat,
-  calidad: ShieldCheck, calibraciones: BadgeCheck, condicion: Route, automatizacion: Cpu, rutinas: ClipboardCheck, panol: Hammer, traspaso: Repeat, cargo: Briefcase, directorio: BookUser,
+  calidad: ShieldCheck, calibraciones: BadgeCheck, condicion: Route, automatizacion: Cpu, rutinas: ClipboardCheck, panol: Hammer, traspaso: Repeat, cargo: Briefcase, directorio: BookUser, capacitaciones: GraduationCap, agenda: CalendarClock,
 };
 const PANTALLAS: Record<Seccion, () => ReactNode> = {
   inicio: InicioRol, produccion: Produccion, turno: Turno, plan: PlanificacionMantenimiento, seguimiento: Seguimiento, mantenimiento: Mantenimiento, explorador: Explorador, alertas: Alarmas, reportar: () => <Reportar />, seguridad: Seguridad,
-  calidad: Calidad, calibraciones: Calibraciones, condicion: Condicion, automatizacion: Automatizacion, rutinas: Rutinas, panol: Panol, traspaso: Traspaso, cargo: MiCargo, directorio: Directorio,
+  calidad: Calidad, calibraciones: Calibraciones, condicion: Condicion, automatizacion: Automatizacion, rutinas: Rutinas, panol: Panol, traspaso: Traspaso, cargo: MiCargo, directorio: Directorio, capacitaciones: Capacitaciones, agenda: MiAgenda,
 };
 const POR_RUTA = Object.fromEntries(Object.entries(RUTA).map(([s, r]) => [r, s as Seccion])) as Record<string, Seccion>;
 POR_RUTA["/alarmas"] = "alertas";                                   // enlaces antiguos de notificaciones

@@ -7,7 +7,7 @@ import type { Usuario } from "@sima/cliente";
  */
 export type Seccion =
   | "inicio" | "produccion" | "turno" | "plan" | "seguimiento" | "mantenimiento" | "explorador" | "alertas" | "reportar" | "seguridad"
-  | "calidad" | "calibraciones" | "condicion" | "automatizacion" | "rutinas" | "panol" | "traspaso" | "cargo" | "directorio";
+  | "calidad" | "calibraciones" | "condicion" | "automatizacion" | "rutinas" | "panol" | "traspaso" | "cargo" | "directorio" | "capacitaciones" | "agenda";
 
 export interface DefSeccion { titulo: string; grupo: "Mi trabajo" | "Planta" | "Turno" | "Personal"; requiere?: string[]; perfiles?: string[] }
 
@@ -24,12 +24,14 @@ export const SECCIONES: Record<Seccion, DefSeccion> = {
   condicion: { titulo: "Condición de activos", grupo: "Mi trabajo", requiere: ["planta.ver"], perfiles: ["confiabilidad", "jefe_mant"] },
   automatizacion: { titulo: "PLC y automatización", grupo: "Mi trabajo", requiere: ["plc.editar", "plc.aprobar"] },
   seguridad: { titulo: "Seguridad y salud", grupo: "Mi trabajo", requiere: ["sst.reportar"] },
+  capacitaciones: { titulo: "Charlas y capacitaciones", grupo: "Mi trabajo", requiere: ["sst.gestionar"] },
   explorador: { titulo: "Explorador de planta", grupo: "Planta", requiere: ["planta.ver"] },
   alertas: { titulo: "Alertas", grupo: "Planta", requiere: ["planta.ver"] },
   reportar: { titulo: "Reportar falla", grupo: "Planta", requiere: ["ordenes.crear"] },
   rutinas: { titulo: "Rutinas y checklist", grupo: "Turno" },
   panol: { titulo: "Pañol y repuestos", grupo: "Turno", requiere: ["repuestos.ver"] },
   traspaso: { titulo: "Traspaso de turno", grupo: "Turno", requiere: ["traspaso.ver", "traspaso.editar"] },
+  agenda: { titulo: "Mi agenda", grupo: "Personal" },
   cargo: { titulo: "Mi cargo", grupo: "Personal" },
   directorio: { titulo: "Directorio", grupo: "Personal" },
 };
@@ -99,7 +101,7 @@ const PERFIL: Record<string, Experiencia> = {
   },
   prevencion: {
     inicio: "Prevención SST", enfoque: "Eventos por investigar, condiciones inseguras, habilitaciones y riesgos por zona.",
-    menu: ["inicio", "seguridad", "mantenimiento", "explorador", "alertas", "rutinas", "cargo"], acciones: ["seguridad", "explorador"],
+    menu: ["inicio", "seguridad", "capacitaciones", "mantenimiento", "explorador", "alertas", "rutinas", "cargo"], acciones: ["seguridad", "capacitaciones", "explorador"],
     alertas: ["Accidente o casi accidente", "Habilitación de seguridad vencida", "Evento sin investigar"], alcance: "Información preventiva. No se guardan datos médicos individuales.",
   },
 };
@@ -143,7 +145,7 @@ export function tiene(u: Usuario | null | undefined, cap: string) {
 
 /** Secciones visibles para la persona: las de su experiencia que el servidor le permite. */
 /** Todos pueden reportar una condición insegura y ver la descripción de su cargo (reglas generales de la matriz). */
-const SIEMPRE: Seccion[] = ["seguridad", "cargo"];
+const SIEMPRE: Seccion[] = ["seguridad", "agenda", "cargo"];
 
 export function seccionesDe(u: Usuario | null): Seccion[] {
   const menu = experienciaDe(u).menu;

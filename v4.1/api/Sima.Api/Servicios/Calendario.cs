@@ -97,7 +97,12 @@ public static class Calendario
         for (var t = inicio; t < hasta && res.Count < cuantos; t = t.AddMinutes(30))
         {
             var f = t + duracion;
-            if (trab.All(x => EnTurno(x.Turno, t, f)) && !ocupado.Any(o => o.Inicio < f && o.Fin > t)) { res.Add(t); t = f.AddMinutes(-30); }
+            if (trab.All(x => EnTurno(x.Turno, t, f)) && !ocupado.Any(o => o.Inicio < f && o.Fin > t))
+            {
+                res.Add(t);
+                var sig = f.Minute % 30 == 0 ? f : f.AddMinutes(30 - f.Minute % 30);   // la siguiente sugerencia, en una media hora exacta
+                t = sig.AddMinutes(-30);
+            }
         }
         return res;
     }
